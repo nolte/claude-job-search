@@ -57,16 +57,16 @@ von Karriereportalen und Universitätsunterlagen. Die Einschränkungen sind wich
 
 ### ATS-Filter (Applicant Tracking System)
 
-7. **Einspaltiges Layout.** Zweispaltige Layouts werden von Parsern oft in falscher
+1. **Einspaltiges Layout.** Zweispaltige Layouts werden von Parsern oft in falscher
    Reihenfolge gelesen. Quellen: [Remotely – ATS-Lebenslauf](https://www.remotely.de/ats-lebenslauf),
    [pdf2go – ATS-Formate](https://pdf2go.com/blog/the-best-resume-formats-for-ats).
-8. **Tabellen, Textfelder, Grafiken und Kopf-/Fußzeilen vermeiden.** Sie zählen zu den
+2. **Tabellen, Textfelder, Grafiken und Kopf-/Fußzeilen vermeiden.** Sie zählen zu den
    häufigsten Ursachen für Datenverlust beim Auslesen. Quelle: [Profiling-Institut – ATS-Generator](https://www.profiling-institut.de/job-application/ats-lebenslauf-generator/).
-9. **Standard-Überschriften** wie „Berufserfahrung“, „Ausbildung“, „Kenntnisse“.
+3. **Standard-Überschriften** wie „Berufserfahrung“, „Ausbildung“, „Kenntnisse“.
    Kreative Überschriften erkennt das System nicht zuverlässig. Quelle: [Profiling-Institut – 5 häufigste Fehler](https://www.profiling-institut.de/5-haeufigste-fehler-im-ats-lebenslauf/).
-10. **Keywords aus der Stellenanzeige** übernehmen, aber nur dort, wo die Erfahrung belegt ist.
+4. **Keywords aus der Stellenanzeige** übernehmen, aber nur dort, wo die Erfahrung belegt ist.
     Quelle: [airesume.guru – ATS-freundliches Format](https://airesume.guru/de/blog/ats-freundliches-lebenslauf-format).
-11. **Dateiformat:** DOCX gilt als sicherstes Format, ein aus Word exportiertes Text-PDF
+5. **Dateiformat:** DOCX gilt als sicherstes Format, ein aus Word exportiertes Text-PDF
     als zweitbeste Wahl. Gescannte PDFs sind ohne OCR nicht auslesbar. Gilt eine
     Formatangabe in der Stellenanzeige, hat sie Vorrang. Quelle: [Profiling-Institut – ATS-Generator](https://www.profiling-institut.de/job-application/ats-lebenslauf-generator/).
 

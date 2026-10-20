@@ -204,8 +204,8 @@ The user's own, complete, chronological basis in Markdown. Requirement document:
 | Stufe | Meaning | Example |
 |---|---|---|
 | Blocker | required item missing or contradictory | contact empty; two periods for one station |
-| Warnung | format or plausibility deviates from R-2 and R-2.1 | year only instead of `MM/JJJJ`; gap over two months without a note; more than five bullets; end before start |
-| Hinweis | content can be improved | station without result; number without proof; possible but unclear overlap of education and school |
+| Warnung | format or plausibility deviates from R-2 and R-2.1 | year only instead of `MM/JJJJ`; gap over two months without a note; end before start |
+| Hinweis | content can be improved | station without result; number without proof; possible but unclear overlap of education and school; more bullets than R-2.1 allows for an output (selection per application, R-9.11) |
 
 **Flow.**
 
@@ -225,6 +225,16 @@ The user's own, complete, chronological basis in Markdown. Requirement document:
 - German, with original quotations unchanged.
 
 Hash command: `sha256sum <Grundlage-Pfad>`.
+
+### R-9.11 Umfang der Datengrundlage und Auswahl pro Bewerbung
+
+1. **Complete, not lean.** The Grundlage holds all of the user's facts. It may contain more stations, bullets, and certificates than one application needs. Its size is not a finding by itself.
+2. **Limits apply to outputs.** The bullet counts and page limits of R-2 and R-2.1 govern the generated Lebenslauf, not the Grundlage. In the Pflegelauf, too many bullets in a station is a Hinweis, not a Warnung.
+3. **Selection per application.** `job-application-cv-create` selects from the Grundlage for each Stellenanzeige: which stations, which bullets, which certificates, and in which order. The selection follows the posting and the evidence rules of R-1.3 and R-2.1.
+4. **Selection never adds facts.** Only entries that exist in the Grundlage can be selected. Wording is not rewritten to fit the posting beyond the reordering and shortening that R-2.1 allows.
+5. **Omissions are visible.** The output records which Grundlage entries were used and which were left out, with a short reason, in `pruefbericht.md`. A station left out must not produce an unexplained gap; a gap over two months is still shown as a neutral entry (R-2, Lücken).
+6. **Nothing is marked in the Grundlage.** A selection is never stored in the Grundlage. The Grundlage carries no application-specific marks.
+7. **Pflegelauf does not select.** `job-application-cv-maintain` checks the completeness of the Grundlage (R-9.8), not its fit to a posting.
 
 ## R-10 Ausgabeformate
 

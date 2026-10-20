@@ -32,7 +32,7 @@ already exist in the profile.
 ## Inputs
 
 - `job-application/profil.md` (required). Its `grundlage_hash` is checked (step 1).
-- The Datengrundlage path from `job-application/konfiguration.md` (key `grundlage`), default `job-application/grundlage/lebenslauf-chronologisch.md` (spec R-9.10). Required for the hash check.
+- The Datengrundlage path from `job-application/konfiguration.md` (key `grundlage`), default `job-application/grundlage/lebenslauf-chronologisch.md` (spec R-9.10). Required for the hash check and as the only source of the selection (R-9.11).
 - `job-application/<slug>/analyse.md` (optional). Its *erfüllt* rows decide which entries get more room.
 - `situation` (asked if not given): Standard, Berufseinstieg, Schüler/Studierende/Praktikum, Quereinstieg, Lücke, Viele Stationen, ATS/Portal, Österreich, Schweiz. Europass and academic CV are not produced here (R-8.4).
 - `foto` (optional): `ja` only if the user requests it or the situation is Österreich (R-8.2).
@@ -81,14 +81,33 @@ Section headings are the standard headings (R-8.3). No tables, no columns, no te
    take the user's decision. Record the chosen format in the frontmatter.
 3. **Order.** Stations reverse chronological (R-2). Within a station, bullets by relevance to
    the posting when an analysis exists (R-2.1).
-4. **Entries.** Each station: header line `Zeitraum | Position | Arbeitgeber, Ort` (R-2.1.1),
-   then 3 to 5 bullets for the two or three most recent relevant stations, 1 to 2 for older ones,
+4. **Auswahl pro Bewerbung.** Select stations, bullets, and certificates from the Datengrundlage for this Stellenanzeige, as described in the section below (R-9.11).
+5. **Entries.** Each selected station: header line `Zeitraum | Position | Arbeitgeber, Ort` (R-2.1.1),
+   then 3 to 5 bullets for the two or three most recent relevant stations, 1 to 2 for older ones (R-2.1, output limits),
    or the header line only where a station does not support the application.
-5. **Bullets.** Formula Verb + Objekt + Umfang + Ergebnis. Use a number only if the profile
+6. **Bullets.** Formula Verb + Objekt + Umfang + Ergebnis. Use a number only if the profile
    states it. Otherwise use a qualitative result. Routine tasks without result are dropped.
-6. **Length.** Standard about two pages. Einseitig for Einsteiger, Praktikum, Schüler. Trim older
+7. **Length.** Standard about two pages. Einseitig for Einsteiger, Praktikum, Schüler. Trim older
    or less relevant entries before recent ones.
-7. **Write** the file with the frontmatter.
+8. **Write** the file with the frontmatter.
+
+## Auswahl pro Bewerbung (R-9.11)
+
+The Datengrundlage is complete and may hold more than one application needs. This step selects
+what the Lebenslauf for this posting uses.
+
+1. **Choose** stations, bullets, and certificates that match the requirements of the Stellenanzeige
+   (from `analyse.md`). Use the evidence rules of R-1.3 and R-2.1. Order the stations reverse
+   chronological and the bullets by relevance to the posting.
+2. **Only existing entries.** Use only entries that exist in the Datengrundlage. Do not add facts.
+   Reword only as far as R-2.1 allows: shortening and reordering, no new claims.
+3. **Output limits.** Bullet counts and page limits come from R-2 and R-2.1, applied to this output.
+   They do not come from the Datengrundlage.
+4. **Omissions are visible.** Write the omitted entries with a short reason to `pruefbericht.md` in the
+   application folder, as the section `## Auswahl Lebenslauf`. Create the file if it is missing. A
+   left-out station must not leave an unexplained gap. A gap over two months stays as a neutral entry (R-2).
+5. **Never store the selection** in the Datengrundlage or in the profile. The Grundlage carries no
+   application-specific marks.
 
 ## Format rules by situation (R-8.1)
 

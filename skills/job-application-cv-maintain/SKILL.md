@@ -115,14 +115,14 @@ Each new or changed station is shown in full and confirmed by the user. Only the
 | Stufe | Befund | Beispiel |
 |---|---|---|
 | Blocker | Pflichtpunkt fehlt oder widerspricht sich | Kontakt leer; zwei Zeiträume für dieselbe Station |
-| Warnung | Format oder Plausibilität weicht von R-2/R-2.1 ab | Jahresangabe statt `MM/JJJJ`; Lücke über zwei Monate ohne Erklärung; mehr als fünf Stichpunkte; Ende vor Beginn |
-| Hinweis | Inhalt verbesserbar | Station ohne Ergebnis; Zahl ohne Beleg; mögliche Überschneidung von Ausbildung und Schule |
+| Warnung | Format oder Plausibilität weicht von R-2/R-2.1 ab | Jahresangabe statt `MM/JJJJ`; Lücke über zwei Monate ohne Erklärung; Ende vor Beginn |
+| Hinweis | Inhalt verbesserbar | Station ohne Ergebnis; Zahl ohne Beleg; mögliche Überschneidung von Ausbildung und Schule; mehr Stichpunkte, als eine Ausgabe erlaubt (R-9.11) |
 
 Additional rules:
 
 - Overlapping full-time stations are reported, not corrected.
 - Gaps over two months need a neutral entry (R-2.1).
-- Bullets: three to five for the most recent relevant stations, one to two for older ones (R-2.1).
+- Bullets: the Grundlage has no bullet limit. The output limits of R-2.1 are applied per application when the Lebenslauf is selected (R-9.11). Too many bullets in a station is a Hinweis, never a Warnung.
 - Every number in a bullet must be backed by the file or a certificate. An unbacked number is a blocker (R-1).
 - Sprachniveaus are checked against GER levels (A1–C2).
 
@@ -137,3 +137,4 @@ Additional rules:
 6. **Lokal bleiben.** No network access. The report in chat shows section names and findings, not full
    values of sensitive fields.
 7. **Repository-Grenze.** Step 0 applies before anything else.
+8. **Nur Vollständigkeit.** The skill checks whether the Grundlage is complete (R-9.8). It selects nothing for a Stellenanzeige (R-9.11, point 7).
