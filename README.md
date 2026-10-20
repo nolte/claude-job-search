@@ -3,43 +3,62 @@
 [![ci](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml/badge.svg)](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml)
 
 Claude Code plugin with skills and an agent for German-speaking job applications
-(*Bewerbungsunterlagen*) — tabular Lebenslauf, DIN-5008-style Anschreiben, Bewerbungs-E-Mail,
+(*Bewerbungsunterlagen*) — single-column Lebenslauf, DIN-5008-style Anschreiben, Bewerbungs-E-Mail,
 requirement match against the Stellenanzeige, and a quality gate before you send.
 
 ## Purpose
 
 Application documents for the DACH region follow specific conventions (reverse-chronological
-tabular CV, one-page letter with a concrete subject line, attachment naming), and every
+single-column CV, one-page letter with a concrete subject line, attachment naming), and every
 application repeats the same facts. This plugin keeps the facts in one local profile and
 derives every document from it, so the output is consistent, tailored to the posting and
 never invents experience.
 
-- You describe a **job posting**; `bewerbung-solution` checks your profile, analyses the
+- You describe a **job posting**; `job-application-solution` checks your profile, analyses the
   posting, and asks for approval of the plan before any document is written.
-- Every fact comes from `bewerbung/profil.md`. Gaps are marked `[ERGÄNZEN: …]` and block
+- Every fact comes from `job-application/profil.md`. Gaps are marked `[ERGÄNZEN: …]` and block
   the quality gate until resolved.
-- The rules are codified in `spec/bewerbung/konventionen/en.md`.
+- The rules are codified in `spec/job-application/konventionen/en.md`.
 
 ## What you get
 
-- **Skills** — `bewerbung-solution` (front door), `bewerbung-profil-erfassen`,
-  `bewerbung-stellenanzeige-analysieren`, `bewerbung-lebenslauf-erstellen`,
-  `bewerbung-anschreiben-erstellen`, `bewerbung-email-erstellen`, `bewerbung-pruefen`.
-- **Agent** — `bewerbungs-reviewer`: read-only, whole-set review from a recruiter's perspective.
+### Skills
+
+| Skill | Phase | What it does |
+|---|---|---|
+| `job-application-solution` | plan | Front door. Checks the Datengrundlage and profile, analyses the posting, shows a plan, creates the documents in order, and ends with the quality gate. |
+| `job-application-profile-capture` | intake | Builds the Datengrundlage (chronological Markdown) from existing CVs, certificates, and notes, and derives `profil.md` from it. |
+| `job-application-cv-maintain` | intake | Maintains an existing Datengrundlage in a guided interview. Checks core points and inconsistencies, asks only about findings, and records changes in a Pflegeverlauf. |
+| `job-application-posting-analysis` | analyse | Extracts requirements, tone, and requested documents from a Stellenanzeige and matches each requirement against the profile with evidence (erfüllt, teilweise, fehlt). |
+| `job-application-cv-create` | create | Creates the Lebenslauf in the format for the situation (chronological, one page, combined, ATS). Each station is one header line plus 3 to 5 bullets. |
+| `job-application-cover-letter-create` | create | Writes a one-page Anschreiben in DIN 5008 layout. Variants: job posting, unsolicited application, career change, entry-level. |
+| `job-application-email-create` | deliver | Writes the Bewerbungs-E-Mail: subject, short body, attachment list, and file names. |
+| `job-application-export` | deliver | Exports a finished document to PDF (LaTeX), DOCX, HTML, or Markdown via `task export`. Carries the hash and checks that the content is unchanged. |
+| `job-application-quality-gate` | review | Checks a folder before sending: blockers, warnings, and notes on completeness, consistency, traceability, length, ATS rules, and staleness. |
+
+### Agent
+
+| Agent | What it does |
+|---|---|
+| `job-application-reviewer` | Read-only review of the whole set from a recruiter's view: traceability, consistency, requirement coverage, and language. Writes nothing. |
+
+All skills read and write only in the git-ignored `job-application/` folder of your working copy.
+The rules they follow are in `spec/job-application/konventionen/en.md`.
 
 ## Use cases
 
-- **Complete application for one posting** — `bewerbung-solution`.
-- **Check whether your profile fits a posting** — `bewerbung-stellenanzeige-analysieren`.
-- **Cover letter for a posting, an unsolicited application, or a career change** — `bewerbung-anschreiben-erstellen`.
-- **Review before sending** — `bewerbung-pruefen`, plus the `bewerbungs-reviewer` agent for a second read.
+- **Complete application for one posting** — `job-application-solution`.
+- **Check whether your profile fits a posting** — `job-application-posting-analysis`.
+- **Cover letter for a posting, an unsolicited application, or a career change** — `job-application-cover-letter-create`.
+- **Review before sending** — `job-application-quality-gate`, plus the `job-application-reviewer` agent for a second read.
+- **Export for sending or viewing** — `job-application-export`, e.g. `task export -- <datei.md> --format pdf --doc-type cv`.
 
 ## Usage
 
 Install the plugin via its marketplace, then invoke a skill with
-`/claude-job-search:<skill>`, for example `/claude-job-search:bewerbung-solution`.
+`/claude-job-search:<skill>`, for example `/claude-job-search:job-application-solution`.
 
-Application data lives in the git-ignored `bewerbung/` folder of the working copy.
+Application data lives in the git-ignored `job-application/` folder of the working copy.
 
 ### Work on the plugin itself (dogfooding)
 
@@ -54,6 +73,7 @@ Use `/reload-plugins` inside the session to pick up changes. Local automation ru
 task lint     # pre-commit checks
 task test     # placeholder until runtime tests exist
 task docs     # build the MkDocs site
+task export -- <datei.md> --format pdf --doc-type cv   # export a document (pdf, docx, html, md)
 ```
 
 ## Documentation

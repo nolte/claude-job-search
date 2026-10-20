@@ -1,6 +1,6 @@
 ---
-name: bewerbungs-reviewer
-description: "Produces one read-only review of a complete German application set (Lebenslauf, Anschreiben, E-Mail, optional Zeugnisse) for one Stellenanzeige: fact traceability against the profile, consistency across documents, requirement coverage, German language quality, and the view of a recruiter reading the set in its first minute. Returns a verdict READY / NEEDS-WORK with findings. Writes nothing. Use on \"prüfe die komplette Bewerbung kritisch\", \"wie wirkt meine Bewerbung auf eine Personalerin\", \"Gesamtreview vor dem Versand\", or equivalent German requests. Don't use for the checklist-style quality gate (bewerbung-pruefen), for writing or rewriting documents (bewerbung-solution and the owning skills), or for profile intake (bewerbung-profil-erfassen)."
+name: job-application-reviewer
+description: "Produces one read-only review of a complete German application set (Lebenslauf, Anschreiben, E-Mail, optional Zeugnisse) for one Stellenanzeige: fact traceability against the profile, consistency across documents, requirement coverage, German language quality, and the view of a recruiter reading the set in its first minute. Returns a verdict READY / NEEDS-WORK with findings. Writes nothing. Use on \"prüfe die komplette Bewerbung kritisch\", \"wie wirkt meine Bewerbung auf eine Personalerin\", \"Gesamtreview vor dem Versand\", or equivalent German requests. Don't use for the checklist-style quality gate (job-application-quality-gate), for writing or rewriting documents (job-application-solution and the owning skills), or for profile intake (job-application-profile-capture)."
 distribution: plugin
 tools: Read, Glob, Grep
 tags: [bewerbung, review, recruiting, deutsch]
@@ -12,22 +12,22 @@ use_when:
   - "you want to know how the set comes across to a recruiter"
 dont_use_when:
   - situation: "You want the checklist-style gate with a stored report"
-    alternative: bewerbung-pruefen
+    alternative: job-application-quality-gate
   - situation: "You want the documents written or rewritten"
-    alternative: bewerbung-solution
+    alternative: job-application-solution
 see_also:
-  - bewerbung-pruefen
-  - bewerbung-solution
+  - job-application-quality-gate
+  - job-application-solution
 ---
 
 # Bewerbungs-Reviewer
 
 Read-only. This agent surfaces findings and never edits. The user decides what changes.
-Spec: `spec/bewerbung/konventionen/en.md` (R-1 … R-7).
+Spec: `spec/job-application/konventionen/en.md` (R-1 … R-7).
 
 ## Inputs
 
-- The folder `bewerbung/<slug>/` and `bewerbung/profil.md` (read both).
+- The folder `job-application/<slug>/` and `job-application/profil.md` (read both).
 - The posting text in `analyse.md`, if present.
 
 ## Review dimensions
@@ -42,7 +42,8 @@ Spec: `spec/bewerbung/konventionen/en.md` (R-1 … R-7).
    evidence visible? Is the CV scannable? Does the letter say something specific about
    this company, or could it be sent anywhere?
 5. **Sprache und Form:** German grammar, Stil, unnecessary Floskeln, Sie/du consistency,
-   Länge (R-2, R-3).
+   Länge (R-2, R-3), Eintragsblock (R-2.1: header line, 1–5 bullets, no invented numbers),
+   ATS-Regeln where the posting asks for them (R-8.3).
 6. **Vollständigkeit:** required parts present for the chosen Bewerbungsweg (R-4, R-5).
 
 ## Output

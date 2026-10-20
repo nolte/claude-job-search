@@ -1,6 +1,6 @@
 ---
-name: bewerbung-anschreiben-erstellen
-description: "Writes a German Anschreiben (cover letter) for one Stellenanzeige in DIN-5008-style layout, maximum one page, with requirement-to-proof paragraphs taken from bewerbung/profil.md and the posting analysis. Supports ausschreibung, initiativ, quereinstieg and berufseinstieg variants. Writes Markdown to bewerbung/<slug>/anschreiben.md. Use on \"schreib ein Anschreiben\", \"Motivationsschreiben für diese Stelle\", \"Initiativbewerbung schreiben\", or equivalent German requests. Don't use for the CV (bewerbung-lebenslauf-erstellen), the E-Mail (bewerbung-email-erstellen), or the review of finished documents (bewerbung-pruefen)."
+name: job-application-cover-letter-create
+description: "Writes a German Anschreiben (cover letter) for one Stellenanzeige in DIN-5008-style layout, maximum one page, with requirement-to-proof paragraphs taken from job-application/profil.md and the posting analysis. Supports ausschreibung, initiativ, quereinstieg and berufseinstieg variants. Writes Markdown to job-application/<slug>/anschreiben.md. Use on \"schreib ein Anschreiben\", \"Motivationsschreiben für diese Stelle\", \"Initiativbewerbung schreiben\", or equivalent German requests. Don't use for the CV (job-application-cv-create), the E-Mail (job-application-email-create), or the review of finished documents (job-application-quality-gate)."
 tags: [bewerbung, anschreiben, motivationsschreiben, deutsch, din-5008]
 phase: create
 summary: "Writes a one-page German cover letter that maps the posting's requirements to proven experience from the profile."
@@ -11,30 +11,30 @@ use_when:
   - "you are changing careers or starting out and need a tailored letter"
 dont_use_when:
   - situation: "You need the CV"
-    alternative: bewerbung-lebenslauf-erstellen
+    alternative: job-application-cv-create
   - situation: "You need the text for the sending e-mail"
-    alternative: bewerbung-email-erstellen
+    alternative: job-application-email-create
 see_also:
-  - bewerbung-stellenanzeige-analysieren
-  - bewerbung-lebenslauf-erstellen
-  - bewerbung-email-erstellen
-  - bewerbung-pruefen
+  - job-application-posting-analysis
+  - job-application-cv-create
+  - job-application-email-create
+  - job-application-quality-gate
 ---
 
 # Bewerbung Anschreiben erstellen
 
-Spec: `spec/bewerbung/konventionen/en.md` R-1 (facts), R-3 (letter form, length,
+Spec: `spec/job-application/konventionen/en.md` R-1 (facts), R-3 (letter form, length,
 tone), R-7 (quality gate).
 
 ## Inputs
 
-- `bewerbung/profil.md` (required).
-- `bewerbung/<slug>/analyse.md` (required for `ausschreibung`; optional otherwise).
+- `job-application/profil.md` (required).
+- `job-application/<slug>/analyse.md` (required for `ausschreibung`; optional otherwise).
 - `ausrichtung` (`ausschreibung` default, `initiativ`, `quereinstieg`, `berufseinstieg`).
 
 ## Output
 
-`bewerbung/<slug>/anschreiben.md`:
+`job-application/<slug>/anschreiben.md`:
 
 ```markdown
 **Vorname Nachname**
@@ -76,6 +76,8 @@ Vorname Nachname
    posting gives none, leave `[ERGÄNZEN: konkreter Bezug zum Unternehmen]`.
 4. Match the tone of the posting (Sie unless the posting uses du).
 5. Count words and keep the letter under one page (R-3, about 250–400 words).
+6. Put a frontmatter block with `grundlage_hash: <current hash>` at the top of the file (R-9.5).
+   Sending the letter with a stale hash is a blocker for `job-application-quality-gate`.
 
 ## Variants
 

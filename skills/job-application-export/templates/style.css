@@ -1,0 +1,91 @@
+/* Self-contained stylesheet for the HTML export (FA-O21, FA-O22).
+   Embedded into the HTML file by pandoc --embed-resources; no external resources. */
+:root {
+  --text: #1a1a1a;
+  --muted: #555555;
+  --background: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --text: #eeeeee;
+    --muted: #aaaaaa;
+    --background: #121212;
+  }
+}
+
+:root[data-theme="dark"] {
+  --text: #eeeeee;
+  --muted: #aaaaaa;
+  --background: #121212;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  background: var(--background);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 48rem;
+  padding: 1rem;
+}
+
+main {
+  display: block;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin-bottom: 0.25rem;
+}
+
+h2 {
+  border-bottom: 1px solid var(--muted);
+  font-size: 1.15rem;
+  margin-top: 1.5rem;
+  padding-bottom: 0.2rem;
+}
+
+h3 {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+ul {
+  padding-left: 1.25rem;
+}
+
+li {
+  margin-bottom: 0.2rem;
+}
+
+header {
+  margin-bottom: 1rem;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 20mm;
+  }
+
+  :root,
+  :root[data-theme="dark"] {
+    --text: #000000;
+    --muted: #444444;
+    --background: #ffffff;
+  }
+
+  body {
+    max-width: none;
+    padding: 0;
+  }
+
+  h2 {
+    break-after: avoid;
+  }
+}
