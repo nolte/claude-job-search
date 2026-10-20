@@ -1,0 +1,77 @@
+site_name: claude-job-search
+site_url: https://nolte.github.io/claude-job-search/
+site_description: Claude Code skills for German-speaking job applications (Bewerbungsunterlagen) — packaged as the claude-job-search plugin.
+site_author: nolte
+
+repo_url: https://github.com/nolte/claude-job-search
+repo_name: nolte/claude-job-search
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2026 nolte
+
+docs_dir: docs
+
+theme:
+  name: material
+  language: en
+
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: light blue
+      toggle:
+        icon: material/brightness-7
+        name: Zum Dunkelmodus wechseln
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Zum Hellmodus wechseln
+
+  features:
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search:
+      lang:
+        - en
+        - de
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      languages:
+        - locale: en
+          name: English
+          default: true
+          build: true
+        - locale: de
+          name: Deutsch
+          build: true
+          nav_translations:
+            Home: Startseite
+            Skills: Skills
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Home: en/index.md
+  - Skills: en/skills.md

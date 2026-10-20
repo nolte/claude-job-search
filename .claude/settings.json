@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(task lint)",
+      "Bash(task lint *)",
+      "Bash(task test)",
+      "Bash(task test *)",
+      "Bash(task docs)",
+      "Bash(task docs *)",
+      "Bash(git check-ignore *)"
+    ]
+  },
+  "env": {}
+}

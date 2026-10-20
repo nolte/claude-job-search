@@ -1,0 +1,14 @@
+# markdownlint config — complements the inline --disable list in
+# .pre-commit-config.yaml so the CLI invocation stays self-describing.
+#
+# Disabled rules: MD013, MD022, MD032, MD033, MD036, MD040, MD041, MD049.
+
+# MD025 (single-title): treat the YAML `title:` frontmatter key as the page's
+# document-meta title, not as an H1.
+MD025:
+  front_matter_title: ""
+
+# MD024 (no-duplicate-heading): allow duplicate headings under different parent
+# sections, only flag siblings.
+MD024:
+  siblings_only: true

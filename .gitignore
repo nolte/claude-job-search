@@ -1,0 +1,48 @@
+# Claude Code — local / user-specific
+.claude/settings.local.json
+.claude/*.local.json
+.claude/.credentials.json
+
+# Application data — personal, never committed (see spec/bewerbung R-6)
+/bewerbung/
+*.pdf
+*.docx
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.python-version
+
+# MkDocs build output
+/site/
+
+# Task runner cache
+.task/
+
+# Audits — local-only
+.audits/
+
+# Environment
+.env
+.env.*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
