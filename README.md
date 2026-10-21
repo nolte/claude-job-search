@@ -73,9 +73,10 @@ Use `/reload-plugins` inside the session to pick up changes. Local automation ru
 `Taskfile.yml`:
 
 ```bash
+task install  # once: create .venv and install the docs dependencies
 task lint     # pre-commit checks
 task test     # unit and structure tests: CV checks, export (md, html, docx), skill structure
-task docs     # build the MkDocs site
+task docs     # build the MkDocs site, strict (shared module from nolte/taskfiles)
 task export -- <datei.md> --format pdf --doc-type cv   # export a document (pdf, docx, html, md)
 ```
 
