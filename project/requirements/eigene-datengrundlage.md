@@ -65,6 +65,8 @@ Aufgaben, Ergebnisse und eingesetzte Werkzeuge vorgesehen.
 **FA-2 Eigene Struktur des Nutzers**
 Die Datengrundlage liegt im Arbeitsverzeichnis des Nutzers. Ort und Dateiname sind
 festgelegt (Standard: `job-application/grundlage/`), können aber vom Nutzer geändert werden.
+Die Grundlage kann eine einzelne Datei oder ein Verzeichnis mit einer Notiz je Station sein
+(Spec R-9.1, R-9.10: Schlüssel `grundlage` mit `grundlage_index`).
 Die Skills finden die Grundlage über diesen Pfad und sind nicht an ein bestimmtes
 Repository oder eine bestimmte Person gebunden.
 
@@ -230,7 +232,8 @@ meldet bei Abweichung die Ausgabe als veraltet (FA-8).
 
 **Begründung:** Ein Datum allein erkennt keine Änderung am selben Tag und hängt vom manuellen
 Pflegen ab. Ein Hash erkennt jede inhaltliche Änderung automatisch und benötigt nur das
-Standardwerkzeug `sha256sum`. Das Datum bleibt als lesbare Information erhalten.
+Hash-Berechnung für Datei und Verzeichnis übernimmt `scripts/grundlage_hash.py` nach Spec R-9.5,
+damit alle Skills denselben Wert erhalten. Das Datum bleibt als lesbare Information erhalten.
 
 ### Auswirkungen
 

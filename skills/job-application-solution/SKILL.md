@@ -44,15 +44,21 @@ them, and enforces the quality gate.
 1. **Grundlage gate.** If the Datengrundlage (path from `job-application/konfiguration.md`, key `grundlage`; default `job-application/grundlage/lebenslauf-chronologisch.md`) is missing,
    run `job-application-profile-capture` first (it builds the Datengrundlage, then the profile,
    spec R-9). If the Grundlage exists but `job-application/profil.md` is missing or its
-   `grundlage_hash` differs from the current hash, re-derive the profile with
+   `grundlage_hash` differs from the current hash (`hash` of `<plugin-root>/scripts/grundlage_hash.py job-application/konfiguration.md`, spec R-9.5), re-derive the profile with
    `job-application-profile-capture` before continuing.
 2. **Analysis.** Run `job-application-posting-analysis`. It produces the
-   requirement-match table against the profile.
+   requirement-match table against the profile, the counterpart classification (KK-6 keys),
+   the section `## Unternehmen` with the firm roles (UA-5.1), and the double-submission check (KK-4.2).
+   If a confirmed `wunschprofil.md` exists in the Wurzel, also run `job-application-fit-check`. A veto in its result
+   stops the plan gate in step 3 until the candidate decides (WJ-7.1). Without a Wunschprofil, skip the check and say so
+   in the plan.
 3. **Plan gate.** Present the plan: which documents, the format per document from the
    situation (spec R-8.1: chronologisch, einseitig, kombiniert, ats), a Foto question for
    Österreich only (R-8.2), which open `[ERGÄNZEN]` gaps, which requirements are
-   *teilweise* or *fehlt*, and the chosen tone (Sie / du). A posting that requires
-   Europass or an academic CV is shown as a blocker here (R-8.4). Wait for explicit
+   *teilweise*, *nicht belegt* or *unklar* (CG-4), and the chosen tone (Sie / du). A posting that requires
+   Europass or an academic CV is shown as a blocker here (R-8.4). The plan also shows the counterpart
+   (`kontaktart`, `auftraggeber`, confidence), the Anstellungsgeber and its source (UA-6.1), any disclosure still
+   missing (KK-4.1), and any double submission found (KK-4.2). Wait for explicit
    approval. Do not generate anything before it.
 4. **Lebenslauf**, then **Anschreiben**. The Lebenslauf goes first, so the cover
    letter references the same entries and dates.
@@ -72,6 +78,9 @@ them, and enforces the quality gate.
    name are taken from the analysis and reused unchanged.
 5. **Stop on blockers.** Do not declare the set ready while `job-application-quality-gate`
    reports blockers.
+6. **Disclosure before documents.** No document goes to a counterpart whose Auftraggeber or Anstellungsgeber is not
+   disclosed, and no unresolved double submission is passed on (KK-4, UA-6). The plan states this as an open point
+   until the user decides.
 
 ## Resume
 

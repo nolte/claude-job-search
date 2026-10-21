@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# Task resolves the remote includes of Taskfile.yml only with this flag set, on every
+# job, not just the docs job.
+env:
+  TASK_X_REMOTE_TASKFILES: "1"
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -41,9 +46,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r docs/requirements.txt
       - uses: arduino/setup-task@v2
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: task --yes install
       - run: task --yes docs

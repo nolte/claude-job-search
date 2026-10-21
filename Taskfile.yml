@@ -2,11 +2,30 @@
 
 version: '3'
 
+vars:
+  # Pinned to an immutable commit of nolte/taskfiles, never a moving branch. The commit
+  # carries mkdocs:build and the overridable module variables.
+  TASK_COLLECTION_BASE: https://raw.githubusercontent.com/nolte/taskfiles/946069adc1759a0b7d8e559e49bf79b6f6d0d0ce/src
+  VENV: .venv
+
+includes:
+  mkdocs:
+    taskfile: "{{.TASK_COLLECTION_BASE}}/taskfile-include-mkdocs.yaml"
+    vars:
+      PYTHON_VENV_DIR_DOCS: "{{.ROOT_DIR}}/{{.VENV}}"
+
 tasks:
   default:
     cmds:
       - task -l
     silent: true
+
+  install:
+    desc: Create the project-local .venv and install the docs dependencies
+    cmds:
+      - python3 -m venv {{.VENV}}
+      - "{{.VENV}}/bin/python -m pip install --upgrade pip"
+      - "{{.VENV}}/bin/python -m pip install -r docs/requirements.txt"
 
   lint:
     desc: Run pre-commit across all files
@@ -14,15 +33,19 @@ tasks:
       - pre-commit run --all-files
 
   test:
-    desc: Run the test suite (placeholder — no runtime tests yet)
+    desc: Run the test suite (CV checks, export, skill structure)
     cmds:
-      - echo "no tests yet"
-    silent: true
+      - python3 -m unittest discover -s tests -v
 
   docs:
-    desc: Build the MkDocs site
+    desc: Build the MkDocs site, failing on any warning (shared module mkdocs:build)
     cmds:
-      - mkdocs build --strict
+      - task: mkdocs:build
+
+  docs:serve:
+    desc: Serve the MkDocs site locally with live reload (shared module mkdocs:start)
+    cmds:
+      - task: mkdocs:start
 
   export:
     desc: |

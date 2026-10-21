@@ -20,4 +20,4 @@
 - Initiativbewerbung and Quereinstieg variants as dedicated skills
 - Export to PDF / DOCX with a documented pandoc recipe
 - Interview preparation skill (Vorstellungsgespräch)
-- Automated tests for the Markdown templates (`task test`, currently a placeholder)
+- Scenario tests for the CV checks and the exporters beyond the current suite (`task test`, see `tests/README.md`), including LuaLaTeX-based PDF checks

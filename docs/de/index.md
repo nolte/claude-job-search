@@ -9,8 +9,8 @@ Qualitätsprüfung vor dem Versand.
 
 Du beschreibst eine **Stellenanzeige**. Der Einstieg `job-application-solution` prüft dein
 Profil, analysiert die Anzeige, zeigt dir einen Plan und erstellt erst danach die
-Unterlagen in der richtigen Reihenfolge. Alle Fakten stammen aus einer lokalen
-Profildatei, `job-application/profil.md`. Fehlende Angaben werden markiert, nie erfunden.
+Unterlagen in der richtigen Reihenfolge. Alle Fakten stammen aus deiner lokalen
+Datengrundlage. Das Profil, `job-application/profil.md`, wird daraus mit Quellenverweis abgeleitet. Fehlende Angaben werden markiert, nie erfunden.
 
 ## Einstieg
 
@@ -25,4 +25,4 @@ Die Konventionen stehen in der Spezifikation `spec/job-application/konventionen/
     Bewerbungsdaten bleiben im git-ignorierten Ordner `job-application/` und werden nie committet.
 
 !!! note "Noch nicht enthalten"
-    Zeugnisanalyse, Vorstellungsgesprächs-Vorbereitung sowie PDF- und DOCX-Export stehen auf der Roadmap.
+    Zeugnisanalyse und Vorstellungsgesprächs-Vorbereitung stehen auf der Roadmap. Der Export erzeugt DOCX, HTML und Markdown; PDF braucht LuaLaTeX.

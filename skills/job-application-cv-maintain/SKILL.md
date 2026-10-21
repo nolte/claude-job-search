@@ -29,9 +29,9 @@ and R-9.8 (Pflegelauf). Requirement: `project/requirements/datengrundlage-pflege
 
 ## Inputs
 
-- **Pfad.** Read `job-application/konfiguration.md`, frontmatter key `grundlage`. If the file or key is
+- **Pfad.** Read `job-application/konfiguration.md`, frontmatter keys `grundlage` (a file, or a directory of notes) and `grundlage_index` (required for a directory, spec R-9.1, R-9.10). If the file or key is
   missing, use `job-application/grundlage/lebenslauf-chronologisch.md`. An argument given in the session
-  overrides both, and the user is asked whether to store it in the configuration.
+  overrides both, and the user is asked whether to store it in the configuration. In directory mode the interview reads all notes; a change goes into the note of the addressed Station, the Pflegeverlauf into the index note.
 - **Schwerpunkt** (optional): `alle` (default), `nur stationen`, `nur zertifikate`, `persönlich`.
   Optional personal fields (Geburtsdatum, Familienstand, Staatsangehörigkeit, Foto) are asked only
   for `persönlich` or when the user asks for them (FA-P9).
@@ -83,9 +83,10 @@ Each new or changed station is shown in full and confirmed by the user. Only the
 ## Step 5: Abschluss
 
 1. Set `stand: <heutiges Datum>` in the frontmatter.
-2. Compute the hash of the file:
-   `sha256sum <Grundlage-Pfad>`. Report it. Derived artefacts with an older `grundlage_hash` are
-   stale and are flagged by `job-application-quality-gate`.
+2. Compute the hash with `python3 <plugin-root>/scripts/grundlage_hash.py job-application/konfiguration.md`
+   (`<plugin-root>` is the plugin directory, two levels above this skill's base directory; spec R-9.5).
+   Report `hash` and `stand`. If the script stops with a `Blocker:` line, report it and do not close.
+   Derived artefacts with an older `grundlage_hash` are stale and are flagged by `job-application-quality-gate`.
 3. Write the closing report: completed points, open points by level, remaining blockers.
 4. If the profile `job-application/profil.md` exists and its `grundlage_hash` differs from the new hash,
    say that it needs re-deriving with `job-application-profile-capture`.

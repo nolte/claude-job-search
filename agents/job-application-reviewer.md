@@ -37,7 +37,7 @@ Spec: `spec/job-application/konventionen/en.md` (R-1 … R-7).
 2. **Konsistenz:** company, role, reference number, contact, dates, and the candidate's
    name identical across documents.
 3. **Anforderungsabdeckung:** each *Muss* requirement addressed in the cover letter or the
-   CV, and no *fehlt* requirement claimed.
+   CV, and no *Muss* requirement claimed as *erfüllt* without evidence (CG-4).
 4. **Wirkung auf die Personalabteilung:** the first minute of reading. Is the best
    evidence visible? Is the CV scannable? Does the letter say something specific about
    this company, or could it be sent anywhere?

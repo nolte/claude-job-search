@@ -8,7 +8,7 @@ a requirement match against the posting, and a quality gate before you send.
 
 You describe one **job posting**. The front-door skill `job-application-solution` checks your
 profile, analyses the posting, shows you a plan, and only then produces the documents in
-dependency order. Every fact comes from one local profile file, `job-application/profil.md`.
+dependency order. Every fact comes from your local Datengrundlage. The profile, `job-application/profil.md`, is derived from it with a source reference per entry.
 Unknown facts are marked, never invented.
 
 ## Start here
@@ -23,4 +23,4 @@ The conventions behind all of it are in the spec `spec/job-application/konventio
     Application data stays in the git-ignored `job-application/` folder and is never committed.
 
 !!! note "Not covered yet"
-    Zeugnis analysis, interview preparation, and PDF / DOCX export are on the roadmap.
+    Zeugnis analysis and interview preparation are on the roadmap. Export produces DOCX, HTML and Markdown; PDF needs LuaLaTeX.
