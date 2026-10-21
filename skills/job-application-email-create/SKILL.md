@@ -22,7 +22,8 @@ see_also:
 # Bewerbung E-Mail erstellen
 
 Spec: `spec/job-application/konventionen/en.md` R-4 (e-mail form), R-5 (Zeugnisse),
-R-1 (facts).
+R-1 (facts). Channel, tone and content per counterpart: `spec/job-application/kontaktklassifikation/en.md`
+KK-4 (disclosure and confidentiality), KK-5 (communication by counterpart), KK-7 (data protection).
 
 ## Inputs
 
@@ -58,6 +59,11 @@ Telefon · E-Mail
 
 ## Workflow
 
+0. **Counterpart first.** Read `kontaktart`, `auftraggeber`, `exklusiv` and the section `## Unternehmen` of `analyse.md`.
+   Apply the KK-5 row for this counterpart to the Anrede, the opening, and the content. For a Vermittler, the mail
+   names no Auftraggeber before disclosure (KK-4.1), and it asks the exclusivity question before the documents are
+   sent (KK-4.6). If the counterpart is `Unklar`, the mail asks the question of KK-3.3 instead of sending documents.
+   Check the double submission list of the analysis (KK-4.2) before the mail is written; report any match first.
 1. Build the subject from the posting's exact role title and reference number.
 2. Write the body in three to five sentences. Do not repeat the cover letter.
 3. List only the attachments that exist and that the posting asks for (R-5).
@@ -69,8 +75,11 @@ Telefon · E-Mail
 ## Hard rules
 
 1. **Plain text, no HTML, no tracking.** The e-mail text must read correctly in any client.
-   `email.md` starts with a frontmatter block carrying `grundlage_hash` (R-9.5); only the text
+   `email.md` starts with a frontmatter block carrying `grundlage_hash` (the `hash` value of `scripts/grundlage_hash.py`, R-9.5); only the text
    below it is the mail itself.
 2. **No new facts** in the body beyond what the profile and analysis already contain.
 3. **Attachments named in the list must exist** in the folder. Report missing ones as blockers.
 4. **Recipient address** is never guessed. Use `[ERGÄNZEN: Bewerbungs-E-Mail]` if the posting does not give one.
+5. **Attachments only for this counterpart.** The attached documents are those the candidate has approved for this
+   counterpart (KK-7.1). A Vermittler does not receive the documents for an employer that has not been disclosed.
+6. **No company fact from rating portals** and no Auftraggeber name before disclosure (UA-2.1, KK-4.1).

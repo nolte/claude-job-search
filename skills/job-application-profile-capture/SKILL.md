@@ -26,8 +26,8 @@ Requirement: `project/requirements/eigene-datengrundlage.md`.
 
 Two artefacts, in this order:
 
-1. **Datengrundlage** `job-application/grundlage/lebenslauf-chronologisch.md`. The full,
-   chronological record. It is the source of truth.
+1. **Datengrundlage** `job-application/grundlage/lebenslauf-chronologisch.md` (default, spec R-9.1). The full,
+   chronological record. It is the source of truth. If the user keeps one note per Station in a directory, `grundlage` names the directory and `grundlage_index` names the index note (R-9.1, R-9.10).
 2. **Profil** `job-application/profil.md`. Derived from the Grundlage, condensed, with a
    source reference per entry. The other `job-application-*` skills read only the profile.
 
@@ -85,7 +85,7 @@ Derive `job-application/profil.md` from the confirmed entries only:
 ---
 stand: YYYY-MM-DD
 grundlage_stand: YYYY-MM-DD
-grundlage_hash: <sha256 of the Grundlage file>
+grundlage_hash: <hash from grundlage_hash.py>
 ---
 
 ## Kontakt
@@ -104,8 +104,11 @@ grundlage_hash: <sha256 of the Grundlage file>
 - [ERGÄNZEN: …]
 ```
 
-Compute the hash with `sha256sum job-application/grundlage/lebenslauf-chronologisch.md` and store
-the hex value in `grundlage_hash`.
+Compute the hash with `python3 <plugin-root>/scripts/grundlage_hash.py job-application/konfiguration.md`
+(`<plugin-root>` is the plugin directory, two levels above this skill's base directory; spec R-9.5).
+Store its `hash` value in `grundlage_hash` and its `stand` value in `grundlage_stand`. For a
+Grundlage that is a directory, the script hashes all notes and the index note together. A
+`Blocker:` line stops the derivation.
 
 ## Hard rules
 

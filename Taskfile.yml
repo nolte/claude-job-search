@@ -14,10 +14,9 @@ tasks:
       - pre-commit run --all-files
 
   test:
-    desc: Run the test suite (placeholder — no runtime tests yet)
+    desc: Run the test suite (CV checks, export, skill structure)
     cmds:
-      - echo "no tests yet"
-    silent: true
+      - python3 -m unittest discover -s tests -v
 
   docs:
     desc: Build the MkDocs site

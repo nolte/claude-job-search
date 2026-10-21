@@ -1,6 +1,6 @@
 ---
 name: job-application-cv-create
-description: "Produces a German Lebenslauf from job-application/profil.md in the format chosen for the situation (chronologisch, einseitig, kombiniert, ATS-optimiert), with each Station as a single header line plus 3 to 5 bullets per spec R-2.1. Checks the Datengrundlage hash and marks gaps as [ERGÄNZEN]. Writes Markdown only. Use on \"erstelle meinen Lebenslauf\", \"Lebenslauf für diese Stelle anpassen\", \"Lebenslauf im ATS-Format\", or equivalent German requests. Don't use for the cover letter (job-application-cover-letter-create), for the Datengrundlage or profile (job-application-profile-capture), or for Europass or the academic CV (out of scope in Phase 1, spec R-8.4)."
+description: "Produces a German Lebenslauf from job-application/profil.md in the format chosen for the situation (chronologisch, einseitig, kombiniert, ATS-optimiert), with each Station as a single header line plus bullets within the limits of spec CG-6, selects stations and bullets by relevance and evidence (CG-5), and marks gaps as [ERGÄNZEN]. Checks the Datengrundlage hash. Writes Markdown only. Use on \"erstelle meinen Lebenslauf\", \"Lebenslauf für diese Stelle anpassen\", \"Lebenslauf im ATS-Format\", or equivalent German requests. Don't use for the cover letter (job-application-cover-letter-create), for the Datengrundlage or profile (job-application-profile-capture), or for Europass or the academic CV (out of scope in Phase 1, spec R-8.4)."
 tags: [bewerbung, lebenslauf, cv, deutsch, dach, ats]
 phase: create
 summary: "Builds a German CV from the profile in the format chosen for the situation, one header line plus bullets per station."
@@ -26,14 +26,16 @@ see_also:
 # Bewerbung Lebenslauf erstellen
 
 Spec: `spec/job-application/konventionen/en.md` R-1 (facts), R-2 (form), R-2.1 (entry block),
-R-8 (format by situation, photo, ATS), R-9.5 (hash). This skill only reshapes facts that
-already exist in the profile.
+R-8 (format by situation, photo, ATS), R-9.5 (hash). Content decisions: `spec/job-application/cv-generierung/en.md`
+CG-2 (source of truth), CG-3 (target fit), CG-4 (evidence), CG-5 (selection), CG-6 (length and bullets),
+CG-7 (controlled rewriting), CG-9 (gaps and conflicts), CG-11 (ATS). This skill only reshapes facts that
+already exist in the Grundlage, through the profile.
 
 ## Inputs
 
 - `job-application/profil.md` (required). Its `grundlage_hash` is checked (step 1).
-- The Datengrundlage path from `job-application/konfiguration.md` (key `grundlage`), default `job-application/grundlage/lebenslauf-chronologisch.md` (spec R-9.10). Required for the hash check and as the only source of the selection (R-9.11).
-- `job-application/<slug>/analyse.md` (optional). Its *erfüllt* rows decide which entries get more room.
+- The Datengrundlage path from `job-application/konfiguration.md` (key `grundlage`, file or directory with `grundlage_index`), default `job-application/grundlage/lebenslauf-chronologisch.md` (spec R-9.1, R-9.10). Required for the hash check and as the only source of the selection (R-9.11). In directory mode the selection reads all notes of the set.
+- `job-application/<slug>/analyse.md` (optional). Its rows (CG-4) decide which requirements the CV addresses and which entries get more room. A *Muss* row that is not *erfüllt* is never claimed in the CV.
 - `situation` (asked if not given): Standard, Berufseinstieg, Schüler/Studierende/Praktikum, Quereinstieg, Lücke, Viele Stationen, ATS/Portal, Österreich, Schweiz. Europass and academic CV are not produced here (R-8.4).
 - `foto` (optional): `ja` only if the user requests it or the situation is Österreich (R-8.2).
 
@@ -74,7 +76,7 @@ Section headings are the standard headings (R-8.3). No tables, no columns, no te
 
 ## Workflow
 
-1. **Hash check.** Compute `sha256sum` of the Grundlage. If it differs from the profile's
+1. **Hash check.** Compute the hash with `python3 <plugin-root>/scripts/grundlage_hash.py job-application/konfiguration.md` (spec R-9.5). If it differs from the profile's
    `grundlage_hash`, stop and report that the profile is stale. Offer to re-derive it with
    `job-application-profile-capture` (R-9.5).
 2. **Situation.** If `situation` is missing, ask once. Propose the format from the R-8.1 table and
@@ -83,28 +85,34 @@ Section headings are the standard headings (R-8.3). No tables, no columns, no te
    the posting when an analysis exists (R-2.1).
 4. **Auswahl pro Bewerbung.** Select stations, bullets, and certificates from the Datengrundlage for this Stellenanzeige, as described in the section below (R-9.11).
 5. **Entries.** Each selected station: header line `Zeitraum | Position | Arbeitgeber, Ort` (R-2.1.1),
-   then 3 to 5 bullets for the two or three most recent relevant stations, 1 to 2 for older ones (R-2.1, output limits),
-   or the header line only where a station does not support the application.
+   then the bullets allowed by CG-6.2: up to 5 for a station with a *Muss* or *Wunsch* entry that is
+   *erfüllt* or *teilweise*, up to 2 for other stations, header line only where a station does not support the application.
 6. **Bullets.** Formula Verb + Objekt + Umfang + Ergebnis. Use a number only if the profile
    states it. Otherwise use a qualitative result. Routine tasks without result are dropped.
 7. **Length.** Standard about two pages. Einseitig for Einsteiger, Praktikum, Schüler. Trim older
    or less relevant entries before recent ones.
 8. **Write** the file with the frontmatter.
+9. **Check.** Run `python3 <plugin-root>/scripts/cv_checks.py job-application/<slug>/lebenslauf.md --grundlage <Grundlage> --analyse job-application/<slug>/analyse.md`
+   (add `--ats` for an ATS posting). `<plugin-root>` is the plugin directory, two levels above this skill's base
+   directory. Fix every Blocker before handing over; report the Warnungen and Hinweise with the file. The output is the
+   reproducible basis for `job-application-quality-gate` (CG-13.3).
 
 ## Auswahl pro Bewerbung (R-9.11)
 
 The Datengrundlage is complete and may hold more than one application needs. This step selects
 what the Lebenslauf for this posting uses.
 
-1. **Choose** stations, bullets, and certificates that match the requirements of the Stellenanzeige
-   (from `analyse.md`). Use the evidence rules of R-1.3 and R-2.1. Order the stations reverse
-   chronological and the bullets by relevance to the posting.
+1. **Choose** stations, bullets, and certificates by the criteria of CG-5, in this order: coverage of *Muss*
+   requirements, coverage of *Wunsch* requirements, evidence strength, scope and seniority, demonstrable results,
+   redundancy, recency as tie-breaker only. Stations stay in reverse chronological order; relevance decides what
+   is shown in full. Older strong evidence goes into the Kurzprofil or a *Relevante Projekte* block (CG-5.2).
 2. **Only existing entries.** Use only entries that exist in the Datengrundlage. Do not add facts.
    Reword only as far as R-2.1 allows: shortening and reordering, no new claims.
 3. **Output limits.** Bullet counts and page limits come from R-2 and R-2.1, applied to this output.
    They do not come from the Datengrundlage.
-4. **Omissions are visible.** Write the omitted entries with a short reason to `pruefbericht.md` in the
-   application folder, as the section `## Auswahl Lebenslauf`. Create the file if it is missing. A
+4. **Omissions and sources are visible.** Write the omitted entries with a short reason to `pruefbericht.md` in the
+   application folder, as the section `## Auswahl Lebenslauf`. For every entry used, name its Grundlage entry (file and
+   heading, CG-2.3). Create the file if it is missing. A
    left-out station must not leave an unexplained gap. A gap over two months stays as a neutral entry (R-2).
 5. **Never store the selection** in the Datengrundlage or in the profile. The Grundlage carries no
    application-specific marks.
@@ -128,3 +136,8 @@ what the Lebenslauf for this posting uses.
 5. **Optional personal data stays out** unless the profile includes it and the situation allows it (R-8.2).
 6. **Europass and academic CV are not produced.** The skill reports that and points to `job-application-solution` (R-8.4).
 7. **Signature line:** Ort, Datum. A handwritten signature only for a paper copy (R-2).
+8. **Controlled rewriting only** (CG-7). Shorten, reorder and reword verified content. Never add a number, team
+   size, title, technology, or level, and never turn participation into ownership, assistance into leadership,
+   exposure into expertise, or familiarity into proficiency (CG-7.2).
+9. **Conflicts stop the draft.** A date or title that differs between the profile and the Grundlage, or a *Muss*
+   requirement without evidence, is reported to the user and not resolved by choosing a value (CG-2.2, CG-4.5).

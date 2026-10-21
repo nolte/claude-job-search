@@ -15,6 +15,7 @@ Stellenanzeige, and a quality gate before sending. The conventions are in
 - `.claude-plugin/plugin.json` — plugin manifest (name, version, author)
 - `.claude-plugin/marketplace.json` — marketplace catalog (downstream install source)
 - `skills/<name>/SKILL.md` — reusable skills; each folder is one skill
+- `scripts/` — helper scripts shared by skills, for example `grundlage_hash.py` (Datengrundlage hash and `stand`, spec R-9.5)
 - `agents/<name>.md` — reusable sub-agents
 - `spec/` — specifications (EN canonical; DE translation pending)
 - `docs/` — MkDocs source (EN and DE)

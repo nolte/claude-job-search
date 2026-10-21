@@ -106,7 +106,7 @@ Regeln im Einzelnen:
 5. **Bestätigung.** Jede neue oder geänderte Station wird vom Nutzer bestätigt
    (`Bestätigt: ja`, Spec R-9.4).
 6. **Abschluss.** Der Skill setzt `stand` auf das heutige Datum, berechnet den Hash
-   (`sha256sum`) und legt den Abschlussbericht vor: erledigte Punkte, offene Punkte, verbleibende
+   (`scripts/grundlage_hash.py`, Spec R-9.5) und legt den Abschlussbericht vor: erledigte Punkte, offene Punkte, verbleibende
    Blocker.
 
 ## Funktionale Anforderungen
@@ -206,8 +206,7 @@ verweist bei bestehender Datei auf den neuen Skill.
 
 **E-P2 Quelle der Wahrheit.** Entschieden: referenzieren statt kopieren. Der Pfad ist konfigurierbar, Standard ist
 `job-application/grundlage/lebenslauf-chronologisch.md`. Eine bestehende Notiz wird über den Pfad
-referenziert und nicht kopiert. Dann gibt es nur eine Quelle, und der Hash bezieht sich auf die
-Datei unter diesem Pfad. Der Nutzer muss die Notiz bei Pfadwechsel selbst pflegen.
+referenziert und nicht kopiert. Dann gibt es nur eine Quelle, und der Hash bezieht sich auf die Datei oder – bei einem Verzeichnis – auf die Notizen unter diesem Pfad (Spec R-9.1, R-9.5). Der Nutzer muss die Notiz bei Pfadwechsel selbst pflegen.
 
 **E-P3 Prüfung des Pfades außerhalb des Repositories.** Entschieden: Der Skill akzeptiert jeden
 lokalen Pfad, verweigert aber Pfade innerhalb des Plugin-Repositories, um eine versehentliche
