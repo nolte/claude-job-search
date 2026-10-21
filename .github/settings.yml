@@ -1,0 +1,47 @@
+---
+# These settings are synced to GitHub by https://probot.github.io/apps/settings/.
+#
+# The Probot Settings App reacts to push events that touch THIS file; changes
+# to the upstream `_extends:` source (`commons-settings.yml` in
+# nolte/gh-plumbing) do not trigger a fresh sync on their own. When a commons
+# change should propagate, edit this file as well so the App re-runs the merge.
+
+_extends: nolte/gh-plumbing:.github/commons-settings.yml
+
+repository:
+  name: claude-job-search
+  description: Claude Code skills and agents for German-speaking job applications — Lebenslauf, Anschreiben, Bewerbungs-E-Mail, Stellenanzeigen-Abgleich and Export.
+  homepage: https://nolte.github.io/claude-job-search
+  default_branch: develop
+  # A comma-separated string, never a YAML list: probot/settings calls .split() on
+  # topics, and a list throws after the repository PATCH, which silently skips the
+  # branches block (nolte/gh-plumbing#416).
+  topics: claude-code, claude-code-plugin, claude, anthropic, skills, agents, job-application, bewerbung, lebenslauf, cover-letter, dach
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: false
+
+branches:
+  - name: develop
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 0
+        dismiss_stale_reviews: false
+        require_code_owner_reviews: false
+      required_status_checks:
+        strict: true
+        contexts:
+          - lint
+          - test
+          - docs
+      enforce_admins: true
+      restrictions: null
+  - name: main
+    protection:
+      required_pull_request_reviews: null
+      required_status_checks: null
+      enforce_admins: true
+      # The release refresh advances main through the merges API, which creates a
+      # merge commit; a linear-history requirement would refuse it on every release.
+      required_linear_history: false
+      restrictions: null
