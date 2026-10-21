@@ -1,6 +1,8 @@
 # claude-job-search
 
-[![ci](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml/badge.svg)](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml)
+[![CI](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml)
+
+The `ci` workflow runs three required status checks on `develop`: `lint`, `test`, and `docs`. A green `CI` badge means all three passed on the latest `develop` commit.
 
 Claude Code plugin with skills and an agent for German-speaking job applications
 (*Bewerbungsunterlagen*) — single-column Lebenslauf, DIN-5008-style Anschreiben, Bewerbungs-E-Mail,
