@@ -117,6 +117,8 @@ station. It applies these criteria in this order:
 6. redundancy: an entry already covered by a stronger entry is dropped or shortened;
 7. recency, as a tie-breaker only.
 
+The selection also follows these rules:
+
 1. **Recency is not the primary criterion.** The most recent role is not automatically the most
    relevant one.
 2. **Stations keep reverse chronological order** (R-2). Relevance decides what is shown in full,

@@ -68,10 +68,10 @@ Every fact records its source and the date it was read. Sources rank in this ord
    conflict is recorded with both values and their sources. It is not resolved silently. A
    conflict on identity that reaches a generated document is a Blocker in the quality gate,
    following the conflict procedure of `cv-generierung/en.md` CG-2.2.
-3. **Search queries.** A web search for a company uses only the company name and a generic term
+2. **Search queries.** A web search for a company uses only the company name and a generic term
    such as "Impressum" or "Geschäftsbericht". No candidate data, no Grundlage text and no
    application text is sent in a query (R-6).
-4. **Network use** happens only when the user asks for it, as for postings (posting-analysis
+3. **Network use** happens only when the user asks for it, as for postings (posting-analysis
    rule on URLs).
 
 ## UA-4 Analysis procedure
