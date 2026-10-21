@@ -25,7 +25,7 @@ Zielausgaben.
 |---|---|
 | **Rohdaten** | Vorhandene Unterlagen des Nutzers in beliebigem Format (PDF, DOCX, Markdown, Notizen, Zeugnisse, LinkedIn-Export). |
 | **Datengrundlage** | Ausführliche, chronologische Sammlung aller relevanten Fakten des Nutzers in Markdown. Liegt im Arbeitsverzeichnis des Nutzers. |
-| **Profil** | Aus der Datengrundlage abgeleitete, verdichtete Faktenbasis, die die Skills lesen (`bewerbung/profil.md`). |
+| **Profil** | Aus der Datengrundlage abgeleitete, verdichtete Faktenbasis, die die Skills lesen (`job-application/profil.md`). |
 | **Zielausgaben** | Stellenspezifische Dokumente: gezielter Lebenslauf, Anschreiben, Bewerbungs-E-Mail, Prüfbericht. |
 
 ## Ziel
@@ -40,10 +40,10 @@ wiederverwendet und über die Zeit gepflegt werden.
 Rohdaten (beliebiges Format)
    │  Aufarbeitung (einmalig, danach fortschreibend)
    ▼
-Datengrundlage  bewerbung/grundlage/lebenslauf-chronologisch.md   ← Quelle der Wahrheit
+Datengrundlage  job-application/grundlage/lebenslauf-chronologisch.md   ← Quelle der Wahrheit
    │  Ableitung (Verdichtung, Quellenverweise)
    ▼
-Profil          bewerbung/profil.md
+Profil          job-application/profil.md
    │  Stellenanalyse (pro Bewerbung)
    ▼
 Zielausgaben    lebenslauf.md · anschreiben.md · email.md · pruefbericht.md
@@ -64,7 +64,7 @@ Aufgaben, Ergebnisse und eingesetzte Werkzeuge vorgesehen.
 
 **FA-2 Eigene Struktur des Nutzers**
 Die Datengrundlage liegt im Arbeitsverzeichnis des Nutzers. Ort und Dateiname sind
-festgelegt (Standard: `bewerbung/grundlage/`), können aber vom Nutzer geändert werden.
+festgelegt (Standard: `job-application/grundlage/`), können aber vom Nutzer geändert werden.
 Die Skills finden die Grundlage über diesen Pfad und sind nicht an ein bestimmtes
 Repository oder eine bestimmte Person gebunden.
 
@@ -89,11 +89,11 @@ Ansicht zulässig, nie in der Datengrundlage selbst.
   oder ausdrücklich als nicht relevant markiert.
 
 **FA-5 Ableitung des Profils**
-Das Profil (`bewerbung/profil.md`) wird aus der Datengrundlage erzeugt. Jeder Eintrag
+Das Profil (`job-application/profil.md`) wird aus der Datengrundlage erzeugt. Jeder Eintrag
 im Profil verweist auf seine Stelle in der Datengrundlage.
 
 - *Akzeptanz:* Ein Profil-Eintrag ohne Quellenverweis ist ein Fehler. Die Prüfung
-  (`bewerbung-pruefen`) meldet ihn als Blocker.
+  (`job-application-quality-gate`) meldet ihn als Blocker.
 
 **FA-6 Gezielte Zielausgaben**
 Lebenslauf, Anschreiben und E-Mail werden pro Stelle aus dem Profil erzeugt. Auswahl,
@@ -107,7 +107,7 @@ kommen ausschließlich aus der Datengrundlage.
 Jede faktische Aussage in einer Zielausgabe ist auf einen Eintrag der Datengrundlage
 rückführbar. Der Prüfbericht zeigt diese Zuordnung.
 
-- *Akzeptanz:* `bewerbungs-reviewer` und `bewerbung-pruefen` können für jede Aussage
+- *Akzeptanz:* `job-application-reviewer` und `job-application-quality-gate` können für jede Aussage
   den Quelleintrag nennen.
 
 **FA-8 Wiederverwendung und Pflege**
@@ -129,11 +129,11 @@ einer neuen Station. Er erstellt keine neue Grundlage, wenn bereits eine existie
 
 **NFA-1 Datenschutz**
 Datengrundlage, Profil und Zielausgaben liegen lokal im Arbeitsverzeichnis und sind
-von Git ausgeschlossen (`bewerbung/`).
+von Git ausgeschlossen (`job-application/`).
 
 **NFA-2 Keine erfundenen Fakten**
 Fakten entstehen nur aus Rohdaten oder aus Angaben des Nutzers. Fehlende Angaben werden
-markiert (Spec `spec/bewerbung/konventionen/en.md`, R-1).
+markiert (Spec `spec/job-application/konventionen/en.md`, R-1).
 
 **NFA-3 Portables Format**
 Die Datengrundlage ist reines Markdown mit einfacher Struktur (Überschriften, Listen,
@@ -169,13 +169,13 @@ stand: 2026-10-20
 
 | Baustein | Änderung |
 |---|---|
-| `bewerbung-profil-erfassen` | Erzeugt die Datengrundlage aus Rohdaten bzw. Interview (FA-1, FA-3, FA-9) und leitet daraus das Profil ab (FA-5). |
-| `bewerbung-lebenslauf-erstellen` | Liest das Profil; Quellenverweise bleiben intern erhalten (FA-7). |
-| `bewerbung-anschreiben-erstellen`, `bewerbung-email-erstellen` | Unverändert in der Logik; lesen weiterhin das Profil. |
-| `bewerbung-pruefen` | Zusätzlich: Quellenverweise (FA-5, FA-7) und Stand gegenüber der Grundlage (FA-8). |
-| `bewerbung-solution` | Prüft als Erstes, ob eine Datengrundlage existiert; sonst Start bei `bewerbung-profil-erfassen`. |
-| `bewerbungs-reviewer` | Prüft Aussagen gegen Quelleinträge (FA-7). |
-| `spec/bewerbung/konventionen/en.md` | Neues Kapitel „Datengrundlage“ mit den Regeln aus FA-1 bis FA-9 und NFA-1 bis NFA-4. |
+| `job-application-profile-capture` | Erzeugt die Datengrundlage aus Rohdaten bzw. Interview (FA-1, FA-3, FA-9) und leitet daraus das Profil ab (FA-5). |
+| `job-application-cv-create` | Liest das Profil; Quellenverweise bleiben intern erhalten (FA-7). |
+| `job-application-cover-letter-create`, `job-application-email-create` | Unverändert in der Logik; lesen weiterhin das Profil. |
+| `job-application-quality-gate` | Zusätzlich: Quellenverweise (FA-5, FA-7) und Stand gegenüber der Grundlage (FA-8). |
+| `job-application-solution` | Prüft als Erstes, ob eine Datengrundlage existiert; sonst Start bei `job-application-profile-capture`. |
+| `job-application-reviewer` | Prüft Aussagen gegen Quelleinträge (FA-7). |
+| `spec/job-application/konventionen/en.md` | Neues Kapitel „Datengrundlage“ mit den Regeln aus FA-1 bis FA-9 und NFA-1 bis NFA-4. |
 
 ## Nicht-Ziele
 
@@ -184,7 +184,63 @@ stand: 2026-10-20
 - Automatische Veröffentlichung oder Versand von Bewerbungen.
 - Mehrere Personen in einer Datengrundlage.
 
-## Offene Fragen
+## Entscheidungen
+
+Stand 2026-10-20. Die Entscheidungen sind Designentscheidungen, keine Rechtsfragen. Sie
+folgen den Grundsätzen aus dem Anforderungsdokument und den Entscheidungen E-1 bis E-5 in
+`lebenslauf-formate.md`.
+
+### D-1 Eine Hauptsprache: Deutsch
+
+**Entscheidung:** Die Datengrundlage wird auf Deutsch geführt. Originalwortlaut in anderer
+Sprache (Zeugnisse, Zertifikate, englische Projektbezeichnungen) bleibt unverändert und
+wird als solcher markiert, z. B. `(EN-Original)`.
+
+**Begründung:** Alle Zielausgaben sind deutsch (NFA-4, Spec). Zwei Sprachen in der Grundlage
+erzeugen Doppelpflege und Abweichungen zwischen den Fassungen. Eine englische Bewerbung ist
+nicht Teil des Projekts.
+
+### D-2 Zeugnisse: Verweis plus Wortlaut der relevanten Passagen
+
+**Entscheidung:** Jedes Zeugnis erhält einen Eintrag mit Datei, Datum, Aussteller und dem
+vollständigen Wortlaut der Schlussbeurteilung. Der Originalscan bleibt außerhalb der
+Grundlage und außerhalb von Git.
+
+**Begründung:** Die Quellenpflicht (FA-3, FA-7) verlangt einen Nachweis. Der Wortlaut ist
+die Basis für spätere Zeugnisanalysen (Roadmap). Ein reiner Verweis reicht nicht, weil
+dann bei jeder Ausgabe die Datei geöffnet werden müsste. Zeugnisse sind personenbezogene
+Daten und gehören deshalb nicht ins Repository (NFA-1).
+
+### D-3 Vorbefüllung aus Rohdaten, Interview nur für Lücken
+
+**Entscheidung:** Vorhandene Lebensläufe und Zeugnisse werden zuerst aufgearbeitet (FA-3).
+Das Interview fragt danach nur noch nach Lücken, Widersprüchen und `[KLÄREN]`-Markern. Jede
+übernommene Station wird vom Nutzer bestätigt, bevor sie als gesichert gilt.
+
+**Begründung:** Ein reines Interview verliert Informationen, die in den Rohdaten stehen
+(FA-4). Eine Vorbefüllung ohne Bestätigung würde dagegen fremde Fakten übernehmen. Die
+Kombination erhält die Vollständigkeit und die Faktentreue.
+
+### D-4 Stand: Datum plus Inhalts-Hash
+
+**Entscheidung:** Die Grundlage trägt im Frontmatter ein Datum `stand`. Jede Zielausgabe
+speichert im Frontmatter den SHA-256-Hash der Grundlage zum Erstellzeitpunkt
+(`grundlage_hash`). Der Prüflauf vergleicht den aktuellen Hash mit dem gespeicherten und
+meldet bei Abweichung die Ausgabe als veraltet (FA-8).
+
+**Begründung:** Ein Datum allein erkennt keine Änderung am selben Tag und hängt vom manuellen
+Pflegen ab. Ein Hash erkennt jede inhaltliche Änderung automatisch und benötigt nur das
+Standardwerkzeug `sha256sum`. Das Datum bleibt als lesbare Information erhalten.
+
+### Auswirkungen
+
+| Betroffen | Änderung |
+|---|---|
+| `job-application-profile-capture` | Übernimmt Rohdaten und markiert Stationen zur Bestätigung (D-3) |
+| `job-application-quality-gate` | Vergleicht `grundlage_hash` mit dem aktuellen Hash (D-4) |
+| Spec `spec/job-application/konventionen/en.md` | Neues Kapitel: Sprache (D-1), Zeugnis-Eintrag (D-2), Hash (D-4) |
+
+## Frühere offene Fragen (zur Dokumentation)
 
 1. Soll die Datengrundlage mehrsprachig geführt werden (DE/EN), oder genügt eine Hauptsprache?
 2. Wie werden Zeugnisse in der Grundlage erfasst: nur als Verweis oder mit extrahiertem Wortlaut?

@@ -3,14 +3,15 @@
 ## MVP (this release, 0.1.0)
 
 - [x] Plugin scaffold in the claude-home-assistant repository structure
-- [x] DACH conventions spec (`spec/bewerbung/konventionen/en.md`)
-- [x] Front-door router `bewerbung-solution`
-- [x] Profile intake `bewerbung-profil-erfassen`
-- [x] Stellenanzeige analysis with requirement match `bewerbung-stellenanzeige-analysieren`
-- [x] Lebenslauf `bewerbung-lebenslauf-erstellen`
-- [x] Anschreiben `bewerbung-anschreiben-erstellen`
-- [x] Bewerbungs-E-Mail `bewerbung-email-erstellen`
-- [x] Quality gate `bewerbung-pruefen` and read-only agent `bewerbungs-reviewer`
+- [x] DACH conventions spec (`spec/job-application/konventionen/en.md`)
+- [x] Front-door router `job-application-solution`
+- [x] Profile intake `job-application-profile-capture`
+- [x] Stellenanzeige analysis with requirement match `job-application-posting-analysis`
+- [x] Lebenslauf `job-application-cv-create`
+- [x] Anschreiben `job-application-cover-letter-create`
+- [x] Bewerbungs-E-Mail `job-application-email-create`
+- [x] Quality gate `job-application-quality-gate` and read-only agent `job-application-reviewer`
+- [x] Datengrundlage maintenance interview `job-application-cv-maintain` (spec R-9.8)
 
 ## Next
 

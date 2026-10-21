@@ -8,7 +8,7 @@ concrete Stellenanzeige and checked against DACH conventions.
 ## Principles
 
 - **Facts from the candidate only.** No invented experience; gaps are marked, not hidden (spec R-1).
-- **One profile, many documents.** `bewerbung/profil.md` is the single source of truth.
+- **One profile, many documents.** `job-application/profil.md` is the single source of truth.
 - **Plan before generate.** The front door shows the plan and waits for approval.
 - **Local and private.** Application data never leaves the working copy by default.
 

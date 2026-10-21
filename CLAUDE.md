@@ -8,7 +8,7 @@ Orientation for Claude Code and contributors working inside this repository.
 German-speaking job applications (*Bewerbungsunterlagen*): tabular Lebenslauf,
 DIN-5008-style Anschreiben, Bewerbungs-E-Mail, requirement match against a
 Stellenanzeige, and a quality gate before sending. The conventions are in
-`spec/bewerbung/konventionen/en.md`.
+`spec/job-application/konventionen/en.md`.
 
 ## Layout
 
@@ -28,6 +28,7 @@ Plugin skills are namespaced by plugin name — for example `/claude-job-search:
 - `task lint` — pre-commit checks
 - `task test` — test suite (placeholder — no runtime tests yet)
 - `task docs` — build the MkDocs site
+- `task export -- <datei.md> --format <pdf|docx|html|md> --doc-type <cv|letter|email>` — export a Bewerbungsdokument (skill `job-application-export`)
 - `task plugin:reload` — launch Claude Code with this repo loaded as a plugin (dogfooding)
 
 ## Dogfooding
@@ -46,7 +47,7 @@ Use `/reload-plugins` inside the session to pick up changes without restarting.
 
 ## Authoring rules
 
-- **Application data is personal.** The `bewerbung/` working folder, PDFs and DOCX files are git-ignored. Never commit a profile, a CV, or a letter, not even as a fixture.
-- **No invented facts.** Skills must not generate employer names, dates, grades, skills or certificates that are not in `bewerbung/profil.md` or stated by the user in the session. Unknown items become `[ERGÄNZEN: …]`.
+- **Application data is personal.** The `job-application/` working folder, PDFs and DOCX files are git-ignored. Never commit a profile, a CV, or a letter, not even as a fixture.
+- **No invented facts.** Skills must not generate employer names, dates, grades, skills or certificates that are not in `job-application/profil.md` or stated by the user in the session. Unknown items become `[ERGÄNZEN: …]`.
 - Keep `CLAUDE.md`, `spec/`, and the plugin manifest in sync with what the repo actually ships.
 - Never copy plugin-owned skills into a consumer's `.claude/skills/` — distribution happens via the plugin marketplace.

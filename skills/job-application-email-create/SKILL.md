@@ -1,6 +1,6 @@
 ---
-name: bewerbung-email-erstellen
-description: "Writes the German Bewerbungs-E-Mail that sends an application by e-mail: subject line with role and reference number, short body, attachment list with DIN-style file names, and a size check. Writes plain text to bewerbung/<slug>/email.md. Use on \"schreib die Bewerbungsmail\", \"E-Mail-Text für meine Bewerbung\", \"Anhänge für die Bewerbung benennen\", or equivalent German requests. Don't use when the posting asks for a portal application (only the documents are then needed), for the cover letter itself (bewerbung-anschreiben-erstellen), or for the review (bewerbung-pruefen)."
+name: job-application-email-create
+description: "Writes the German Bewerbungs-E-Mail that sends an application by e-mail: subject line with role and reference number, short body, attachment list with DIN-style file names, and a size check. Writes plain text to job-application/<slug>/email.md. Use on \"schreib die Bewerbungsmail\", \"E-Mail-Text für meine Bewerbung\", \"Anhänge für die Bewerbung benennen\", or equivalent German requests. Don't use when the posting asks for a portal application (only the documents are then needed), for the cover letter itself (job-application-cover-letter-create), or for the review (job-application-quality-gate)."
 tags: [bewerbung, email, anhang, deutsch]
 phase: deliver
 summary: "Writes the German cover e-mail, subject, attachment list and file names for an e-mail application."
@@ -10,29 +10,29 @@ use_when:
   - "you need the sending e-mail text and attachment names"
 dont_use_when:
   - situation: "The application goes through a portal or by post"
-    alternative: bewerbung-solution
+    alternative: job-application-solution
   - situation: "You need the cover letter itself"
-    alternative: bewerbung-anschreiben-erstellen
+    alternative: job-application-cover-letter-create
 see_also:
-  - bewerbung-anschreiben-erstellen
-  - bewerbung-lebenslauf-erstellen
-  - bewerbung-pruefen
+  - job-application-cover-letter-create
+  - job-application-cv-create
+  - job-application-quality-gate
 ---
 
 # Bewerbung E-Mail erstellen
 
-Spec: `spec/bewerbung/konventionen/en.md` R-4 (e-mail form), R-5 (Zeugnisse),
+Spec: `spec/job-application/konventionen/en.md` R-4 (e-mail form), R-5 (Zeugnisse),
 R-1 (facts).
 
 ## Inputs
 
-- `bewerbung/<slug>/analyse.md` (Stammdaten, Betreff details, verlangte Unterlagen).
-- `bewerbung/profil.md` (Name, phone, e-mail).
+- `job-application/<slug>/analyse.md` (Stammdaten, Betreff details, verlangte Unterlagen).
+- `job-application/profil.md` (Name, phone, e-mail).
 - The documents that will be attached. Their file names are the basis for the list.
 
 ## Output
 
-`bewerbung/<slug>/email.md`, plain text:
+`job-application/<slug>/email.md`, plain text:
 
 ```text
 An: <Ansprechpartner-E-Mail or the posting's address>
@@ -69,6 +69,8 @@ Telefon · E-Mail
 ## Hard rules
 
 1. **Plain text, no HTML, no tracking.** The e-mail text must read correctly in any client.
+   `email.md` starts with a frontmatter block carrying `grundlage_hash` (R-9.5); only the text
+   below it is the mail itself.
 2. **No new facts** in the body beyond what the profile and analysis already contain.
 3. **Attachments named in the list must exist** in the folder. Report missing ones as blockers.
 4. **Recipient address** is never guessed. Use `[ERGÄNZEN: Bewerbungs-E-Mail]` if the posting does not give one.

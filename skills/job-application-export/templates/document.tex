@@ -1,0 +1,21 @@
+% Pandoc template for Bewerbungsdokumente (Lebenslauf, Anschreiben).
+% Used by scripts/export_document.py with --template. Requires LuaLaTeX (decision O-3).
+\documentclass[11pt,a4paper]{article}
+\usepackage[ngerman]{babel}
+\usepackage{fontspec}
+\usepackage[left=25mm,right=20mm,top=20mm,bottom=20mm]{geometry}
+\usepackage{hyperref}
+\usepackage{longtable,booktabs}
+\usepackage{graphicx}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\pagestyle{plain}
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+$if(title)$\title{$title$}$endif$
+$if(author)$\author{$author$}$endif$
+\date{}
+$if(keywords)$\hypersetup{pdfkeywords={$keywords$}}$endif$
+\begin{document}
+$if(title)$\maketitle$endif$
+$body$
+\end{document}

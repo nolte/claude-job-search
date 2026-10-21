@@ -1,6 +1,6 @@
 ---
-name: bewerbung-pruefen
-description: "Quality gate for an application folder: checks completeness, identical role, company and reference data across documents, traceability of every claim to bewerbung/profil.md, German spelling and grammar, length limits, leftover [ERGÄNZEN] placeholders, and attachment names. Writes bewerbung/<slug>/pruefbericht.md with blockers, warnings, and notes. Use on \"prüfe meine Bewerbung\", \"ist die Bewerbung versandfertig\", \"check die Unterlagen\", or equivalent German requests. Don't use to write or rewrite documents (use the owning skill), or for an independent whole-set review (use the bewerbungs-reviewer agent)."
+name: job-application-quality-gate
+description: "Quality gate for an application folder: checks completeness, identical role, company and reference data across documents, traceability of every claim to job-application/profil.md, German spelling and grammar, length limits, leftover [ERGÄNZEN] placeholders, and attachment names. Writes job-application/<slug>/pruefbericht.md with blockers, warnings, and notes. Use on \"prüfe meine Bewerbung\", \"ist die Bewerbung versandfertig\", \"check die Unterlagen\", or equivalent German requests. Don't use to write or rewrite documents (use the owning skill), or for an independent whole-set review (use the job-application-reviewer agent)."
 tags: [bewerbung, pruefung, qualitaet, deutsch]
 phase: review
 summary: "Quality gate that reports blockers, warnings and notes for one application folder before it is sent."
@@ -10,21 +10,21 @@ use_when:
   - "you changed one document and need to confirm consistency"
 dont_use_when:
   - situation: "You want the documents written or rewritten"
-    alternative: bewerbung-solution
+    alternative: job-application-solution
   - situation: "You want an independent, read-only review of the full set"
-    alternative: bewerbungs-reviewer
+    alternative: job-application-reviewer
 see_also:
-  - bewerbungs-reviewer
-  - bewerbung-solution
+  - job-application-reviewer
+  - job-application-solution
 ---
 
 # Bewerbung prüfen
 
-Spec: `spec/bewerbung/konventionen/en.md` R-1 … R-7. R-7 defines what "ready to send" means.
+Spec: `spec/job-application/konventionen/en.md` R-1 … R-7. R-7 defines what "ready to send" means.
 
 ## Inputs
 
-- The folder `bewerbung/<slug>/`, with `profil.md` and `analyse.md` in `bewerbung/`
+- The folder `job-application/<slug>/`, with `profil.md` and `analyse.md` in `job-application/`
   and the documents in the slug folder.
 
 ## Checks
@@ -44,11 +44,18 @@ Spec: `spec/bewerbung/konventionen/en.md` R-1 … R-7. R-7 defines what "ready t
 | Requirement marked *Muss* in the analysis not addressed in the Anschreiben | Warning |
 | Stock phrase ("hiermit bewerbe ich mich") | Warning |
 | Optional personal data present without the user's request | Note |
+| Number in a bullet not in the profile or certificate (R-1, R-2.1) | Blocker |
+| Output `grundlage_hash` differs from the current Grundlage hash (R-9.5) | Warning: stale, re-derive |
+| Eintragsblock not in header-line form, or bullets outside 1–5 per station (R-2.1) | Warning |
+| Table or multi-column layout in a CV (R-8.3) | Warning; blocker if the posting requires ATS |
+| Photo present in an ATS or portal application (R-8.2) | Warning |
+| Europass or academic CV required by the posting but not produced (R-8.4) | Blocker |
+| Lebenslauf not matching the format chosen for the situation (R-8.1) | Warning |
 | Missing Ort, Datum, or Unterschrift line where R-2 expects them | Note |
 
 ## Output
 
-`bewerbung/<slug>/pruefbericht.md`:
+`job-application/<slug>/pruefbericht.md`:
 
 ```markdown
 # Prüfbericht — <Stelle> (<Firma>)

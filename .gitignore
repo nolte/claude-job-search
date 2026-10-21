@@ -3,8 +3,8 @@
 .claude/*.local.json
 .claude/.credentials.json
 
-# Application data — personal, never committed (see spec/bewerbung R-6)
-/bewerbung/
+# Application data — personal, never committed (see spec/job-application R-6)
+/job-application/
 *.pdf
 *.docx
 
