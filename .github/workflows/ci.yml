@@ -2,53 +2,70 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-# Task resolves the remote includes of Taskfile.yml only with this flag set, on every
-# job, not just the docs job.
+# Concurrency follows the portfolio convention (spec/project/github-actions-best-practices/ §F):
+# a pull request supersedes its own stale runs, while push and workflow_dispatch runs verify
+# different commits and are grouped per run. Grouping a push on github.ref would cancel a
+# pending required check when a newer merge queues behind it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 env:
+  # Taskfile.yml includes remote taskfiles from nolte/taskfiles; Task gates that
+  # experimental feature behind this flag (spec/project/taskfile/).
   TASK_X_REMOTE_TASKFILES: "1"
 
+# `lint`, `test` and `docs` are separate jobs with these exact names: they are the required
+# status checks on `develop` in .github/settings.yml. Each job runs the matching Taskfile target,
+# so the local and the CI gate are the same targets.
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
       - run: pip install pre-commit
-      - uses: arduino/setup-task@v2
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
         with:
-          version: 3.x
+          version: 3.52.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      # --yes accepts the trust prompt Task raises for a remote include; a runner has no
+      # terminal to answer it.
       - run: task --yes lint
 
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-task@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          version: 3.x
+          python-version: "3.14"
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.52.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: task --yes test
 
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: "3.12"
-      - uses: arduino/setup-task@v2
+          python-version: "3.14"
+      - uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
         with:
-          version: 3.x
+          version: 3.52.0
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - run: task --yes install
       - run: task --yes docs
