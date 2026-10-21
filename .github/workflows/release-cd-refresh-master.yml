@@ -1,0 +1,57 @@
+name: release-cd-refresh-master
+
+on:
+  release:
+    types: [published]
+
+# spec/project/github-actions-best-practices/ §B: an explicit block, read-only at
+# the workflow level, with the write scopes this workflow needs granted on the
+# job below. GitHub advises a read-only default token and OpenSSF Scorecard
+# checks exactly this shape.
+permissions:
+  contents: read
+
+# spec/project/github-actions-best-practices/ §F: the conditional group MUST
+# applies. Every run force-updates the same shared resource — the `main`
+# presentation branch — so two runs for two releases published in quick
+# succession interfere, and an out-of-order finish would leave `main` pointing at
+# the older release.
+#
+# `cancel-in-progress` is false per §F's third rule: this is a delivery workflow,
+# and cancelling it part-way through leaves `main` in an indeterminate state.
+#
+# GitHub supersedes a *pending* run regardless when a newer one queues into this
+# group. That is harmless on the strength of the serialisation alone: the runs
+# that do execute stay in order, so `main` never ends up at an older release than
+# one it already carried. No claim is made here about how the upstream reusable
+# computes the refresh — that behaviour is not verifiable from this repository.
+#
+# The group names the target branch explicitly — it is hard-coded in the `with:`
+# block below — rather than reading `github.ref`, which on a `release` event
+# points at the tag rather than at the branch being written.
+#
+# That suffix is also what keeps this group distinct from the reusable's own.
+# At the pinned digest the called workflow declares `release-cd-refresh-master`,
+# and `github.workflow` resolves to this caller's name, so dropping `-main`
+# would produce two identical nested groups — a documented deadlock shape.
+# Keep the suffix.
+concurrency:
+  group: ${{ github.workflow }}-main
+  cancel-in-progress: false
+
+jobs:
+  refresh_presentation_branch:
+    uses: nolte/gh-plumbing/.github/workflows/reusable-release-cd-refresh-master.yml@80cb5ebb91a3b49126729de31b1037f11c34b5cd # v2.2.0
+    # Open gaps, recorded per spec/project/workflow-health/ (#586):
+    # - The reusable resets `main` to the release tag with a force push; `main`
+    #   allows force pushes for exactly that (.github/settings.yml, 2026-09-13), so
+    #   the portfolio-wide gap nolte/gh-plumbing#414 no longer blocks this repository.
+    # - GITHUB_TOKEN can't write under .github/workflows/, and refresh diffs do
+    #   touch workflow files; the reusable's `app-id` path would carry
+    #   `workflows: write`, and waits on the portfolio App of nolte/gh-plumbing#330.
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      target_branch: main
+    permissions:
+      contents: write

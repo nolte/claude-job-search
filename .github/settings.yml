@@ -44,4 +44,7 @@ branches:
       # The release refresh advances main through the merges API, which creates a
       # merge commit; a linear-history requirement would refuse it on every release.
       required_linear_history: false
+      # The release step resets `main` to the published tag with a force push
+      # (release-cd-refresh-master), as in claude-shared; enforce_admins alone would refuse it.
+      allow_force_pushes: true
       restrictions: null
