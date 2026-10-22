@@ -25,19 +25,25 @@ layout, checks). The rules below stay in force and are the short form.
 
 - **Form:** einspaltig (single column, no layout tables), **rückwärts chronologisch** — the most recent
   entry comes first.
-- **Umfang:** typically 1–2 pages; longer only with substantial, relevant experience.
-- **Sections, in this order:** persönliche Daten → beruflicher Werdegang →
-  Ausbildung / Studium → Schulbildung → Sprachkenntnisse (with CEFR level, e.g. B2) →
-  IT- und Fachkenntnisse → Weiterbildung → optional: ehrenamtliches Engagement,
-  Interessen.
-- **Zeiträume:** `MM/JJJJ – MM/JJJJ` (or `seit MM/JJJJ`), consistent across entries.
-- **Lücken:** shown as a gap or as a short neutral entry (e.g. "Elternzeit"); never
-  hidden or disguised.
+- **Umfang:** one page for entry level, two pages otherwise (LB-2, CG-6.1). A Lebenslauf longer than
+  two pages is a Blocker. The only exception is the user's explicit decision in the session, recorded in
+  `pruefbericht.md` (section `## Prüfung`, LS-7.4); the quality gate then reports a Warnung instead.
+- **Sections and their order:** as in LB-3 of `spec/job-application/lebenslauf/en.md`, with the standard
+  headings of CG-11.2a (`spec/job-application/cv-generierung/en.md`). This rule keeps no list of its own.
+- **Zeiträume:** `MM/JJJJ – MM/JJJJ` or `MM/JJJJ – heute`, consistent across entries. `seit MM/JJJJ` is
+  not used.
+- **Lücken:** shown as a short neutral entry; never hidden or disguised. The user chooses the wording from
+  the proposals `Elternzeit`, `Pflege eines Angehörigen`, `Weiterbildung`, `Berufliche Neuorientierung`,
+  `Bewerbungsphase` (CG-9). `Auszeit` is not a default.
 - **Personal data:** Name and contact are mandatory. Foto, Geburtsdatum/-ort,
   Familienstand and Konfession are **optional**; none is required by law or the
   AGG-compliant standard. Do not add them unless the user wants them.
-- **Abschluss:** Ort, Datum, and — for paper applications — a handwritten
-  Unterschrift. For digital applications the signature line is optional.
+- **Further personal data:** Schwerbehinderung or a GdB, Arbeitserlaubnis and Führerschein are written only
+  on the user's explicit request in the session, never because the posting mentions them. A link to
+  LinkedIn, GitHub or a portfolio is optional in the contact line; it is recommended for IT roles and
+  written only when the profile holds it (LB-4.1).
+- **Abschluss:** Ort and Datum. A handwritten Unterschrift only for paper applications; for digital
+  applications the signature line is optional (LB-9).
 
 ### R-2.1 Eintragsblock (one entry per position)
 
@@ -46,14 +52,15 @@ Sources: [lebenslauf.de – Berufserfahrung](https://www.lebenslauf.de/ratgeber/
 [Karrierebibel – Berufserfahrung](https://karrierebibel.de/berufserfahrung-im-lebenslauf/),
 [cv-folio – Berufserfahrung 2026](https://www.cv-folio.io/artikel/berufserfahrung-lebenslauf),
 [Emory – Resume bullets](https://cpd.emory.edu/resources/creating-impressive-resume-bullets/),
-[Jobscan – STAR method](https://www.jobscan.co/blog/star-method-resume/).
+[Jobscan – STAR method](https://www.jobscan.co/blog/star-method-resume/),
+[Karrierebibel – Lücken im Lebenslauf](https://karrierebibel.de/luecken-im-lebenslauf/).
 
 **Block shape (header line plus bullets):**
 
 ```markdown
 ### 04/2021 – heute | Senior Backend-Entwickler | Musterfirma GmbH, Berlin
-- Betreuung der Event-Pipeline in Python und Kafka; Latenz von 800 ms auf 120 ms gesenkt.
-- Einführung von Code-Reviews als Pflichtschritt im Team mit fünf Entwicklern.
+- Event-Pipeline auf Basis von Python und Kafka betreut; Latenz von 800 ms auf 120 ms gesenkt
+- Code-Reviews als Pflichtschritt für ein Team von 5 Entwicklern eingeführt
 ```
 
 1. **Header line** in this order: `Zeitraum | Position | Arbeitgeber, Ort`.
@@ -67,9 +74,9 @@ Sources: [lebenslauf.de – Berufserfahrung](https://www.lebenslauf.de/ratgeber/
    - **Results:** prefer a number (Prozent, Zeit, Kosten, Teamgröße, Volumen), supported by the profile or the Zeugnis. If no number is known, a qualitative result from the profile is enough. Never invent a number. Where confidentiality applies, a size band replaces the exact figure (cv-folio).
    - **No routine duties:** daily tasks without a result are left out (Emory, Jobscan).
    - **Relevance:** bullets follow the requirements of the Stellenanzeige where the profile supports them (R-1.4). The STAR order (Situation, Aufgabe, Handlung, Ergebnis) is used to think through a bullet, not to write it out in full.
-3. **Gaps:** a period without employment longer than two months needs a neutral entry or an explanation (lebenslaufdesigns.de).
+3. **Gaps:** a period without employment longer than two months needs a neutral entry or an explanation (Karrierebibel – Lücken, which calls the two months a guide value). The wording follows R-2, Lücken (CG-9).
 4. **Ordering inside the CV:** stations are reverse chronological. The bullets within a station are ordered by relevance to the posting, not by date.
-5. **Traceability:** every bullet links to a Grundlage entry (FA-5, FA-7 of the Datengrundlage requirement). The link is kept in the Grundlage or in `pruefbericht.md`, never in the CV text itself.
+5. **Traceability:** every bullet links to an entry of the Datengrundlage (Grundlage, R-9; FA-5, FA-7 of the requirement document). The link is kept in the Grundlage or in `pruefbericht.md`, never in the CV text itself.
 
 ## R-3 Anschreiben (cover letter)
 
@@ -78,38 +85,56 @@ letter is a separate document type (`spec/job-application/motivationsschreiben/e
 in force and are the short form.
 
 - **Layout:** DIN-5008-style letter: Absender block, Empfängeranschrift,
-  Ort und Datum, **Betreff** in bold, Anrede, body, Schlussformel, Unterschrift.
+  Ort und Datum, **Betreff** in bold, Anrede, body, Schlussformel, Unterschrift, Anlagen line when
+  attachments exist (AS-2, AS-10.4).
 - **Betreff:** concrete — role plus reference number if given, e.g.
-  `Bewerbung als Backend-Entwickler (Ref.-Nr. 12345)`.
-- **Anrede:** `Sehr geehrte Frau <Nachname>` / `Sehr geehrter Herr <Nachname>`
-  when the contact person is known; otherwise `Sehr geehrte Damen und Herren`.
-  Only use a name that is in the posting or the user's profile.
-- **Umfang:** maximum one page; in practice roughly 250–400 words.
+  `Bewerbung als Backend-Entwickler (Ref.-Nr. 12345)`. A gender suffix of the posting (`(m/w/d)`,
+  `(w/m/x)` and similar) is dropped; `(Ref.-Nr. …)` appears only when the posting gives one (AS-4).
+- **Anrede:** Sie-Form is the default: `Sehr geehrte Frau <Nachname>,` / `Sehr geehrter Herr <Nachname>,`
+  when the contact person is known, with a comma after the salutation. An academic title (Dr., Prof.) from
+  the posting or the profile is kept: `Sehr geehrte Frau Dr. <Nachname>,`. If the posting uses du,
+  `Hallo <Vorname>,` or `Guten Tag <Vorname Nachname>,`. If the gender cannot be derived from the name,
+  `Guten Tag <Vorname Nachname>,`. `Sehr geehrte Damen und Herren,` only when no person is known; the quality
+  gate reports it as a Warnung (AS-5, MS-4.3). Only use a name that is in the posting or the user's profile.
+- **Umfang:** maximum one page; in practice roughly 250–400 words. A second page is a Blocker (AS-7, AS-12).
 - **Structure:** opening with a concrete reference to the company or role (no
   "hiermit bewerbe ich mich") → two to three paragraphs with *requirement → proof*
   pairs from the profile → motivation that is specific to this employer (only with
   facts from the analysis) → closing with a wish for a conversation and optionally
   the earliest start date → Schlussformel `Mit freundlichen Grüßen`.
 - **Tone:** match the posting. Use Sie unless the posting clearly uses du.
-- **Gehaltsvorstellung:** only if the posting asks for it.
+- **Gehaltsvorstellung:** only if the posting asks for it; form and placement follow AS-10.1 of
+  `spec/job-application/anschreiben/en.md`.
 
 ## R-4 Bewerbungs-E-Mail
 
-- **Betreff:** `Bewerbung als <Stelle> (Ref.-Nr. <nr>) – <Vorname Nachname>`.
+- **Betreff:** `Bewerbung als <Stelle> (Ref.-Nr. <nr>) – <Vorname Nachname>`. The gender suffix of the
+  posting is dropped and `(Ref.-Nr. <nr>)` appears only when the posting gives one, as in R-3.
 - **Body:** three to five sentences: what you apply for, where you saw the posting,
   the key reason you fit, what is attached, a greeting.
 - **Anhänge:** one PDF per document, named `Vorname_Nachname_Lebenslauf.pdf`,
-  `Vorname_Nachname_Anschreiben.pdf`. Optionally one combined PDF.
-- **Größe:** check total attachment size before sending. Many mail providers and
-  recipients limit attachments (often around 10–25 MB); when in doubt, compress or
-  send a combined PDF link.
+  `Vorname_Nachname_Anschreiben.pdf`, `Vorname_Nachname_Zeugnisse.pdf` (R-5). Optionally one combined PDF.
+- **File names:** ASCII only. Transliteration `ä→ae`, `ö→oe`, `ü→ue`, `ß→ss`; the hyphen of a double name
+  stays (`Anna-Lena_Mueller-Schmidt_Lebenslauf.pdf`); a space inside one name part becomes `-`
+  (`Hans-Peter_von-Musterhausen_Lebenslauf.pdf`).
+- **Größe:** the guide value for all attachments together is at most 5 MB. The quality gate reports a
+  Warnung from 5 MB and a Blocker from 10 MB. When the limit is exceeded, compress the scans or reduce the
+  Zeugnisse selection (R-5).
 - **Signatur:** full name, phone, address optional.
 
 ## R-5 Zeugnisse (Anlagen)
 
 - Attach certificates only if the posting asks for them or the user's sector
   expects them. Otherwise "Zeugnisse auf Anfrage" is common and acceptable.
-- Order: most recent first.
+- **Selection:** the last two or three Arbeitszeugnisse, the highest Abschluss, and only the certificates
+  that are relevant to the posting. Older or unrelated documents stay in `rohdaten/`.
+- **Grouping and order:** Arbeitszeugnisse, then Abschlusszeugnisse, then Zertifikate. Within a group the
+  most recent document comes first.
+- **File:** one combined PDF `Vorname_Nachname_Zeugnisse.pdf` (R-4). The Anlagen line of the Anschreiben
+  lists the attached documents (AS-10.4).
+- **Referenzen:** reference persons are not named in the Lebenslauf (LB-8.3). When the posting asks for
+  references, the Anschreiben carries `[ERGÄNZEN: Referenzen]` until the user names persons who have
+  consented (Blocker, R-1.2). Names are never invented.
 
 ## R-6 Datenschutz and handling
 
@@ -117,6 +142,8 @@ in force and are the short form.
   The `job-application/` working folder is git-ignored by default. The user may decide to track it in a
   private repository that is never published; then the rules of `lebenslauf-versionen` LV-4 apply. The
   plugin repository and any public repository never hold these files.
+- Retention and deletion of closed Vorgänge follow stage S10 of `spec/job-application/lokale-struktur/en.md`
+  (LS-6).
 - Documents are generated as Markdown sources; PDF or DOCX export is a separate step
   and is never done automatically without the user's request.
 
@@ -127,11 +154,12 @@ A set is ready to send only when `job-application-quality-gate` reports **zero b
 - no `[ERGÄNZEN: …]` placeholder left,
 - company name, role, reference number and contact name identical across all documents,
 - every claim traceable to the profile (R-1),
-- Anschreiben within one page and Lebenslauf within the length budget (R-2, R-3),
+- Anschreiben within one page (a second page is a Blocker, R-3) and Lebenslauf within two pages (a third
+  page is a Blocker unless the user's recorded decision allows it, R-2),
 - German spelling and grammar free of obvious errors,
 - the Datengrundlage hash in every output matches the current Grundlage (R-9.4),
 - every Eintragsblock follows R-2.1 (header order, bullet limits of CG-6, no invented numbers),
-- every automated rule of CG-13 (CV-01 to CV-15, as reported by `scripts/cv_checks.py`) has no Blocker,
+- every automated rule of CG-13 (CV-01 to CV-16, as reported by `scripts/cv_checks.py`) has no Blocker,
 - for ATS or portal applications, the ATS rules of R-8.3 hold.
 
 ## R-8 Formatauswahl nach Situation
@@ -145,8 +173,8 @@ The skill proposes a format from the situation, and the user may deviate (record
 | Standard, Berufserfahrung in DE | chronologisch | default, two pages at most |
 | Berufseinstieg, Ausbildung oder Studium | einseitig | Ausbildung and Praktika first |
 | Schüler, Studierende, Praktikum | einseitig | Praktika with month, company, two bullets |
-| Quereinstieg, Branchenwechsel | kombiniert | Kurzprofil of 2–4 sentences, then chronological |
-| Lücke (Elternzeit, Pflege, Auszeit) | chronologisch | gap as its own line, neutral wording |
+| Quereinstieg, Branchenwechsel | kombiniert | Kurzprofil of at most 3 sentences (LB-4.2), then chronological |
+| Lücke (Elternzeit, Pflege, Weiterbildung) | chronologisch | gap as its own line, neutral wording chosen by the user (R-2, CG-9) |
 | Viele Stationen oder Projektarbeit | kombiniert | Berufserfahrung grouped in blocks |
 | Akademische Stelle, Promotion, Habilitation | akademischer CV | Phase 2; in Phase 1 a blocker, see R-8.4 |
 | EU-Stelle, öffentlicher Dienst, Stipendium | Europass | see R-8.4 |
@@ -168,10 +196,13 @@ Funktional (skill-based without timeline) is not produced. It is recommended onl
 
 For ATS or portal applications, the CV follows these rules ([Profiling-Institut](https://www.profiling-institut.de/5-haeufigste-fehler-im-ats-lebenslauf/), [Remotely](https://www.remotely.de/ats-lebenslauf), [pdf2go](https://pdf2go.com/blog/the-best-resume-formats-for-ats)):
 
-1. Single-column layout, no layout tables, text boxes, graphics, or header/footer content.
-2. Standard headings: „Berufserfahrung“, „Ausbildung“, „Kenntnisse“, „Sprachkenntnisse“.
+1. Single-column layout, no layout tables, text boxes, graphics, or header/footer content. The only
+   exception is a quiet page number in the footer (LB-11.1).
+2. Standard headings: the catalogue of CG-11.2a in `spec/job-application/cv-generierung/en.md`, which
+   includes the ATS short forms `Ausbildung` and `Kenntnisse`. The headings are not repeated here.
 3. Keywords from the posting only where the profile shows evidence (R-1.4).
-4. File format: DOCX preferred; a text-PDF exported from Word is second. A scanned PDF is not acceptable.
+4. File format: a text-PDF is the default. DOCX only when the portal requires it; the DOCX export then
+   strips the document metadata (author, revisions, comments). A scanned PDF is not acceptable.
 5. A format stated in the posting overrides this rule.
 
 A violation of an ATS rule is a warning. It becomes a blocker when the posting requires an ATS-compatible format and the output does not meet it.
@@ -202,7 +233,7 @@ The user's own, complete, chronological basis in Markdown. Requirement document:
 7. **Maintenance:** a change adds or corrects the affected entries only. A complete rewrite of an existing Grundlage is not done.
 8. **Pflegelauf:** an existing Grundlage is maintained with the interview of R-9.8, carried out by `job-application-cv-maintain`. `job-application-profile-capture` creates a Grundlage only when none exists.
 9. **Repository boundary:** the skill refuses any Grundlage path inside a directory tree that contains the plugin manifest `.claude-plugin/plugin.json` with `"name": "claude-job-search"`. The message names the `konfiguration.md` setting, so the user can point to a path outside the repository.
-10. **Konfiguration:** `job-application/konfiguration.md` contains the frontmatter keys `wurzel`, `grundlage` and `grundlage_index` (LS-2.5, spec `lokale-struktur/en.md`). `grundlage_index` is required in directory mode and not allowed in file mode. Relative paths resolve against the working directory of the user; absolute paths are recommended. Every skill that reads or hashes the Grundlage resolves the paths from this file first and falls back to the defaults.
+10. **Konfiguration:** `job-application/konfiguration.md` contains the frontmatter keys `wurzel`, `grundlage` and `grundlage_index` (LS-2.5, spec `lokale-struktur/en.md`). `grundlage_index` is required in directory mode and not allowed in file mode. Relative paths resolve against the working directory that contains `job-application/konfiguration.md`; absolute paths are allowed, relative paths are recommended for a Wurzel inside a repository, because they stay valid on every checkout. Every skill that reads or hashes the Grundlage resolves the paths from this file first and falls back to the defaults.
 
 ### R-9.8 Pflegelauf (maintenance interview)
 
@@ -261,9 +292,17 @@ Requirement: `project/requirements/ausgabeformate.md` (FA-O1 … FA-O23). Decisi
 1. **One source.** Every output is generated from the Markdown document. Outputs are never edited by hand (FA-O1).
 2. **Formats per document.** Lebenslauf and Anschreiben: PDF (LaTeX), DOCX, Markdown, HTML, and the LaTeX source as `tex` (same template, pandoc only, no LuaLaTeX needed). E-Mail: Markdown only. Review report: Markdown only.
 3. **Hash.** Each output carries the `grundlage_hash` of its source (FA-O2). Stale outputs are reported by `job-application-quality-gate`.
-4. **File names** follow R-4: `Vorname_Nachname_<Dokument>.<ext>`, in `job-application/<slug>/export/` by default (FA-O3, FA-O4).
-5. **PDF.** LuaLaTeX, embedded fonts, selectable text. Lebenslauf at most two pages, Anschreiben exactly one (FA-O11 to FA-O13).
-6. **DOCX.** Single column, Word heading styles, no tables, editable paragraphs (FA-O16, FA-O17). Recommended for ATS portals (R-8.3).
-7. **HTML.** Self-contained, `lang="de"`, responsive, printable, semantic structure, no external resources (FA-O21 to FA-O23).
+4. **File names** follow R-4: `Vorname_Nachname_<Dokument>.<ext>` with the ASCII transliteration of R-4, in `job-application/<slug>/export/` by default (FA-O3, FA-O4). An export of a frozen Version is named after the Version (`lebenslauf-versionen` LV-2.3).
+5. **PDF.** LuaLaTeX, embedded fonts, selectable text. Lebenslauf at most two pages, Anschreiben exactly one (FA-O11 to FA-O13). The PDF is the default file format, also for ATS portals (R-8.3.4).
+6. **DOCX.** Single column, Word heading styles, no tables, editable paragraphs (FA-O16, FA-O17). Only when a portal requires DOCX (R-8.3.4); the export strips the document metadata (author, revisions, comments).
+7. **HTML.** Self-contained, `lang="de"`, responsive, printable, semantic structure, no external resources (FA-O21 to FA-O23). The HTML has its own reduced layout; only the PDF carries the layout of LB-11.
 8. **Content.** Every export must contain the same words as the source (FA-O6).
 9. **Export on request only** (R-6). The export command is `task export`.
+
+## R-11 Englischsprachige Unterlagen (stub)
+
+1. A posting that asks for English documents is a language override (LB-12, AS-11). The skills keep the
+   German structure of the document types and write the text in English.
+2. The resume conventions of English-speaking markets apply on top: no photo, no birth date, no signature.
+3. A dedicated specification for English documents (resume versus CV, letter layout, spelling variant) is
+   an open point. Until it exists, this stub is the whole rule.

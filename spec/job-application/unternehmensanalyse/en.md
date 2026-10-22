@@ -156,9 +156,12 @@ identitaet_stand: 2026-10-21
 
 ## UA-7 Privacy and retention
 
-1. The analysis is local, in the git-ignored `job-application/` folder (R-6, LS-2).
+1. The analysis is local, in the Wurzel (`job-application/` by default). The Wurzel is git-ignored by
+   default; a private, unpublished repository is allowed (R-6, LS-2.1, `lebenslauf-versionen` LV-4).
 2. Firm files of companies the candidate no longer applies to stay until the candidate removes
-   them. They are not sent anywhere.
+   them. They are not sent anywhere. The retention and deletion of a Vorgang, including its
+   `analyse.md`, follow stage S10 of `lokale-struktur/en.md` (LS-6 rule 8); `firmen/` is not
+   covered by S10, because a firm file holds no application state.
 3. A Vermittler's contact data is recorded only as far as KK-4.3 allows.
 
 ## UA-8 Acceptance scenarios

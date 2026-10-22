@@ -30,8 +30,8 @@ decision of this plugin. A posting's instruction overrides a default of this plu
 4. **Facts only.** The document states facts. It contains no description of the candidate's personality (a
    source on the German form says so: [Lingoda](https://www.lingoda.com/blog/de/lebenslauf-auf-deutsch/)).
    Personal statements belong into the Motivationsschreiben (`motivationsschreiben/en.md`).
-5. **One document per application.** The Lebenslauf is generated for one Stellenanzeige from the Grundlage
-   (CG-5). The Grundlage is complete; the document is a selection.
+5. **One document per application.** The Lebenslauf is generated for one Stellenanzeige from the
+   Datengrundlage (Grundlage, R-9; CG-5). The Grundlage is complete; the document is a selection.
 
 ## LB-2 Formats
 
@@ -48,7 +48,11 @@ The format follows the situation (R-8.1). This document adds what each format co
    ([Uni Münster](https://www.wiwi.uni-muenster.de/fakultaet/sites/fakultaet/files/broschuere_lebenslauf_final_neu.pdf),
    [fintiba](https://www.fintiba.com/de/germany/working/german-cv)). One source states 1 to 2 pages
    depending on experience. The plugin sets 1 page and 2 pages as above (CG-6.1).
-2. **Not produced.** Europass, the academic CV, and the functional CV are not produced (R-8.4, R-8.1).
+2. **Not produced.** Europass, the academic CV, and the functional CV are not produced (R-8.4, R-8.1). A
+   Deckblatt (cover sheet) is not generated either.
+3. **Limit.** A Lebenslauf longer than two pages is a Blocker (R-2, R-7). The only exception is the user's
+   explicit decision in the session; the quality gate records it in `pruefbericht.md`, section `## Prüfung`
+   (LS-7.4), and reports a Warnung instead. The font size is never reduced to meet the limit (LB-11.7).
 
 ## LB-3 Sections and their order
 
@@ -56,8 +60,8 @@ The order is fixed. A section that has no content is omitted, except those marke
 
 | # | Section (heading) | Required | Content | Entry shape |
 |---|---|---|---|---|
-| 1 | `Persönliche Daten` | yes | Name, address, phone, e-mail; LinkedIn optional | one line (LB-4.1) |
-| 2 | `Kurzprofil` | only in `kombiniert` | 2 to 4 sentences of facts | prose (LB-4.2) |
+| 1 | `Persönliche Daten` | yes | Name, address, phone, e-mail; LinkedIn, GitHub or portfolio link optional | one line (LB-4.1) |
+| 2 | `Kurzprofil` | in `kombiniert`; otherwise only on the user's opt-in | at most 3 sentences of facts | prose (LB-4.2) |
 | 3 | `Berufserfahrung` | yes, unless entry level | Stations in reverse order | station block (LB-5) |
 | 4 | `Praktika` | entry level | Internships | station block (LB-5) |
 | 5 | `Relevante Projekte` | optional | Projects that carry a *Muss* requirement (CG-5.2) | list (LB-6) |
@@ -68,7 +72,7 @@ The order is fixed. A section that has no content is omitted, except those marke
 | 10 | `Weiterbildung und Zertifikate` | optional | Courses and certificates with issuer and year | list (LB-6) |
 | 11 | `Ehrenamt` | optional | Voluntary work | list (LB-6) |
 | 12 | `Interessen` | optional | Only if relevant (LB-8) | one line |
-| 13 | Ort, Datum, Unterschrift | yes | LB-9 | one line |
+| 13 | Ort, Datum (Unterschrift optional, digital) | yes | LB-9 | one line |
 
 1. **Headings.** The headings are the standard headings of CG-11.2a, in German. A heading may carry a
    qualifier in parentheses, as in `Sprachkenntnisse (GER-Niveau)`. No other heading is used (CV-10).
@@ -92,16 +96,21 @@ The order is fixed. A section that has no content is omitted, except those marke
    The plugin includes them only when the user asks for them or the country requires it (R-2, R-8.2). The
    photo default is none.
 3. **Form.** One line: `Name · Anschrift · Telefon · E-Mail`. The separator is the middle dot with spaces.
+   A link to LinkedIn, GitHub or a portfolio may follow as a further item. It is optional, recommended for
+   IT roles, and written only when the profile holds it (R-2).
 4. **Placeholders.** An unknown item is `[ERGÄNZEN: <Item>]`. A document with a placeholder is not ready
    (CV-01).
 5. **No headings for labels.** Labels such as "Name:" are not used.
+6. **Only on request.** Schwerbehinderung or a GdB, Arbeitserlaubnis and Führerschein are written only on
+   the user's explicit request in the session (R-2). A posting that mentions them does not make them
+   required; the skill may ask the user once.
 
 ### LB-4.2 Kurzprofil
 
-1. **Only in `kombiniert`.** The Kurzprofil is part of the combined format (R-8.1). No source found for this
-   document confirms it as usual in Germany. The plugin therefore uses it only for career changes and many
-   stations (open point LB-14).
-2. **Content.** Two to four sentences. They state facts that are in the Grundlage: field, years of
+1. **Required in `kombiniert`, optional elsewhere.** The Kurzprofil is part of the combined format (R-8.1).
+   In every other format it is written only when the user opts in during the session. No source found for
+   this document confirms it as usual in Germany; the opt-in is a decision of this plugin.
+2. **Content.** At most three sentences. They state facts that are in the Grundlage: field, years of
    experience, the two or three most relevant competences, and for a career change the transferable
    evidence. They contain no evaluation and no personality words (LB-1.4, CG-8.2).
 3. **Sourcing.** Every statement has a Grundlage entry (CG-2.3). A year count is computed from the Grundlage
@@ -114,7 +123,8 @@ The order is fixed. A section that has no content is omitted, except those marke
 The station block follows R-2.1 and `cv-generierung/en.md`. This section adds the field rules.
 
 1. **Header line.** `MM/JJJJ – MM/JJJJ | Position | Arbeitgeber, Ort` as a heading of level three. The period
-   uses an en dash with spaces. The current station ends with `heute`.
+   uses an en dash with spaces. The current station ends with `heute` (`MM/JJJJ – heute`); `seit MM/JJJJ` is
+   not used (R-2).
 2. **Position.** Exactly as in the Arbeitszeugnis or the contract. If none exists, the title of the
    Grundlage with `[KLÄREN: Titel laut Zeugnis]` (R-2.1).
 3. **Arbeitgeber.** The legal name with Rechtsform and the city, as in the Grundlage. A Zeitarbeit placement
@@ -132,10 +142,12 @@ The station block follows R-2.1 and `cv-generierung/en.md`. This section adds th
 
 The list sections use one bullet per entry.
 
-1. **Form.** `<Zeitraum>: <Abschluss oder Inhalt>, <Institution>, <Ort>`. Example: `2007 – 2010: Fachinformatiker
-   Anwendungsentwicklung, Hermes Logistik Gruppe Deutschland GmbH, Hamburg`.
+1. **Form.** `<Zeitraum>: <Abschluss oder Inhalt>, <Institution>, <Ort>`. Example: `09/2015 – 08/2018: Fachinformatiker
+   Anwendungsentwicklung, Musterfirma GmbH, Berlin`.
 2. **Period.** `MM/JJJJ – MM/JJJJ` when the Grundlage has months. A year-only entry is written as `JJJJ – JJJJ`
-   and reported (CV-02, CG-9). A school degree may carry only the year of the degree.
+   and reported as a Warnung (CV-02, CG-9). No `[ERGÄNZEN: Monat]` placeholder is written, and the Grundlage
+   note does not have to be completed for the document to be ready. A school degree may carry only the year
+   of the degree.
 3. **Order.** Reverse chronological, most recent first.
 4. **Degree.** The official name of the degree, as in the certificate. A grade is stated only if the
    Grundlage states it, and then it is written unchanged.
@@ -157,15 +169,20 @@ The list sections use one bullet per entry.
    groups, the most relevant group comes first.
 4. **No rating graphics.** No bars, dots, stars, or percentages for skills (R-8.3, CG-11.3).
 5. **No invented proficiency.** "Grundkenntnisse" does not become "sicher in" (CG-7.2).
-6. **Brevity.** At most six entries per group. The full list stays in the Grundlage.
+6. **Brevity.** At most ten entries per group. A hiring manager scans a skill group in a few seconds and
+   reads only the terms that match the posting; a longer list hides them. The full list stays in the
+   Grundlage, and the order of LB-7.3 brings the matching terms to the front.
 
 ## LB-8 Optional sections
 
 1. **Ehrenamt.** Only if it supports the application or fills a period. The same entry form as LB-6.
 2. **Interessen.** Only if the user asks and the interests are neutral and relevant. Health, family, religion,
    politics, and similar topics are not written without the user's explicit request (CG-9.2, E-5).
-3. **Not written.** References ("Referenzen auf Anfrage") are not written. Sources name references only for
-   special cases such as freelancers ([Lingoda](https://www.lingoda.com/blog/de/lebenslauf-auf-deutsch/)).
+3. **Not written.** References ("Referenzen auf Anfrage") and reference persons are not written in the
+   Lebenslauf. Sources name references only for special cases such as freelancers
+   ([Lingoda](https://www.lingoda.com/blog/de/lebenslauf-auf-deutsch/)). When the posting asks for
+   references, the Anschreiben carries `[ERGÄNZEN: Referenzen]` until the user names persons who have
+   consented (R-5, Blocker). Names are never invented.
 
 ## LB-9 Closing
 
@@ -174,7 +191,9 @@ The list sections use one bullet per entry.
    [Uni Gießen](https://www.uni-giessen.de/de/fbz/zentren/zfbk/career/international/bewerbung/lebenslauf)).
 2. **Form.** `Ort, TT.MM.JJJJ`, same as in the Anschreiben.
 3. **Signature.** A handwritten signature for paper. For digital applications the line is optional; a scanned
-   signature is common in practice, and the plugin does not require it (R-2).
+   signature is common in practice, and the plugin does not require it (R-2). A signature image in the
+   document is not supported in Phase 1: the export allows no images apart from the optional photo
+   (CG-11.3), so the user signs the printed page or leaves the line empty.
 4. **Date.** The date of generation, in the same format as the Anschreiben. An old date is a Warnung.
 
 ## LB-10 Dates and periods
@@ -186,15 +205,19 @@ The list sections use one bullet per entry.
 4. **Gaps.** A gap over two months is a neutral entry or an explicit marker; the reason is not invented
    (CG-9, CV-13).
 5. **Source.** Periods equal the Grundlage (CV-06). A year-only period in the Grundlage stays year-only
-   in the document and is reported.
+   in the document and is reported as a Warnung (CV-02). No month placeholder is written and no completion
+   of the Grundlage is required (LB-6.2, CG-9).
 
 ## LB-11 Layout and file
 
 1. **Layout.** One column, one accent colour, thin rules under the section headings, coloured bullets, no
-   tables, no icons, no photos by default, no text in header or footer except a quiet page number. The design is
+   tables, no icons, no photos by default, no text in header or footer except a quiet page number. The page
+   number is the one exception that R-8.3.1 allows for ATS documents. The design is
    in `skills/job-application-export/templates/document.tex` and `templates/cv.lua`.
-2. **Same look as the Anschreiben.** Both use one template (`anschreiben/en.md` AS-3.7). The letter page has its
-   own margins (AS-3.3) and does not use the Lebenslauf macros.
+2. **Same look as the Anschreiben in the PDF.** Both use one template (`anschreiben/en.md` AS-3.7). The letter
+   page has its own margins (AS-3.3) and does not use the Lebenslauf macros. Only the PDF carries this layout;
+   the HTML export has its own reduced layout with the same text (R-10.7), and DOCX uses Word heading styles
+   (R-10.6).
 3. **Heading placement.** A heading is never the last element of a page (template rule).
 4. **Header block.** The name stands first and large, above the personal data. The Markdown form `Name · Anschrift
    · Telefon · E-Mail` (LB-4.1) is rendered as the name, then the label `Persönliche Daten` and the remaining
@@ -251,24 +274,29 @@ document-level checks and shows which are automated.
 | A station is not in the Grundlage | LB-5 | automated (CV-15) | Blocker |
 | A gap over two months has no entry | LB-10.4 | automated (CV-13) | Blocker |
 | A number that the Grundlage does not state | CG-8.3 | automated (CV-05) | Blocker |
-| A leadership word without `fuehrung: ja` | CG-8.2 | automated (CV-16) | Blocker |
+| A leadership word while `fuehrung` is `ungeklärt` or missing in the station note | CG-8.2 | automated (CV-16) | Warnung |
+| A leadership word while the station note says `fuehrung: nein` | CG-8.2 | automated (CV-16) | Blocker |
 | A table in the document | LB-11.1 | automated (CV-08) | Warnung, Blocker with ATS |
 | More than five bullets, or a bullet longer than two lines | CG-6 | automated (CV-03, CV-12) | Warnung, Hinweis |
-| A generic or evaluative phrase | CG-8.2 | automated (CV-11) | Hinweis |
-| The Kurzprofil in a format other than `kombiniert`, or with unsourced content | LB-4.2 | review | Warnung |
+| A generic or evaluative phrase | CG-8.2 | automated (CV-11) | Warnung |
+| The Kurzprofil without the user's opt-in outside `kombiniert`, with more than three sentences, or with unsourced content | LB-4.2 | review | Warnung |
 | A skill with a graphic rating | LB-7.4 | review | Warnung |
 | A list entry not in the form of LB-6.1 | LB-6.1 | review | Hinweis |
-| Optional personal data without the user's request | LB-4.1.2 | review | Hinweis |
-| More than two pages (`cv`) | LB-2 | export page check | Warnung |
+| Optional personal data without the user's request | LB-4.1.2, LB-4.1.6 | review | Hinweis |
+| More than two pages (`cv`) | LB-2.3 | export page check | Blocker; Warnung with the user's recorded decision |
 | The date of the closing line is old | LB-9.4 | review | Warnung |
 
 ## LB-14 Open points
 
 | Area | Point | Status |
 |---|---|---|
-| Kurzprofil | No source found for a Kurzprofil as usual in Germany. A primary source or an employer statement is needed to keep or drop it | open |
+| Kurzprofil | No source found for a Kurzprofil as usual in Germany. Decision: required in `kombiniert`, opt-in elsewhere, at most three sentences (LB-4.2) | done (decision of this plugin) |
 | Photo | Sources call the photo still common in practice. The default of R-8.2 is none. The user's choice decides; no change proposed | open |
 | Automation | Checks for list-entry form (LB-6), skill group size (LB-7.6), and the closing date (LB-9.4) are not in `cv_checks.py` | open |
+| CV-16 severity | `cv_checks.py` reports every hit as Blocker; the spec distinguishes Warnung (`ungeklärt`, missing) and Blocker (`nein`). The script follows the spec | open (script) |
+| Signature image | Not supported in Phase 1 (LB-9.3). An image-capable export is a later requirement | open, deliberate |
+| Deckblatt | Not generated (LB-2.2). No requirement known | closed |
+| English documents | Language override produces the German structure with English text; a dedicated spec is a stub (R-11) | open |
 | Document ID | A unique `dokument_id` in the frontmatter, carried into the export metadata, is proposed and not decided | open |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
 
@@ -279,7 +307,7 @@ document-level checks and shows which are automated.
 | LB-A | Experienced candidate, standard posting | `chronologisch`, two pages at most, sections in LB-3 order, stations with bullets within CG-6 |
 | LB-B | Entry-level candidate | `einseitig`, education and internships first, one page |
 | LB-C | Career change | `kombiniert`, a Kurzprofil of facts, the history unchanged |
-| LB-D | Postings with an ATS hint | Same sections, plain headings, no table (CV-08 as Blocker), DOCX or text PDF |
+| LB-D | Postings with an ATS hint | Same sections, plain headings, no table (CV-08 as Blocker), text PDF; DOCX only when the portal requires it (R-8.3.4) |
 | LB-E | Education with only years in the Grundlage | Year-only periods in the document, reported (CV-02) |
 | LB-F | The user asks for no photo and no birth date | Neither appears |
 | LB-G | A skill without a level in the Grundlage | Written without a level |

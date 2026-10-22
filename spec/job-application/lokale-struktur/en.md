@@ -46,6 +46,11 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
 
    No other key is written by the plugin. Free notes below the frontmatter are kept.
 
+6. **Path resolution.** A relative value of `wurzel`, `grundlage` or `grundlage_index` is resolved against
+   the working directory that contains `job-application/konfiguration.md`, not against the directory the
+   shell happens to be in. Absolute paths are allowed. Relative paths are recommended when the Wurzel lives
+   in a repository, because they stay valid on every checkout (R-9.10).
+
 ## LS-3 Layout
 
 ```text
@@ -60,6 +65,11 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
 │   └── foto.jpg                            optional, referenced from the Grundlage
 ├── firmen/                                 Stammdaten and Notizen of companies, one file each (LS-4)
 │   └── musterfirma-gmbh.md
+├── lebenslauf-basis/                       one Ausprägung without a Vorgang (lebenslauf-versionen LV-1, LV-2)
+│   ├── lebenslauf.md                       Arbeitsstand
+│   ├── pruefbericht.md                     Auswahl Lebenslauf and Prüfung (LS-7.4)
+│   ├── versionen/                          frozen Versionen vNNN_<datum>.md (LV-3)
+│   └── export/                             exports of frozen Versionen, vNNN_<datum>.<ext> (LV-2.3)
 └── musterfirma-senior-backend/             one Vorgang (LS-6)
     ├── vorgang.md                          Metadaten, status, Plan, Verlauf
     ├── notizen.md                          Notizen of the user, never changed by skills (LS-6.3)
@@ -68,12 +78,20 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
     ├── lebenslauf.md                       Lebenslauf (cv-create)
     ├── anschreiben.md                      cover letter (cover-letter-create)
     ├── email.md                            only when bewerbungsweg is email
-    ├── pruefbericht.md                     Auswahl (cv-create) and Prüfung (quality-gate), LS-7.4
+    ├── pruefbericht.md                     Auswahl sections and Prüfung (LS-7.4)
+    ├── versionen/                          frozen Versionen of this Vorgang's Lebenslauf (LV-3), optional
     └── export/                             PDF, DOCX, HTML, only on request (R-10)
 ```
 
 Vorgänge sit directly in the Wurzel, next to `grundlage/`, `rohdaten/` and `firmen/`. They are
 not nested below a `vorgaenge/` folder, so the paths already used by the skills stay valid.
+
+An **Ausprägung** (`lebenslauf-versionen` LV-1) is the second kind of folder in the Wurzel. It
+holds a Lebenslauf variant that is not bound to one Stellenanzeige, for example `lebenslauf-basis/`
+or `lebenslauf-teamleitung/`. It carries `lebenslauf.md`, `pruefbericht.md`, `versionen/` and
+`export/`, and no `vorgang.md`, `analyse.md` or `anschreiben.md`. A skill tells the two kinds
+apart by the presence of `vorgang.md`. A Vorgang may also act as an Ausprägung of its own
+(LV-2.2); its Lebenslauf then follows the same version rules.
 
 The Grundlage is either the single file `grundlage/lebenslauf-chronologisch.md` or a directory of
 notes, one per Station, named by `grundlage` in the konfiguration (R-9.1). Both forms use the same
@@ -104,6 +122,8 @@ never a second master.
 | Wunschprofil: wishes, priorities, Ausschlüsse, Hypothesen (preference, not a fact) | `wunschprofil.md` in the Wurzel, next to the Grundlage; versions kept in `Verlauf` (WJ-5) | traumjob-interview (after confirmation) | fit-check, solution (veto before the plan gate) |
 | Passung of one posting against the Wunschprofil | `passung.md`, in the Vorgang folder (WJ-6.4) | fit-check | the user, solution (plan gate) |
 | Counterpart and company roles of a Vorgang | `analyse.md`, frontmatter keys (KK-6) and section `## Unternehmen` (UA-5.1); stable firm facts in `firmen/` (UA-5.2) | posting-analysis | cover-letter-create, email-create, solution, quality-gate |
+| Ausprägung (Lebenslauf variant without a Vorgang): Arbeitsstand, Versionen, exports | `<wurzel>/<ausprägung>/` (LS-3, `lebenslauf-versionen` LV-2) | cv-create (Arbeitsstand, freeze), export (exports and Manifeste) | cv-create (derive a Vorgang's Lebenslauf from a Version), export, quality-gate |
+| Referenzen: name, function, consent of a reference person | Grundlage, section *Referenzen* (optional; an entry exists only with the person's consent) | cv-maintain, on the user's statement | cover-letter-create, only when the posting asks for references (R-5) |
 
 Rules for the table:
 
@@ -148,15 +168,20 @@ as manual and still has a fixed place for its data.
 | **S4 Erstellung** | cv-create, cover-letter-create, email-create | `lebenslauf.md`, `anschreiben.md`, `email.md`, `pruefbericht.md` (section *Auswahl*) | `erstellt` |
 | **S5 Prüfung** | quality-gate | `pruefbericht.md` (section *Prüfung*) | `geprüft` if zero blockers, otherwise `in Arbeit` |
 | **S6 Export** | the user asks for PDF, DOCX or HTML | `export/` | unchanged |
-| **S7 Versand** | the user sends the application | `vorgang.md`: `versendet`, `versendet_am`, `weg`, `anhaenge` | `versendet` |
-| **S8 Nachverfolgung** | a reply, an interview, a decision | `vorgang.md` section *Verlauf*; the user's notes go to `notizen.md` | `rückmeldung`, `gespräch`, `zusage`, `absage`, `zurückgezogen` or `ohne Antwort` |
-| **S9 Abschluss** | final status reached | `vorgang.md` | unchanged; the folder is kept |
+| **S7 Versand** | the user sends the application | `vorgang.md`: `versendet`, `versendet_am`, `weg`, `anhaenge`, `wiedervorlage` (KK-5) | `versendet` |
+| **S8 Nachverfolgung** | a reply, an interview, an offer, a negotiation, a decision | `vorgang.md` section *Verlauf*; the user's notes go to `notizen.md` | `rückmeldung`, `gespräch`, `angebot`, `verhandlung`, `zusage`, `absage`, `abgelehnt`, `zurückgezogen` or `ohne Antwort` |
+| **S9 Abschluss** | final status reached | `vorgang.md`: `loeschen_ab` for a negative final status (S10) | unchanged; the folder is kept |
+| **S10 Aufbewahrung und Löschung** | `loeschen_ab` is reached | the user deletes the Vorgang folder except the files S10 keeps; no skill deletes in Phase 1 | folder removed, or kept with `zusage` |
 
 Rules for the lifecycle:
 
 1. **Status is the current state, Verlauf is the history.** Each change of status adds one line
    to *Verlauf* with the date and a short description. Old lines are never removed.
-2. **Status values are fixed.** Only the values in the table are allowed. Free text goes to
+2. **Status values are fixed.** Only the values in the table are allowed: `erfasst`, `analysiert`,
+   `geplant`, `erstellt`, `geprüft`, `in Arbeit`, `versendet`, `rückmeldung`, `gespräch`, `angebot`,
+   `verhandlung`, `zusage`, `absage`, `abgelehnt`, `zurückgezogen`, `ohne Antwort`. `absage` is the
+   employer's rejection; `abgelehnt` is the candidate's own refusal after an offer or a Zusage.
+   Nachfassen (a follow-up message) is a *Verlauf* entry, not a status (KK-5). Free text goes to
    *Verlauf* or `notizen.md`.
 3. **Plan before generation.** S3 is written before S4 starts (solution skill, plan gate).
 4. **S7 and S8 are user statements.** The skill records what the user reports. It never sends,
@@ -167,6 +192,22 @@ Rules for the lifecycle:
    `musterfirma-senior-backend-2`.
 7. **Phase 1 limit.** No skill updates S7 and S8 in Phase 1. The user maintains `vorgang.md`
    and `notizen.md` by hand or in Obsidian. A tracking skill is an open point (LS-10).
+8. **S10 Aufbewahrung und Löschung.** The rule names the place and the period; no skill deletes
+   anything in Phase 1.
+   - A Vorgang with the final status `absage`, `zurückgezogen`, `ohne Antwort` or `abgelehnt` is
+     deleted six months after the date of that status. The user writes the date into
+     `loeschen_ab` of `vorgang.md` (LS-6.1) when the final status is set; the field stays empty
+     before and for `zusage`.
+   - The six months lean on the two-month period of AGG § 15 Abs. 4 for claims plus a reserve for
+     service and court delivery. This is a legal reference that the user has to verify; the spec
+     does not state it as settled law.
+   - A Vorgang with `zusage` is kept without a deletion date.
+   - Notes with impressions of third parties (`notizen.md` passages about interviewers, recruiters
+     or employees, LS-9.3) are deleted when the Vorgang reaches a final status, whatever the status.
+   - The PDFs that were actually sent stay together with their Manifest (`lebenslauf-versionen`
+     LV-4), also after the Vorgang folder is deleted; the user moves them to the Ausprägung the
+     Lebenslauf came from, or keeps the `export/` folder alone.
+   - Firm files in `firmen/` are not covered by S10 (`unternehmensanalyse/en.md` UA-7.2).
 
 ### LS-6.1 Metadaten of `vorgang.md`
 
@@ -176,7 +217,8 @@ firma: Musterfirma GmbH
 stelle: Senior Backend-Entwickler
 ref_nr: 12345                       # empty when the posting has none
 bewerbungsweg: email                # email | portal | post
-ausrichtung: ausschreibung          # ausschreibung | initiativ | quereinstieg | berufseinstieg
+ausrichtung: ausschreibung          # ausschreibung | initiativ | quereinstieg | berufseinstieg | vermittler
+kontaktart: "Direkt: Personalabteilung" # one value of KK-2, set by posting-analysis (KK-6)
 stellenquelle: https://…            # or: Text, eingefügt
 status: erfasst
 erfasst: 2026-10-21
@@ -184,12 +226,17 @@ grundlage_hash: <sha256>            # set in S4, see LS-5.4
 versendet_am:                       # S7
 weg:                                # S7: E-Mail, Portal, Post
 anhaenge: []                        # S7: list of file names sent
-wiedervorlage:                      # date of the next follow-up, set by the user
+wiedervorlage:                      # S7: versendet_am plus the default of KK-5 (set by posting-analysis, empty until sent)
+loeschen_ab:                        # S9/S10: date of the final status plus six months; empty for zusage
 tags: []                            # free labels, for example for Obsidian search
 ---
 ```
 
 Body: `## Plan` (S3), `## Verlauf` (S7 and S8, one line per event).
+
+`kontaktart` duplicates the key of KK-6 in `analyse.md` so that an Obsidian Bases view (LS-8.3)
+can show it without reading `analyse.md`; `analyse.md` stays the master and posting-analysis
+writes both.
 
 ### LS-6.2 Metadaten of `firmen/<firma-slug>.md`
 
@@ -223,9 +270,11 @@ Body: `## Notizen`, free Markdown written by the user.
    `snake_case`. Values are text, number, list, or ISO dates `YYYY-MM-DD`. These are the types
    Obsidian Properties shows. No other frontmatter type is used.
 3. **Dates.** ISO `YYYY-MM-DD` in frontmatter. `MM/JJJJ` only in the body of a Lebenslauf (R-2).
-4. **Pruefbericht sections.** `pruefbericht.md` is written by two skills. Each uses its own
-   top-level section: `## Auswahl` (cv-create, R-9.11.5) and `## Prüfung` (quality-gate, R-7).
-   A run replaces its own section and keeps the other one.
+4. **Pruefbericht sections.** `pruefbericht.md` is written by several skills. Each uses its own
+   top-level section: `## Auswahl Lebenslauf` (cv-create, R-9.11.5, CG-2.3),
+   `## Auswahl Anschreiben` (cover-letter-create), `## Auswahl Motivationsschreiben`
+   (motivation-letter-create) and `## Prüfung` (quality-gate, R-7). A run replaces only its own
+   section and keeps the others. No other top-level section is written.
 5. **Headings.** One H1 per file as the title. In the Grundlage, each Station is a `###`
    heading in the form of R-2.1, so an anchor link can point to it.
 6. **Links.** Standard Markdown links with relative paths, for example
@@ -248,8 +297,12 @@ Body: `## Notizen`, free Markdown written by the user.
    Set `wurzel` in the konfiguration to the vault folder. The `.obsidian/` folder is never read
    or written by a skill.
 3. **Required plugins.** None. The built-in *Properties* view shows the frontmatter of LS-6.1
-   and LS-6.2. The optional *Dataview* plugin can list all Vorgänge by `status`, `wiedervorlage`
-   and `tags`.
+   and LS-6.2. Recommended recipe for an overview of all Vorgänge: a built-in *Bases* file
+   `bewerbungen.base` in the Wurzel that lists every `vorgang.md` as a table, filtered on
+   `status`, with the columns `firma`, `stelle`, `status`, `erfasst`, `versendet_am`,
+   `wiedervorlage`, `loeschen_ab`; one view per group of statuses (open, sent, closed). The file
+   belongs to the user; no skill reads or writes it, and the spec does not depend on it. The
+   optional *Dataview* plugin can do the same.
 4. **Attachments.** The vault setting for attachment folder should point to `rohdaten/`, so
    pasted scans and photos land there. This is a recommendation; the spec does not depend on it.
 5. **Sync conflicts.** Sync services can create conflict copies, for example
@@ -258,7 +311,8 @@ Body: `## Notizen`, free Markdown written by the user.
 6. **Save formatting.** Obsidian may rewrite frontmatter order or quoting on save. Such a change
    alters the bytes, so the hash changes and the derived files are marked stale. After a
    formatting-only edit, the user re-derives the profile. The stale marker is the intended result.
-7. **Backup.** The Wurzel is outside git. The user is the only backup owner for the Grundlage,
+7. **Backup.** The Wurzel is git-ignored by default; a private repository is allowed (LS-2.1,
+   `lebenslauf-versionen` LV-4). The user is the only backup owner for the Grundlage,
    `rohdaten/`, the Vorgänge and their Notizen. The plugin never runs `git add` on the Wurzel.
 
 ### LS-8.1 Link map
@@ -318,13 +372,16 @@ The following changes are required before the skills follow the spec:
 
 | Area | Change | Status |
 |---|---|---|
-| `konfiguration.md` | Accept keys `wurzel`, `grundlage` and `grundlage_index` (LS-2.5); resolve all paths through them | open |
+| `konfiguration.md` | Accept keys `wurzel`, `grundlage` and `grundlage_index` (LS-2.5); resolve all paths through them against the directory of the Anker (LS-2.6) | done |
 | Grundlage hash and `stand` | One hash rule for file and directory Grundlage (R-9.5), computed by `scripts/grundlage_hash.py`; skills call the script instead of `sha256sum` | done |
-| Every skill that reads a path | Resolve the Wurzel first, fall back to `job-application/` | open |
-| `job-application-posting-analysis` | Save the verbatim posting as `stellenanzeige.md`; create `vorgang.md` (S1) with Metadaten, an empty `notizen.md`, and `firmen/` entries on first use (LS-4) | open |
-| `job-application-cv-create`, `job-application-quality-gate` | Use the two sections of `pruefbericht.md` (LS-7.4) | open |
-| `job-application-quality-gate` | Check the status against the existence of the documents; compare `grundlage_hash` in `vorgang.md` | open |
+| Every skill that reads a path | Resolve the Wurzel first, fall back to `job-application/` | done |
+| `job-application-posting-analysis` | Save the verbatim posting as `stellenanzeige.md`; create `vorgang.md` (S1) with Metadaten, an empty `notizen.md`, and `firmen/` entries on first use (LS-4) | done |
+| `job-application-cv-create`, `job-application-cover-letter-create`, `job-application-motivation-letter-create`, `job-application-quality-gate` | Use the sections of `pruefbericht.md` (LS-7.4) | done |
+| `job-application-quality-gate` | Check the status against the existence of the documents; compare `grundlage_hash` in `vorgang.md` | done |
 | Nachverfolgung (S7, S8) | No skill in Phase 1. A tracking skill is a later requirement | open, deliberate |
+| S10 Löschung | Rule defined (LS-6 rule 8, `loeschen_ab`); no skill deletes. The legal reference (AGG § 15 Abs. 4) is to be verified by the user | rule defined, no skill |
+| Ausprägung folders | Second folder kind in LS-3; `cv-create` and `export` tell it apart by the missing `vorgang.md` | open (skill) |
+| `kontaktart` in `vorgang.md` | posting-analysis writes the KK-6 value into `vorgang.md` as well (LS-6.1) | open (skill) |
 | Dogfooding in this repository | Requires `wurzel` outside the repository (LS-2.4) | decision for the user |
 
 ## Related rules
