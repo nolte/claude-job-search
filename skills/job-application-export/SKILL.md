@@ -62,6 +62,9 @@ A difference is reported and the exit code is 2. The file is kept so you can ins
 2. Run `task export -- …` with the arguments.
 3. Read the output. Report the file path, the number of pages for PDF, and the content check.
 4. Warn if the PDF exceeds the page limit for its document type.
+5. Report the reproduction level from the manifest (`byte_reproduzierbar`, spec `lebenslauf-versionen` LV-5). Export a
+   frozen Version (frontmatter `version_datum`) when the PDF is to be sent. To rebuild an earlier export, run
+   `export_document.py --reproduce <name>.manifest.json`.
 
 ## Missing tools
 

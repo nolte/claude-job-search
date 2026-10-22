@@ -78,6 +78,24 @@ Im Ausgabeordner entstehen:
   von LuaLaTeX werden gelöscht.
 - Seitenzahl und Ergebnis der Inhaltsprüfung auf der Konsole. Eine fehlgeschlagene Inhaltsprüfung wird
   gemeldet, und der Export gilt dann nicht als fertig.
+- ein Manifest (`<name>.<ext>.manifest.json`): Hash von Quelle, Vorlage und Ausgabe, Werkzeugversionen und das
+  verwendete Datum.
+
+### Reproduzierbare PDFs
+
+Eine Quelle mit dem Frontmatter-Schlüssel `version_datum` (`JJJJ-MM-TT`) ist eine festgeschriebene Version. Der
+Export leitet dann Datum und PDF-ID der PDF aus der Quelle ab. Gleiche Quelle, gleiche Vorlage und gleiches
+Container-Image ergeben eine byte-identische PDF. Ohne `version_datum` trägt die PDF den Tag des Exports, und der
+Export gibt einen Hinweis aus.
+
+```bash
+python3 skills/job-application-export/scripts/export_document.py --reproduce lebenslauf.pdf.manifest.json
+```
+
+Der Befehl baut die Datei in einem temporären Ordner neu und vergleicht den Hash. Exit-Code `0` heißt identisch,
+`3` heißt abweichend oder geänderte Quelle; abweichende Werkzeugversionen werden aufgelistet. Das Container-Image
+einer versendeten PDF aufbewahren (`docker save`), weil die Debian-Pakete darin sich mit der Zeit ändern.
+Ausprägungen, Versionen und Ordneraufbau stehen in `spec/job-application/lebenslauf-versionen/en.md`.
 
 ## Im Container ausführen, in einem anderen Repository
 

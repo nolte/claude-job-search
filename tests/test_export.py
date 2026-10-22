@@ -5,6 +5,7 @@ structure check. The PDF export needs LuaLaTeX; without it the PDF test is skipp
 skip reason is printed, so the result is not reported as passed.
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -157,6 +158,43 @@ class ExportTests(unittest.TestCase):
         self.assertTrue(have("pdftotext"))
         text = subprocess.run(["pdftotext", os.path.join(self.out, "Test_Lebenslauf.pdf"), "-"], capture_output=True, text=True).stdout
         self.assertIn("Berufserfahrung", text)
+
+    def freeze(self):
+        with open(self.source, "w", encoding="utf-8") as handle:
+            handle.write(SOURCE.replace("format: chronologisch\n", "format: chronologisch\nauspraegung: basis\nversion: 1\nversion_datum: 2026-01-01\n"))
+
+    def test_export_writes_a_manifest_that_pins_source_and_output(self):
+        # lebenslauf-versionen LV-6: the manifest names the source hash, the epoch and the output hash
+        self.freeze()
+        self.assertEqual(self.export("tex").returncode, 0)
+        with open(os.path.join(self.out, "Test_Lebenslauf.tex.manifest.json"), encoding="utf-8") as handle:
+            manifest = json.load(handle)
+        self.assertEqual(manifest["frontmatter"]["version"], "1")
+        self.assertEqual(manifest["source_date_epoch"], 1767225600)
+        self.assertTrue(manifest["byte_reproduzierbar"])
+        self.assertEqual(len(manifest["quelle"]["sha256"]), 64)
+        self.assertEqual(len(manifest["ausgabe"]["sha256"]), 64)
+
+    def test_reproduce_confirms_an_unchanged_export_and_rejects_a_changed_source(self):
+        self.freeze()
+        self.export("tex")
+        manifest = os.path.join(self.out, "Test_Lebenslauf.tex.manifest.json")
+        ok = subprocess.run([sys.executable, EXPORTER, "--reproduce", manifest], capture_output=True, text=True)
+        self.assertEqual(ok.returncode, 0, ok.stderr)
+        self.assertIn("byte-identisch", ok.stdout)
+        with open(self.source, "a", encoding="utf-8") as handle:
+            handle.write("\nNachtrag\n")
+        changed = subprocess.run([sys.executable, EXPORTER, "--reproduce", manifest], capture_output=True, text=True)
+        self.assertEqual(changed.returncode, 3)
+        self.assertIn("Quelle verändert", changed.stderr)
+
+    @unittest.skipUnless(have("lualatex"), "LuaLaTeX is not installed: PDF reproducibility not run")
+    def test_frozen_pdf_is_byte_identical_on_a_second_export(self):
+        self.freeze()
+        self.export("pdf")
+        first = open(os.path.join(self.out, "Test_Lebenslauf.pdf"), "rb").read()
+        self.export("pdf")
+        self.assertEqual(first, open(os.path.join(self.out, "Test_Lebenslauf.pdf"), "rb").read())
 
 
 class CompareContentTests(unittest.TestCase):

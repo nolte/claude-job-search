@@ -222,6 +222,9 @@ The list sections use one bullet per entry.
     | `grundlage_hash` | yes | Hash of the Grundlage at creation (R-9.5) |
     | `format` | yes | `chronologisch`, `einseitig`, `kombiniert`, or `ats` |
     | `situation` | recommended | The situation chosen for the format (R-8.1) |
+    | `auspraegung` | recommended | The variant (folder name), `lebenslauf-versionen` LV-3 |
+    | `version` | recommended | Integer of the Version, LV-3 |
+    | `version_datum` | for a frozen Version | `YYYY-MM-DD`; fixes the PDF dates so the PDF is reproducible (LV-6) |
 
 13. **File name.** `Vorname_Nachname_Lebenslauf.<ext>` (R-4, R-10.4).
 14. **Plain text.** The text extracted from the PDF equals the Markdown text apart from the page number

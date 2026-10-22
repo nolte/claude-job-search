@@ -108,6 +108,7 @@ $if(title)$\title{$title$}$endif$
 $if(author)$\author{$author$}$endif$
 \date{}
 $if(keywords)$\hypersetup{pdfkeywords={$keywords$}}$endif$
+$if(trailerid)$\directlua{pdf.settrailerid("[<$trailerid$> <$trailerid$>]")}$endif$
 \begin{document}
 $if(title)$\maketitle$endif$
 $body$

@@ -47,6 +47,8 @@ already exist in the Grundlage, through the profile.
 ---
 grundlage_hash: <current hash of the Grundlage>
 format: chronologisch | einseitig | kombiniert | ats
+auspraegung: <folder name of the variant>
+version: <integer, starting at 1>
 ---
 
 # Lebenslauf
@@ -93,11 +95,15 @@ Section headings are the standard headings (R-8.3). No tables, no columns, no te
    only if the profile states it. Otherwise use a qualitative result. Routine tasks without result are dropped.
 7. **Length.** Standard about two pages. Einseitig for Einsteiger, Praktikum, Schüler. Trim older
    or less relevant entries before recent ones.
-8. **Write** the file with the frontmatter.
+8. **Write** the file with the frontmatter. `auspraegung` and `version` follow `lebenslauf-versionen` LV-3. Do not set
+   `version_datum` here: it is set when the user freezes the Version.
 9. **Check.** Run `python3 <plugin-root>/scripts/cv_checks.py job-application/<slug>/lebenslauf.md --grundlage <Grundlage> --analyse job-application/<slug>/analyse.md`
    (add `--ats` for an ATS posting). `<plugin-root>` is the plugin directory, two levels above this skill's base
    directory. Fix every Blocker before handing over; report the Warnungen and Hinweise with the file. The output is the
    reproducible basis for `job-application-quality-gate` (CG-13.3).
+10. **Freeze on request.** Ask whether this state is the one to send. If the user confirms, copy it to
+    `versionen/v<NNN>_<YYYY-MM-DD>.md` with `version_datum` set to today (LV-3). A frozen Version is never edited;
+    a correction is a new Version.
 
 ## Auswahl pro Bewerbung (R-9.11)
 
