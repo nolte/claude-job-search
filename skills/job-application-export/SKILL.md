@@ -44,6 +44,7 @@ task export -- <datei.md> --format <pdf|docx|html|md> --doc-type <cv|letter|emai
 | Format | Werkzeug | Notes |
 |---|---|---|
 | `pdf` | pandoc, LuaLaTeX, `poppler-utils` | Template `templates/document.tex` (decision O-1). Fonts embedded. Page check. |
+| `tex` | pandoc | LaTeX source with the same template, written as `<name>.tex`. No LuaLaTeX needed. Content check on the source read back as plain text. The source of the PDF, for compiling elsewhere. |
 | `docx` | pandoc, python-docx | Neutral reference style, Arial, A4, 2.5 cm (decision O-2). Single column, Word heading styles. Recommended for ATS portals (spec R-8.3). |
 | `html` | pandoc | Self-contained (`--embed-resources`), `lang="de"`, print and dark-mode CSS (`templates/style.css`). |
 | `md` | none | Copy of the source with its frontmatter. |
@@ -78,4 +79,4 @@ If a tool is missing, the command names it and stops only that format. Install h
 3. **Personal data stays local.** Outputs go into the git-ignored `job-application/` folder. Intermediate
    LaTeX files (`.aux`, `.log`, `.out`) are removed. The `.tex` source stays.
 4. **A failed content check is reported, not hidden.** Do not call the export ready while it reports a difference.
-5. **Do not invent a format.** Email text is only Markdown, and the review report is only Markdown (requirement FA-O table).
+5. **Do not invent a format.** Email text is only Markdown, and the review report is only Markdown (requirement FA-O table). `tex` is an export of the Lebenslauf and the Anschreiben, not a new document type.

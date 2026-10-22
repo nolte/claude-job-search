@@ -90,6 +90,15 @@ class ExportTests(unittest.TestCase):
         with open(os.path.join(self.out, "Test_Lebenslauf.html"), encoding="utf-8") as handle:
             self.assertIn("Latenz von 800 ms", handle.read())
 
+    def test_tex_export_writes_source_without_lualatex(self):
+        # tex is the LaTeX source of the PDF; it needs pandoc only and passes the content check
+        result = self.export("tex")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(self.out, "Test_Lebenslauf.tex"), encoding="utf-8") as handle:
+            tex = handle.read()
+        self.assertIn("\\begin{document}", tex)
+        self.assertIn("Latenz von 800 ms", tex)
+
     @unittest.skipUnless(python_docx_available(), "python-docx is not installed")
     def test_docx_export_keeps_headings_in_order_and_bullets(self):
         # Scenario I/J: standard headings in source order, no bullet lost, no table
@@ -112,6 +121,23 @@ class ExportTests(unittest.TestCase):
         self.assertTrue(have("pdftotext"))
         text = subprocess.run(["pdftotext", os.path.join(self.out, "Test_Lebenslauf.pdf"), "-"], capture_output=True, text=True).stdout
         self.assertIn("Berufserfahrung", text)
+
+
+class CompareContentTests(unittest.TestCase):
+    def test_hyphen_at_line_break_is_not_a_difference(self):
+        # A PDF breaks "E-Mail" or "Kubernetes-Cluster" at the hyphen; the words are the same
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        missing, extra = export_document.compare_content("E-Mail und Kubernetes-Cluster", "E-\nMail und Kubernetes-\nCluster")
+        self.assertEqual((dict(missing), dict(extra)), ({}, {}))
+
+    def test_missing_word_is_still_reported(self):
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        missing, _ = export_document.compare_content("Python und Kafka", "Python")
+        self.assertEqual(sorted(missing), ["kafka", "und"])
 
 
 if __name__ == "__main__":

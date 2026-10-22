@@ -48,6 +48,9 @@ def read_document(path):
 
 
 def tokens(text):
+    # Hyphens are dropped before splitting, so "E-Mail" equals "E-" + line break + "Mail" in a PDF.
+    # A hyphenated word and its line-broken form then count as the same word.
+    text = re.sub(r"-\s*", "", text)
     return Counter(t.lower() for t in re.findall(r"[0-9A-Za-zÄÖÜäöüß]+", text))
 
 
@@ -122,6 +125,24 @@ def export_docx(pandoc, source, out_file, name, grundlage_hash):
     return text, None
 
 
+def export_tex(pandoc, source, out_file, grundlage_hash):
+    """LaTeX source with the Bewerbung template. Needs pandoc only, no LuaLaTeX."""
+    args = [pandoc, str(source), "-f", "markdown", "-t", "latex", "--template", str(TEMPLATES / "document.tex"),
+            "-M", "lang=de", "-o", str(out_file)]
+    if grundlage_hash:
+        args += ["-M", f"keywords=grundlage_hash:{grundlage_hash}"]
+    subprocess.run(args, check=True)
+    # Content check reads the LaTeX back as plain text. Only the document body counts: the preamble holds
+    # the template's layout macros, which are not content and which some pandoc versions cannot read back.
+    tex = out_file.read_text(encoding="utf-8")
+    start = tex.index("\\begin{document}") + len("\\begin{document}")
+    end = tex.rindex("\\end{document}")
+    body = "\n".join(line for line in tex[start:end].splitlines() if not line.lstrip().startswith("%"))
+    plain = subprocess.run([pandoc, "-f", "latex", "-t", "plain"], input=body,
+                           capture_output=True, text=True, check=True).stdout
+    return plain, None
+
+
 def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit):
     engine = require("lualatex", "Installiere TeX Live mit LuaLaTeX (Paket texlive-luatex) — Entscheidung O-3.")
     require("pdfinfo", "Installiere poppler-utils (pdfinfo, pdftotext).")
@@ -146,14 +167,16 @@ def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit):
     pages = int(re.search(r"Pages:\s+(\d+)", info).group(1))
     if page_limit and pages > page_limit:
         print(f"Warnung: {pages} Seiten, Grenze für diesen Dokumenttyp ist {page_limit} (FA-O13).", file=sys.stderr)
-    text = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, check=True).stdout
+    raw = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, check=True).stdout
+    # Page numbers printed by the template are layout, not content: drop lines that hold only a number.
+    text = "\n".join(line for line in raw.splitlines() if not re.fullmatch(r"\s*\d+\s*", line))
     return text, pages
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("input", type=Path)
-    parser.add_argument("--format", required=True, choices=["pdf", "docx", "html", "md"])
+    parser.add_argument("--format", required=True, choices=["pdf", "docx", "html", "md", "tex"])
     parser.add_argument("--doc-type", required=True, choices=list(PAGE_LIMITS))
     parser.add_argument("--out-dir", type=Path)
     parser.add_argument("--name", help="Dateiname ohne Erweiterung, z. B. Vorname_Nachname_Lebenslauf")
@@ -177,6 +200,8 @@ def main(argv=None):
             exported_text = None
         elif args.format == "html":
             exported_text, _ = export_html(pandoc, args.input, out_file, grundlage_hash)
+        elif args.format == "tex":
+            exported_text, _ = export_tex(pandoc, args.input, out_file, grundlage_hash)
         elif args.format == "docx":
             exported_text, _ = export_docx(pandoc, args.input, out_file, name, grundlage_hash)
         else:

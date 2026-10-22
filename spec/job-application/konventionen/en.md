@@ -250,7 +250,7 @@ Hash command: `python3 <plugin-root>/scripts/grundlage_hash.py job-application/k
 Requirement: `project/requirements/ausgabeformate.md` (FA-O1 … FA-O23). Decisions O-1 … O-5 are recorded there.
 
 1. **One source.** Every output is generated from the Markdown document. Outputs are never edited by hand (FA-O1).
-2. **Formats per document.** Lebenslauf and Anschreiben: PDF (LaTeX), DOCX, Markdown, HTML. E-Mail: Markdown only. Review report: Markdown only.
+2. **Formats per document.** Lebenslauf and Anschreiben: PDF (LaTeX), DOCX, Markdown, HTML, and the LaTeX source as `tex` (same template, pandoc only, no LuaLaTeX needed). E-Mail: Markdown only. Review report: Markdown only.
 3. **Hash.** Each output carries the `grundlage_hash` of its source (FA-O2). Stale outputs are reported by `job-application-quality-gate`.
 4. **File names** follow R-4: `Vorname_Nachname_<Dokument>.<ext>`, in `job-application/<slug>/export/` by default (FA-O3, FA-O4).
 5. **PDF.** LuaLaTeX, embedded fonts, selectable text. Lebenslauf at most two pages, Anschreiben exactly one (FA-O11 to FA-O13).

@@ -59,6 +59,7 @@ plugins:
           nav_translations:
             Home: Startseite
             Skills: Skills
+            Export: Export
 
 markdown_extensions:
   - admonition
@@ -79,3 +80,4 @@ markdown_extensions:
 nav:
   - Home: en/index.md
   - Skills: en/skills.md
+  - Export: en/export.md
