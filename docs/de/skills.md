@@ -1,38 +1,66 @@
 # Skills und Agenten
 
-| Name | Phase | Zweck |
+Die Spalte *Stufe* nennt den Schritt des Bewerbungsprozesses (S0 bis S10, siehe
+[Erste Schritte](getting-started.md#7-status-pflegen-und-ubersicht)), in dem der Skill läuft.
+
+| Name | Stufe | Zweck |
 |---|---|---|
-| `job-application-solution` | plan | Einstieg: Profil, Analyse, Freigabe des Plans, Unterlagen, Qualitätsprüfung |
-| `job-application-profile-capture` | intake | Erstellt die Datengrundlage und leitet daraus `job-application/profil.md` ab |
-| `job-application-posting-analysis` | analyse | Extrahiert die Anforderungen und gleicht sie belegt mit der Datengrundlage ab; ordnet den Ansprechpartner ein und erfasst die Firmenrollen |
-| `job-application-cv-create` | create | Einspaltiger deutscher Lebenslauf im Format der Situation |
-| `job-application-cv-maintain` | intake | Geführtes Pflegeinterview für eine bestehende Datengrundlage: prüft Kernpunkte, fragt nach Befunden |
-| `job-application-traumjob-interview` | intake | Siebenphasiges Interview, das das bestätigte Wunschprofil speichert |
-| `job-application-fit-check` | analyse | Prüft eine Stelle oder ein Unternehmen gegen das Wunschprofil; Vetos zuerst, jeder Wert belegt |
-| `job-application-cover-letter-create` | create | Einseitiges Anschreiben im DIN-Format, vier Varianten |
-| `job-application-motivation-letter-create` | create | Motivationsschreiben aus den vom Nutzer genannten Beweggründen und belegten Nachweisen, mit Herkunftsnachweis |
-| `job-application-email-create` | deliver | Begleit-E-Mail mit Betreff, Anhangsliste und Dateinamen |
-| `job-application-export` | deliver | Exportiert ein fertiges Dokument als DOCX, HTML oder Markdown; PDF über LaTeX (braucht LuaLaTeX) via `task export` |
-| `job-application-quality-gate` | review | Qualitätsprüfung: Blocker, Warnungen, Hinweise |
-| `job-application-reviewer` (Agent) | review | Schreibgeschützte Gesamtprüfung aus Sicht einer Personalerin |
+| `job-application-solution` | Einstieg (S1–S5) | Einstieg: Profil, Analyse, Freigabe des Plans, Unterlagen, Qualitätsprüfung. Schreibt den freigegebenen Plan in `vorgang.md` |
+| `job-application-profile-capture` | Erfassung (S0) | Erstellt die Datengrundlage aus deinen Rohdaten und leitet daraus `profil.md` ab |
+| `job-application-cv-maintain` | Erfassung (S0) | Geführtes Pflegeinterview für eine bestehende Datengrundlage: prüft Kernpunkte, fragt nach Befunden |
+| `job-application-traumjob-interview` | Erfassung (S0) | Siebenphasiges Interview, das das bestätigte Wunschprofil speichert |
+| `job-application-fit-check` | Analyse (S2) | Prüft eine Stelle oder ein Unternehmen gegen das Wunschprofil; Vetos zuerst, jeder Wert belegt |
+| `job-application-posting-analysis` | Erfassung und Analyse (S1–S2) | Legt den Vorgang an (`stellenanzeige.md`, `vorgang.md`, `notizen.md`, Firmendatei in `firmen/`), extrahiert die Anforderungen und gleicht sie belegt mit der Datengrundlage ab; ordnet den Ansprechpartner ein und erfasst die Firmenrollen |
+| `job-application-cv-create` | Erstellung (S4) | Einspaltiger deutscher Lebenslauf im Format der Situation |
+| `job-application-cover-letter-create` | Erstellung (S4) | Einseitiges Anschreiben im DIN-Format, vier Varianten |
+| `job-application-motivation-letter-create` | Erstellung (S4) | Motivationsschreiben aus den von dir genannten Beweggründen und belegten Nachweisen, mit Herkunftsnachweis |
+| `job-application-email-create` | Erstellung (S4) | Begleit-E-Mail mit Betreff, Anhangsliste und Dateinamen, nur bei Bewerbung per E-Mail |
+| `job-application-quality-gate` | Prüfung (S5) | Qualitätsprüfung: Blocker, Warnungen, Hinweise. Setzt den Status auf `geprüft` (keine Blocker) oder `in Arbeit` |
+| `job-application-export` | Export (S6) | Exportiert ein fertiges Dokument als DOCX, HTML oder Markdown; PDF über LaTeX (braucht LuaLaTeX oder den Container) via `task export` |
+| `job-application-reviewer` (Agent) | Prüfung (S5) | Schreibgeschützte Gesamtprüfung aus Sicht einer Personalerin |
 
-**Aufrufreihenfolge**
+## Was die Skills festhalten
 
-Die Skills laufen für jede Stellenanzeige in fester Reihenfolge. Die einmaligen Schritte, also Interview und Datengrundlage, kommen vorher. `job-application-solution` steuert den Lauf und wartet auf deine Freigabe, bevor ein Dokument entsteht. Das Diagramm zeigt, welcher Skill welche Datei an den nächsten übergibt. Gestrichelte Pfeile sind optional.
+Jeder Skill, der an einer Bewerbung arbeitet, schreibt in den Ordner dieser Bewerbung und
+sonst nirgendwohin. Der Status in `vorgang.md` sagt dir, wie weit eine Bewerbung ist:
+
+| Schritt | Wer schreibt | Dateien | Status danach |
+|---|---|---|---|
+| Anzeige erfasst | `job-application-posting-analysis` | `stellenanzeige.md`, `vorgang.md`, `notizen.md` (leer), `firmen/<firma>.md` beim ersten Kontakt | `erfasst` |
+| Analysiert | `job-application-posting-analysis` | `analyse.md` | `analysiert` |
+| Plan freigegeben | `job-application-solution` | Abschnitt *Plan* in `vorgang.md` | `geplant` |
+| Unterlagen erstellt | `job-application-cv-create`, `-cover-letter-create`, `-motivation-letter-create`, `-email-create` | `lebenslauf.md`, `anschreiben.md`, `motivationsschreiben.md`, `email.md`, `pruefbericht.md` (Abschnitt *Auswahl*) | `erstellt` |
+| Geprüft | `job-application-quality-gate` | `pruefbericht.md` (Abschnitt *Prüfung*) | `geprüft` oder `in Arbeit` |
+| Exportiert | `job-application-export` | `export/` | unverändert |
+
+## Was du selbst pflegst
+
+Der Versand und alles danach sind deine Angaben, nicht die des Plugins. Du trägst sie in
+`vorgang.md` ein (Versanddatum, Weg, Anhänge, jede Rückmeldung, jedes Gespräch, das Ergebnis)
+und hältst deine freien Notizen in `notizen.md` fest. Obsidian ist dafür ein bequemer Ort; das
+Plugin braucht es nicht. [Erste Schritte](getting-started.md#7-status-pflegen-und-ubersicht)
+zeigt die Statuswerte und eine Übersicht über alle Bewerbungen.
+
+## Aufrufreihenfolge
+
+Die Skills laufen für jede Stellenanzeige in fester Reihenfolge. Die einmaligen Schritte, also
+Interview und Datengrundlage, kommen vorher. `job-application-solution` steuert den Lauf und
+wartet auf deine Freigabe, bevor ein Dokument entsteht. Das Diagramm zeigt, welcher Skill
+welche Datei an den nächsten übergibt. Gestrichelte Pfeile sind optional.
 
 <!-- diagram-source: user-described—order of the job-application skills per posting, from intake to quality gate and export -->
 ```mermaid
 flowchart LR
-    subgraph intake ["Intake (once, or when data changes)"]
+    subgraph intake ["Erfassung (einmalig oder bei geänderten Daten)"]
         interview[job-application-traumjob-interview]
         capture[job-application-profile-capture]
         maintain[job-application-cv-maintain]
     end
-    subgraph run ["Per posting"]
+    subgraph run ["Je Stellenanzeige"]
         solution[job-application-solution]
         analysis[job-application-posting-analysis]
         fit[job-application-fit-check]
-        plan{Plan approved?}
+        plan{Plan freigegeben?}
         cv[job-application-cv-create]
         letter[job-application-cover-letter-create]
         motivation[job-application-motivation-letter-create]
@@ -40,24 +68,24 @@ flowchart LR
         gate[job-application-quality-gate]
     end
     export[job-application-export]
-    reviewer[job-application-reviewer agent]
+    reviewer[Agent job-application-reviewer]
 
-    solution -->|no Grundlage| capture
-    maintain -->|updated Grundlage| capture
-    capture -->|profile| analysis
+    solution -->|keine Grundlage| capture
+    maintain -->|Grundlage aktualisiert| capture
+    capture -->|Profil| analysis
     solution --> analysis
-    interview -.->|wish profile| fit
-    analysis -.->|analysis| fit
-    fit -.->|veto stops the gate| plan
+    interview -.->|Wunschprofil| fit
+    analysis -.->|Analyse| fit
+    fit -.->|Veto stoppt die Prüfung| plan
     analysis --> plan
-    plan -->|yes| cv
-    cv -->|CV| letter
-    letter -.->|if asked for| motivation
+    plan -->|ja| cv
+    cv -->|Lebenslauf| letter
+    letter -.->|wenn verlangt| motivation
     motivation -.-> gate
-    letter -->|email only| mail
+    letter -->|nur bei E-Mail| mail
     letter --> gate
     mail --> gate
-    gate -->|blockers: owning skill fixes| cv
-    gate -->|ready| export
-    gate -.->|optional second read| reviewer
+    gate -->|Blocker: zuständiger Skill behebt| cv
+    gate -->|bereit| export
+    gate -.->|optionale zweite Lesung| reviewer
 ```

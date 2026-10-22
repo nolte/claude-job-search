@@ -1,8 +1,20 @@
 # Export: LaTeX-PDF des Lebenslaufs
 
+!!! abstract "Für Fortgeschrittene (Operator-Inhalt)"
+    Diese Seite richtet sich an die Person, die den Export ausführt: Sie nennt Pakete,
+    Kommandozeilen und einen Container. Willst du nur eine PDF eines geprüften Dokuments, bitte
+    den Export-Skill darum (`/claude-job-search:job-application-export`) und komm hierher zurück,
+    wenn er ein fehlendes Werkzeug meldet.
+
 Diese Seite beschreibt, was benötigt wird, um einen fertigen Lebenslauf mit dem LaTeX-Template
 in eine PDF umzuwandeln, und welche Befehle das ausführen. Einzige Eingabe ist die
 Markdown-Quelle. PDF und LaTeX-Quelle entstehen daraus.
+
+!!! tip "Welches Format für welchen Empfänger"
+    Eine Text-PDF ist der Standard, auch für Bewerbungsportale (ATS): Das Layout ist einspaltig
+    ohne Tabellen, ein Parser liest den Text also in der richtigen Reihenfolge. DOCX erzeugst du
+    nur, wenn ein Portal es ausdrücklich verlangt. HTML und Markdown dienen der Ansicht und
+    deinen eigenen Unterlagen.
 
 ## Was benötigt wird
 
@@ -24,7 +36,7 @@ Für die LaTeX-Quelle allein (`--format tex`) reicht pandoc. LuaLaTeX ist dafür
 
 Die PDF ist einspaltig und nutzt eine Akzentfarbe (dunkles Blau), dünne Linien unter den Abschnittsüberschriften
 und farbige Aufzählungspunkte. Es gibt keine Tabellen, Symbole, Fotos oder Text in Kopf- und Fußzeile außer einer
-dezenten Seitenzahl, ein Parser liest also denselben Text wie zuvor (Spec R-8.3).
+dezenten Seitenzahl, ein Parser liest also denselben Text wie die Markdown-Quelle.
 
 - **Kopfbereich:** Der Name steht zuerst und groß, darunter die persönlichen Angaben.
 - **Stationen:** Der Zeitraum steht in einer linken Spalte, die Position fett, Arbeitgeber und Ort darunter in Grau.
@@ -35,22 +47,33 @@ dezenten Seitenzahl, ein Parser liest also denselben Text wie zuvor (Spec R-8.3)
   und die Hierarchie bleibt in Graustufen sichtbar.
 - **Brief:** Das Anschreiben nutzt dasselbe Template mit eigenen Rändern (25 mm links).
 
-Das Design steht in `skills/job-application-export/templates/` (`document.tex` und `cv.lua`), die Regeln in
-`spec/job-application/lebenslauf/en.md` (LB-11).
+Das Design steht in `skills/job-application-export/templates/` (`document.tex` und `cv.lua`).
+
+!!! info "Für Entwickler"
+    Die Layoutregeln stehen in `spec/job-application/lebenslauf/en.md` (LB-11), die ATS-Regel in
+    `spec/job-application/konventionen/en.md` (R-8.3, R-10).
 
 ## Eingabe
 
-Die Quelle ist eine Markdown-Datei des Bewerbungsordners:
+Die Quelle ist eine Markdown-Datei eines Bewerbungsordners oder eines Ausprägungsordners:
 
 ```text
-job-application/<slug>/lebenslauf.md
+job-application/<slug>/lebenslauf.md                       der Lebenslauf einer Bewerbung
+job-application/lebenslauf-basis/lebenslauf.md             der Arbeitsstand einer Ausprägung
+job-application/lebenslauf-basis/versionen/v001_2026-10-22.md   eine eingefrorene Version dieser Ausprägung
 ```
 
 Der Export prüft die Seitenzahl gegen den Dokumenttyp. Ein Lebenslauf darf höchstens zwei Seiten haben.
 
+**Eine eingefrorene Version exportieren.** Die Kopie, die du versendest, sollte aus einer
+eingefrorenen Version stammen, nicht aus dem Arbeitsstand, damit sie sich später nachbauen lässt.
+Gib dem Export die Datei in `versionen/`; die Ausgabe landet in `export/` desselben
+Ausprägungsordners und heißt nach der Version (`v001_2026-10-22.pdf`), nicht nach dem Tag des
+Exports. Für die Kopie an den Empfänger nutzt du `--name Vorname_Nachname_Lebenslauf`.
+
 ## Befehle
 
-Führe sie im Wurzelverzeichnis des Plugin-Repos aus, dort liegt die `Taskfile.yml`:
+Führe sie im Hauptverzeichnis des Plugin-Repositorys aus, dort liegt die `Taskfile.yml`:
 
 ```bash
 task export -- job-application/<slug>/lebenslauf.md --format pdf --doc-type cv
@@ -68,7 +91,7 @@ task export -- job-application/<slug>/lebenslauf.md --format tex --doc-type cv
 | `--doc-type letter` | Anschreiben, eine Seite |
 | `--doc-type motivation` | Motivationsschreiben, höchstens zwei Seiten |
 | `--name` | Dateiname ohne Endung, Standard ist der Name der Quelle |
-| `--out-dir` | Ausgabeordner, Standard `job-application/<slug>/export/` |
+| `--out-dir` | Ausgabeordner, Standard `export/` neben der Quelle: `job-application/<slug>/export/` bei einer Bewerbung, `job-application/<ausprägung>/export/` bei einer Ausprägung oder einer ihrer eingefrorenen Versionen |
 
 ## Ergebnisse
 
@@ -93,9 +116,12 @@ python3 skills/job-application-export/scripts/export_document.py --reproduce leb
 ```
 
 Der Befehl baut die Datei in einem temporären Ordner neu und vergleicht den Hash. Exit-Code `0` heißt identisch,
-`3` heißt abweichend oder geänderte Quelle; abweichende Werkzeugversionen werden aufgelistet. Das Container-Image
-einer versendeten PDF aufbewahren (`docker save`), weil die Debian-Pakete darin sich mit der Zeit ändern.
-Ausprägungen, Versionen und Ordneraufbau stehen in `spec/job-application/lebenslauf-versionen/en.md`.
+`3` heißt abweichend oder geänderte Quelle; abweichende Werkzeugversionen werden aufgelistet. Bewahre das
+Container-Image einer versendeten PDF auf (`docker save`), weil sich die Debian-Pakete darin mit der Zeit ändern.
+
+!!! info "Für Entwickler"
+    Ausprägungen, Versionen und Ordneraufbau stehen in
+    `spec/job-application/lebenslauf-versionen/en.md`.
 
 ## Im Container ausführen, in einem anderen Repository
 
@@ -109,7 +135,7 @@ Baue das Image einmal. Das Plugin-Repository ist die Build-Quelle, du musst es n
 docker build -t claude-job-search-export https://github.com/nolte/claude-job-search.git#develop
 ```
 
-Ersetze `develop` durch ein Release-Tag, sobald es eines gibt, damit sich das Image nicht unter dir ändert.
+Ersetze `develop` durch das Release-Tag, zum Beispiel `v0.2.0`, damit sich das Image nicht unter dir ändert.
 
 Starte es im Wurzelverzeichnis deines Daten-Repositories, dort liegt `job-application/`:
 

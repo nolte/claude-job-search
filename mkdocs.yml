@@ -58,12 +58,16 @@ plugins:
           build: true
           nav_translations:
             Home: Startseite
+            Getting started: Erste Schritte
             Skills: Skills
+            Counterparts: Gegenpartei
+            Glossary: Glossar
             Export: Export
 
 markdown_extensions:
   - admonition
   - attr_list
+  - def_list
   - tables
   - toc:
       permalink: true
@@ -79,5 +83,8 @@ markdown_extensions:
 
 nav:
   - Home: en/index.md
+  - Getting started: en/getting-started.md
   - Skills: en/skills.md
+  - Counterparts: en/counterparts.md
+  - Glossary: en/glossary.md
   - Export: en/export.md

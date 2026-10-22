@@ -8,7 +8,7 @@ Do not add audiences without first declaring the bounded context below.
 
 ## Bounded context
 
-A Claude Code plugin with eleven skills and one read-only agent for German-speaking job applications (Bewerbungsunterlagen): Lebenslauf, Anschreiben, Bewerbungs-E-Mail, requirement match against a Stellenanzeige, and a quality gate before sending. The repository contains the skills, the specs, the templates, the export script, the tests, and the documentation site.
+A Claude Code plugin with twelve skills and one read-only agent for German-speaking job applications (Bewerbungsunterlagen): Wunschprofil and fit check, Lebenslauf, Anschreiben, Motivationsschreiben, Bewerbungs-E-Mail, requirement match against a Stellenanzeige, a quality gate before sending, and export to PDF, DOCX, HTML and Markdown. The repository contains the skills, the specs, the templates, the export script, the tests, and the documentation site.
 
 Explicitly outside the bounded context:
 - The candidate's personal Datengrundlage. It lives in the user's own working folder or vault, not in this repository.
@@ -21,12 +21,12 @@ Each entry: label, relationship category, interaction surface, expectation, docu
 
 ### Direct consumers
 
-- **Job seekers using the plugin** — _category_: direct-consumer · _surface_: Claude Code slash commands (`/claude-job-search:<skill>`), the Datengrundlage in Markdown · _expects_: a German Lebenslauf and Anschreiben that contain only facts they actually have, clear gap markers, and a quality gate before sending · _track_: `user-docs` · _status_: `assumed` · _criticality_: primary
+- **Job seekers using the plugin** — _category_: direct-consumer · _surface_: Claude Code slash commands (`/claude-job-search:<skill>`), the Datengrundlage in Markdown, `wunschprofil.md`, the `vorgang.md` of each application (status, history, follow-up), optionally Obsidian as the editor and overview (Bases) of the Wurzel · _expects_: a German Lebenslauf and Anschreiben that contain only facts they actually have, clear gap markers, a quality gate before sending, and one place per application where the state is recorded · _track_: `user-docs` · _status_: `assumed` · _criticality_: primary
   - Open questions: which application situations matter most (Berufseinstieg, Quereinstieg, Standard)? Are ATS portals a priority?
 
 ### Operators
 
-- **The job seeker running the workflow** — _category_: operator · _surface_: `task export`, `task install`, the Datengrundlage folder, `konfiguration.md` · _expects_: reproducible exports, a clear Blocker list, and the ability to run the checks locally without developer tooling · _track_: `developer-docs` · _rationale_: operator tasks (export, configuration, checks) are documented with the developer-facing commands · _status_: `assumed` · _criticality_: primary
+- **The job seeker running the workflow** — _category_: operator · _surface_: `task export`, `task install`, the Datengrundlage folder, `konfiguration.md` · _expects_: reproducible exports, a clear Blocker list, and the ability to run the checks locally without developer tooling · _track_: `developer-docs` · _rationale_: operator tasks (export, configuration, checks) are documented with the developer-facing commands; the Export page in the docs is operator content and is marked as such (admonition at the top of the page) · _status_: `assumed` · _criticality_: primary
   - Open questions: is this audience the same person as the direct consumer, or a separate operator (for example a career advisor)?
 
 ### Contributors / maintainers
@@ -47,7 +47,10 @@ Each entry: label, relationship category, interaction surface, expectation, docu
   - Open questions: should the documentation describe what a recruiter expects, or stay with the plugin's own rules?
 
 - **Hiring managers and employers reached through recruiters** — _category_: indirect · _surface_: the same documents, received through an agency · _expects_: no disclosure of details the candidate did not approve · _track_: `user-docs` · _status_: `assumed` · _criticality_: secondary
-  - Open questions: is the disclosure rule (`spec/job-application/kontaktklassifikation/en.md`) reflected in the user documentation?
+  - Open questions: is the disclosure rule (`spec/job-application/kontaktklassifikation/en.md`) reflected in the user documentation? Answered: yes, since 0.2.0 the docs page *Counterparts* (`docs/en/counterparts.md`, `docs/de/counterparts.md`) describes the disclosure questions and why no full documents are produced before the employer is known.
+
+- **Personalvermittler and Headhunter as the counterpart** — _category_: indirect · _surface_: the documents the plugin produces and the disclosure questions the plugin asks the candidate to put to them (Auftraggeber known? exclusive Mandat? double submission?) · _expects_: a Kurzprofil, availability, and a quick answer; receives no full documents before disclosing the Auftraggeber · _track_: `user-docs` · _rationale_: they shape what the candidate sends and when, but never use the plugin · _status_: `assumed` · _criticality_: secondary
+  - Open questions: none recorded.
 
 ## Open questions (cross-cutting)
 
@@ -60,3 +63,4 @@ Each entry: label, relationship category, interaction surface, expectation, docu
 - The plugin gains a second configuration path besides `job-application/konfiguration.md`.
 - A new output format (for example PDF without LuaLaTeX) becomes the default.
 - A release introduces a breaking change to a skill name or to the Datengrundlage format.
+- A new lifecycle stage (`spec/job-application/lokale-struktur/en.md` LS-6, for example sending or follow-up) gets a skill.

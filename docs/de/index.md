@@ -1,28 +1,47 @@
 # claude-job-search
 
 Claude-Code-Plugin mit Skills und einem Agenten für Bewerbungsunterlagen im
-deutschsprachigen Raum: einspaltiger Lebenslauf nach Situation, DIN-5008-Anschreiben,
-Bewerbungs-E-Mail, Abgleich der Anforderungen mit der Stellenanzeige und eine
-Qualitätsprüfung vor dem Versand.
+deutschsprachigen Raum: Wunschprofil und Passung, einspaltiger Lebenslauf nach Situation,
+DIN-5008-Anschreiben, Motivationsschreiben, Bewerbungs-E-Mail, Abgleich der Anforderungen
+mit der Stellenanzeige, eine Qualitätsprüfung vor dem Versand, Export als PDF, DOCX, HTML
+oder Markdown und ein Ordner je Bewerbung, der ihren Status festhält.
 
 ## Überblick
 
 Du beschreibst eine **Stellenanzeige**. Der Einstieg `job-application-solution` prüft dein
 Profil, analysiert die Anzeige, zeigt dir einen Plan und erstellt erst danach die
 Unterlagen in der richtigen Reihenfolge. Alle Fakten stammen aus deiner lokalen
-Datengrundlage. Das Profil, `job-application/profil.md`, wird daraus mit Quellenverweis abgeleitet. Fehlende Angaben werden markiert, nie erfunden.
+Datengrundlage. Das Profil, `profil.md`, wird daraus mit Quellenverweis abgeleitet. Fehlende
+Angaben werden markiert, nie erfunden.
+
+Jede Bewerbung bekommt einen eigenen Ordner, den Vorgang. Darin liegen die Anzeige, die
+Analyse, die Unterlagen, der Prüfbericht und `vorgang.md` mit Status und Verlauf der
+Bewerbung. Den Ablauf zeigt dir [Erste Schritte](getting-started.md), die Begriffe erklärt das
+[Glossar](glossary.md).
 
 ## Einstieg
 
+- Neu hier? Lies [Erste Schritte](getting-started.md): installieren, konfigurieren, Daten erfassen, erste Bewerbung.
+- `/claude-job-search:job-application-profile-capture`, wenn noch keine Datengrundlage existiert.
+- Du willst erst wissen, was du suchst? Führe einmal `/claude-job-search:job-application-traumjob-interview` aus und danach `/claude-job-search:job-application-fit-check` für jede Stelle oder Firma.
 - `/claude-job-search:job-application-solution` mit dem Text der Stellenanzeige für eine komplette Bewerbung.
-- `/claude-job-search:job-application-profile-capture`, wenn noch kein Profil existiert.
-- `/claude-job-search:job-application-quality-gate` vor dem Versand eines vorhandenen Ordners.
-
-Die Konventionen stehen in der Spezifikation `spec/job-application/konventionen/en.md`
-(kanonisch auf Englisch, deutsche Übersetzung ausstehend).
+- `/claude-job-search:job-application-quality-gate` vor dem Versand eines vorhandenen Bewerbungsordners.
+- Bewirbst du dich über einen Personalvermittler oder Headhunter? Lies zuerst [Gegenpartei](counterparts.md).
 
 !!! note "Datenschutz"
-    Bewerbungsdaten bleiben im git-ignorierten Ordner `job-application/` und werden nie committet.
+    Bewerbungsdaten bleiben lokal, in dem Ordner, den du konfigurierst (standardmäßig
+    `job-application/`). Der Ordner ist standardmäßig git-ignoriert; ihn in einem privaten,
+    nicht veröffentlichten Repository zu führen ist erlaubt und deine Entscheidung. Kein Skill
+    versendet etwas.
 
 !!! note "Noch nicht enthalten"
-    Zeugnisanalyse und Vorstellungsgesprächs-Vorbereitung stehen auf der Roadmap. Der Export erzeugt DOCX, HTML und Markdown; PDF braucht LuaLaTeX.
+    Versand, Rückmeldungen und Gespräche trägst du selbst in `vorgang.md` und `notizen.md` ein
+    (oder in Obsidian); ein Tracking-Skill steht auf der Roadmap, ebenso die Vorbereitung auf
+    das Vorstellungsgespräch und die Zeugnisanalyse. Der Export erzeugt überall DOCX, HTML und
+    Markdown; PDF braucht LuaLaTeX oder den Export-Container, siehe [Export](export.md).
+
+!!! info "Für Entwickler"
+    Die Konventionen dahinter stehen in den Spezifikationen unter `spec/job-application/`,
+    beginnend mit `spec/job-application/konventionen/en.md` und
+    `spec/job-application/lokale-struktur/en.md` (kanonisch auf Englisch, deutsche Übersetzung
+    ausstehend). Der Index ist `spec/README.md`.
