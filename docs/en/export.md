@@ -59,6 +59,20 @@ In the output folder the export writes:
 - the page count and the result of the content check on the console. A content check that fails is
   reported, and the export is not presented as ready.
 
+## Run in a container
+
+The `Dockerfile` bundles pandoc, LuaLaTeX, the German language support and poppler-utils, so nothing
+else has to be installed. The image runs as the numeric user `10001`.
+
+```bash
+docker build -t claude-job-search-export .
+docker run --rm --user 10001:10001 -v "$PWD:/work" claude-job-search-export \
+  job-application/<slug>/lebenslauf.md --format pdf --doc-type cv
+```
+
+The mounted folder must be writable for user `10001`. Only the export skill is copied into the
+image (`.dockerignore`), so personal data under `job-application/` never enters the build context.
+
 ## What is not part of the export
 
 - The export never writes to the Markdown source.

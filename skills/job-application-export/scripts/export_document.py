@@ -129,8 +129,10 @@ def export_tex(pandoc, source, out_file, grundlage_hash):
     if grundlage_hash:
         args += ["-M", f"keywords=grundlage_hash:{grundlage_hash}"]
     subprocess.run(args, check=True)
-    # Content check reads the LaTeX back as plain text, so it compares the same words as the other formats.
-    plain = subprocess.run([pandoc, str(out_file), "-f", "latex", "-t", "plain"],
+    # Content check reads the LaTeX back as plain text. LaTeX comments (the template header) are not content.
+    body = "\n".join(line for line in out_file.read_text(encoding="utf-8").splitlines()
+                     if not line.lstrip().startswith("%"))
+    plain = subprocess.run([pandoc, "-f", "latex", "-t", "plain"], input=body,
                            capture_output=True, text=True, check=True).stdout
     return plain, None
 
@@ -159,7 +161,9 @@ def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit):
     pages = int(re.search(r"Pages:\s+(\d+)", info).group(1))
     if page_limit and pages > page_limit:
         print(f"Warnung: {pages} Seiten, Grenze für diesen Dokumenttyp ist {page_limit} (FA-O13).", file=sys.stderr)
-    text = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, check=True).stdout
+    raw = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, check=True).stdout
+    # Page numbers printed by the template are layout, not content: drop lines that hold only a number.
+    text = "\n".join(line for line in raw.splitlines() if not re.fullmatch(r"\s*\d+\s*", line))
     return text, pages
 
 

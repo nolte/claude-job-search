@@ -1,0 +1,4 @@
+# Keep the build context minimal: only the export skill goes into the image.
+# Everything else, including job-application/ (personal data), .git, .audits and .venv, stays out.
+*
+!skills/job-application-export

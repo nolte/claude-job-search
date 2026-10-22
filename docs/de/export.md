@@ -59,6 +59,20 @@ Im Ausgabeordner entstehen:
 - Seitenzahl und Ergebnis der Inhaltsprüfung auf der Konsole. Eine fehlgeschlagene Inhaltsprüfung wird
   gemeldet, und der Export gilt dann nicht als fertig.
 
+## Im Container ausführen
+
+Das `Dockerfile` enthält pandoc, LuaLaTeX, die deutsche Sprachunterstützung und poppler-utils, sodass
+nichts weiter installiert werden muss. Das Image läuft mit dem numerischen User `10001`.
+
+```bash
+docker build -t claude-job-search-export .
+docker run --rm --user 10001:10001 -v "$PWD:/work" claude-job-search-export \
+  job-application/<slug>/lebenslauf.md --format pdf --doc-type cv
+```
+
+Der eingebundene Ordner muss für den User `10001` beschreibbar sein. Nur der Export-Skill wird ins Image
+kopiert (`.dockerignore`), personenbezogene Daten unter `job-application/` gelangen also nie in den Build-Kontext.
+
 ## Was der Export nicht tut
 
 - Er ändert die Markdown-Quelle nie.
