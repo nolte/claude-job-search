@@ -42,7 +42,9 @@ Spec: `spec/job-application/konventionen/en.md` (R-1 … R-7).
    evidence visible? Is the CV scannable? Does the letter say something specific about
    this company, or could it be sent anywhere?
 5. **Sprache und Form:** German grammar, Stil, unnecessary Floskeln, Sie/du consistency,
-   Länge (R-2, R-3), Eintragsblock (R-2.1: header line, 1–5 bullets, no invented numbers),
+   Länge (R-2, R-3), Eintragsblock (R-2.1: header line, bullet limits of CG-6, no invented numbers),
+   Stichpunkt-Form und Formulierung (CG-8.1 to CG-8.3: object first, participle last, no subject,
+   forbidden phrases, digits for measured values),
    ATS-Regeln where the posting asks for them (R-8.3).
 6. **Vollständigkeit:** required parts present for the chosen Bewerbungsweg (R-4, R-5).
 

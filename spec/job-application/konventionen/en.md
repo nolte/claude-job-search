@@ -60,7 +60,7 @@ Sources: [lebenslauf.de – Berufserfahrung](https://www.lebenslauf.de/ratgeber/
 2. **Bullets** below the header, not a table.
    - **Count:** defaults and the hard maximum of 5 bullets per station are set in CG-6 of `spec/job-application/cv-generierung/en.md`. Bullet counts are not fixed by this rule; they follow relevance and evidence (CG-5). A station that does not support the application may carry the header line only.
    - **Length:** each bullet fits on one line, two lines at most.
-   - **Formula:** Verb + Objekt + Umfang + Ergebnis (cv-folio). Start with a strong action verb such as „aufgebaut“, „geleitet“, „eingeführt“. Avoid „verantwortlich für“ and „zuständig für“.
+   - **Form and wording:** canonical in CG-8.1 to CG-8.3 of `spec/job-application/cv-generierung/en.md`: object first, past participle last, optional result after a semicolon, digits for measured values, no subject, no final period. Avoid „verantwortlich für“ and „zuständig für“ (CG-8.2).
    - **Results:** prefer a number (Prozent, Zeit, Kosten, Teamgröße, Volumen), supported by the profile or the Zeugnis. If no number is known, a qualitative result from the profile is enough. Never invent a number. Where confidentiality applies, a size band replaces the exact figure (cv-folio).
    - **No routine duties:** daily tasks without a result are left out (Emory, Jobscan).
    - **Relevance:** bullets follow the requirements of the Stellenanzeige where the profile supports them (R-1.4). The STAR order (Situation, Aufgabe, Handlung, Ergebnis) is used to think through a bullet, not to write it out in full.

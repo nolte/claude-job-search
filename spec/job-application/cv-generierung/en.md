@@ -196,6 +196,57 @@ The skill may reformulate verified content. It may not add facts.
 4. **Achievement wording.** Use the verb the source supports. When the source says the candidate
    took part, the CV says so.
 
+## CG-8.1 Form of a bullet
+
+1. **Structure.** A bullet has this form: `<Objekt mit Umfang> <Tätigkeitsverb im Partizip II>`,
+   optionally followed by `; <Ergebnis>`. The object and its scope come first. The past participle
+   of the activity verb closes the first clause. A result, if any, follows after a semicolon.
+2. **One fact per bullet.** A bullet names one activity and at most one result. Two activities are
+   two bullets.
+3. **No subject and no finite verb.** A bullet never starts with a subject ("Ich", "Wir", "Er") and
+   never uses a conjugated verb ("betreue", "habe betreut").
+4. **One form per station.** All bullets of one station use the form of item 1. A station never mixes
+   the form with another opening pattern.
+5. **Length.** At most two lines and 180 characters (CV-12).
+6. **No final period.** A bullet is a phrase, not a sentence.
+7. **At most two items in a list.** "und" joins at most two items. A longer list is shortened to the
+   two most relevant items. The full list stays in the Grundlage (CG-5).
+
+## CG-8.2 Wording
+
+1. **Verbs.** Use the past participle of a concrete activity verb: `aufgebaut`, `betrieben`,
+   `eingeführt`, `entwickelt`, `automatisiert`, `migriert`, `integriert`, `konzipiert`, `gesenkt`,
+   `gesteigert`, `betreut`, `begleitet`, `umgesetzt`. The verb says what the candidate did (CG-8.4).
+2. **Leadership verbs** (`geleitet`, `verantwortet`, `Teamleitung`) need `fuehrung: ja` in the station
+   note (CV-16).
+3. **Forbidden phrases.** `verantwortlich für`, `zuständig für`, `involved in`, `worked on` are never
+   used. CV-11 enforces this set. The following are judged in review and are not used either:
+   `erfolgreich`, `innovativ`, `dynamisch`, `diverse`, `vielfältig`, `Expertise in`, `sicher in`.
+   `Expertise in` and `sicher in` require a source that states proficiency (CG-7.2).
+4. **Names.** Tool and product names are written as in the Grundlage ("Kubernetes", "Argo CD",
+   "GitLab CI"). Abbreviations the Grundlage does not use are not introduced.
+5. **Participation.** When the source says the candidate took part, the bullet uses a participation
+   form such as `mitgearbeitet an` or `beteiligt an`, never a lead verb (CG-7.2).
+
+## CG-8.3 Numbers and typography
+
+1. **Digits for measured values.** Values are written as digits with their unit: "800 ms", "5
+   Entwickler", "3 Partnersysteme". This makes them checkable against the Grundlage (CV-05).
+2. **No number words in bullets.** "fünf Entwickler" is not used. The value is written as "5 Entwickler".
+3. **German typography.** A space before the percent sign ("40 %") and in large numbers ("120 000 €").
+   A range uses an en dash ("3–5 Tage").
+
+## CG-8.4 Examples
+
+| | Bullet | Reason |
+|---|---|---|
+| Good | Latenz der Event-Pipeline in Python und Kafka von 800 ms auf 120 ms gesenkt | Object first, participle last, measured values as digits |
+| Good | Code-Reviews als Pflichtschritt für ein Team von 5 Entwicklern eingeführt | Form and digits; the result is qualitative and sourced |
+| Good | Schnittstellen für 3 Partnersysteme umgesetzt | Scope as digits; no result claimed |
+| Bad | Ich habe die Event-Pipeline optimiert | Subject, finite verb, unspecific claim (CG-8.1.3, CG-8.2.1) |
+| Bad | Verantwortlich für die Plattform | Forbidden phrase, no activity, no scope (CG-8.2.3) |
+| Bad | Erfolgreich fünf Teams unterstützt | Unsourced adjective, number as a word (CG-8.2.3, CG-8.3.2) |
+
 ## CG-9 Missing facts, gaps, conflicts
 
 | Case | Handling | Severity |
