@@ -123,5 +123,22 @@ class ExportTests(unittest.TestCase):
         self.assertIn("Berufserfahrung", text)
 
 
+class CompareContentTests(unittest.TestCase):
+    def test_hyphen_at_line_break_is_not_a_difference(self):
+        # A PDF breaks "E-Mail" or "Kubernetes-Cluster" at the hyphen; the words are the same
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        missing, extra = export_document.compare_content("E-Mail und Kubernetes-Cluster", "E-\nMail und Kubernetes-\nCluster")
+        self.assertEqual((dict(missing), dict(extra)), ({}, {}))
+
+    def test_missing_word_is_still_reported(self):
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        missing, _ = export_document.compare_content("Python und Kafka", "Python")
+        self.assertEqual(sorted(missing), ["kafka", "und"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -40,7 +40,12 @@ RUN groupadd --gid 10001 export \
 # The skill is read-only code; the working files live in /work, mounted by the caller.
 COPY skills/job-application-export /app/skills/job-application-export
 
-ENV HOME=/home/export
+# The caller may run the image with any UID (for example the host user, so that the exports belong to
+# them). HOME and the TeX cache therefore point to /tmp, which every UID can write. A cache under a
+# fixed user's home makes LuaLaTeX produce an empty PDF for a foreign UID.
+ENV HOME=/tmp \
+    TEXMFVAR=/tmp/texmf-var \
+    TEXMFCACHE=/tmp/texmf-var
 WORKDIR /work
 
 USER 10001:10001

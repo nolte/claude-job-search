@@ -48,6 +48,9 @@ def read_document(path):
 
 
 def tokens(text):
+    # Hyphens are dropped before splitting, so "E-Mail" equals "E-" + line break + "Mail" in a PDF.
+    # A hyphenated word and its line-broken form then count as the same word.
+    text = re.sub(r"-\s*", "", text)
     return Counter(t.lower() for t in re.findall(r"[0-9A-Za-zÄÖÜäöüß]+", text))
 
 

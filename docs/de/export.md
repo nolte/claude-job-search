@@ -59,19 +59,72 @@ Im Ausgabeordner entstehen:
 - Seitenzahl und Ergebnis der Inhaltsprüfung auf der Konsole. Eine fehlgeschlagene Inhaltsprüfung wird
   gemeldet, und der Export gilt dann nicht als fertig.
 
-## Im Container ausführen
+## Im Container ausführen, in einem anderen Repository
 
-Das `Dockerfile` enthält pandoc, LuaLaTeX, die deutsche Sprachunterstützung und poppler-utils, sodass
-nichts weiter installiert werden muss. Das Image läuft mit dem numerischen User `10001`.
+Der Export läuft meist in dem Repository, das deine Bewerbungsdaten enthält, nicht im Plugin-Repository.
+Das `Dockerfile` enthält pandoc, LuaLaTeX, die deutsche Sprachunterstützung und poppler-utils, dort muss
+also nichts weiter installiert werden. Nötig ist nur Docker.
+
+Baue das Image einmal. Das Plugin-Repository ist die Build-Quelle, du musst es nicht klonen:
 
 ```bash
-docker build -t claude-job-search-export .
-docker run --rm --user 10001:10001 -v "$PWD:/work" claude-job-search-export \
+docker build -t claude-job-search-export https://github.com/nolte/claude-job-search.git#develop
+```
+
+Ersetze `develop` durch ein Release-Tag, sobald es eines gibt, damit sich das Image nicht unter dir ändert.
+
+Starte es im Wurzelverzeichnis deines Daten-Repositories, dort liegt `job-application/`:
+
+```bash
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" claude-job-search-export \
   job-application/<slug>/lebenslauf.md --format pdf --doc-type cv
 ```
 
-Der eingebundene Ordner muss für den User `10001` beschreibbar sein. Nur der Export-Skill wird ins Image
-kopiert (`.dockerignore`), personenbezogene Daten unter `job-application/` gelangen also nie in den Build-Kontext.
+- `--user "$(id -u):$(id -g)"` sorgt dafür, dass die Dateien in `export/` dir gehören. Das Image akzeptiert jede User-ID.
+- Das Ergebnis liegt in `job-application/<slug>/export/` deines Repositories. Die Quelle wird nicht verändert.
+- `--format tex`, `docx`, `html` und `md` funktionieren genauso. `--name Vorname_Nachname_Lebenslauf` setzt den Dateinamen.
+- Starte den Befehl nach jeder Änderung am Lebenslauf neu. Eine alte PDF aktualisiert sich nicht von selbst.
+
+Mit [Task](https://taskfile.dev) im Daten-Repository verkürzt diese `Taskfile.yml` den Aufruf:
+
+```yaml
+version: '3'
+
+vars:
+  EXPORT_IMAGE: '{{.EXPORT_IMAGE | default "claude-job-search-export"}}'
+  EXPORT_SOURCE: '{{.EXPORT_SOURCE | default "https://github.com/nolte/claude-job-search.git#develop"}}'
+  APPLICATION_ROOT: '{{.APPLICATION_ROOT | default "job-application"}}'
+
+tasks:
+  export:image:
+    desc: Build the export image from the plugin repository
+    cmds:
+      - docker build -t {{.EXPORT_IMAGE}} {{.EXPORT_SOURCE}}
+
+  export:
+    desc: "Export a document: task export SLUG=<vorgang> [DOC=lebenslauf] [FORMAT=pdf] [TYPE=cv]"
+    requires:
+      vars: [SLUG]
+    vars:
+      DOC: '{{.DOC | default "lebenslauf"}}'
+      FORMAT: '{{.FORMAT | default "pdf"}}'
+      TYPE: '{{.TYPE | default "cv"}}'
+    cmds:
+      - >-
+        docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" {{.EXPORT_IMAGE}}
+        {{.APPLICATION_ROOT}}/{{.SLUG}}/{{.DOC}}.md --format {{.FORMAT}} --doc-type {{.TYPE}}
+```
+
+```bash
+task export:image
+task export SLUG=<slug>
+task export SLUG=<slug> FORMAT=tex
+```
+
+Prüfe das Ergebnis nach jedem Export: Die Konsole muss `Inhaltsprüfung: ok` ausgeben. Eine PDF mit nur
+wenigen Kilobyte und ohne Text ist ein fehlgeschlagener Export, auch wenn die Datei existiert. Nur der
+Export-Skill wird ins Image kopiert (`.dockerignore`), personenbezogene Daten deines Repositories gelangen
+also nie in den Build-Kontext.
 
 ## Was der Export nicht tut
 

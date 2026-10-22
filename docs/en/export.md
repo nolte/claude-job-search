@@ -59,19 +59,71 @@ In the output folder the export writes:
 - the page count and the result of the content check on the console. A content check that fails is
   reported, and the export is not presented as ready.
 
-## Run in a container
+## Run in a container, in another repository
 
-The `Dockerfile` bundles pandoc, LuaLaTeX, the German language support and poppler-utils, so nothing
-else has to be installed. The image runs as the numeric user `10001`.
+The export usually runs in the repository that holds your application data, not in the plugin
+repository. The `Dockerfile` bundles pandoc, LuaLaTeX, the German language support and poppler-utils,
+so nothing else has to be installed there. Only Docker is needed.
+
+Build the image once. The plugin repository is the build source, you do not clone it:
 
 ```bash
-docker build -t claude-job-search-export .
-docker run --rm --user 10001:10001 -v "$PWD:/work" claude-job-search-export \
+docker build -t claude-job-search-export https://github.com/nolte/claude-job-search.git#develop
+```
+
+Replace `develop` with a release tag once one exists, so the image does not change under you.
+
+Run it from the root of your data repository, where `job-application/` lies:
+
+```bash
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" claude-job-search-export \
   job-application/<slug>/lebenslauf.md --format pdf --doc-type cv
 ```
 
-The mounted folder must be writable for user `10001`. Only the export skill is copied into the
-image (`.dockerignore`), so personal data under `job-application/` never enters the build context.
+- `--user "$(id -u):$(id -g)"` makes the files in `export/` belong to you. The image accepts any user ID.
+- The export is written to `job-application/<slug>/export/` in your repository. The source is not changed.
+- `--format tex`, `docx`, `html` and `md` work the same way. `--name Vorname_Nachname_Lebenslauf` sets the file name.
+- Run the command again after you changed the Lebenslauf. An old PDF is not updated by itself.
+
+With [Task](https://taskfile.dev) in the data repository, this `Taskfile.yml` shortens the call:
+
+```yaml
+version: '3'
+
+vars:
+  EXPORT_IMAGE: '{{.EXPORT_IMAGE | default "claude-job-search-export"}}'
+  EXPORT_SOURCE: '{{.EXPORT_SOURCE | default "https://github.com/nolte/claude-job-search.git#develop"}}'
+  APPLICATION_ROOT: '{{.APPLICATION_ROOT | default "job-application"}}'
+
+tasks:
+  export:image:
+    desc: Build the export image from the plugin repository
+    cmds:
+      - docker build -t {{.EXPORT_IMAGE}} {{.EXPORT_SOURCE}}
+
+  export:
+    desc: "Export a document: task export SLUG=<vorgang> [DOC=lebenslauf] [FORMAT=pdf] [TYPE=cv]"
+    requires:
+      vars: [SLUG]
+    vars:
+      DOC: '{{.DOC | default "lebenslauf"}}'
+      FORMAT: '{{.FORMAT | default "pdf"}}'
+      TYPE: '{{.TYPE | default "cv"}}'
+    cmds:
+      - >-
+        docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" {{.EXPORT_IMAGE}}
+        {{.APPLICATION_ROOT}}/{{.SLUG}}/{{.DOC}}.md --format {{.FORMAT}} --doc-type {{.TYPE}}
+```
+
+```bash
+task export:image
+task export SLUG=<slug>
+task export SLUG=<slug> FORMAT=tex
+```
+
+Check the result after every export: the console must print `Inhaltsprüfung: ok`. A PDF that is only a
+few kilobytes large and has no text is a failed export, even if a file exists. Only the export skill is
+copied into the image (`.dockerignore`), so personal data of your repository never enters the build context.
 
 ## What is not part of the export
 
