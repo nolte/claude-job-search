@@ -111,6 +111,29 @@ class ExportTests(unittest.TestCase):
             tex = handle.read()
         self.assertIn("\\begin{document}", tex)
         self.assertIn("Latenz von 800 ms", tex)
+        # the layout filter maps the entry shapes of the Lebenslauf spec (LB-4.1, LB-5.1) to the template macros
+        flat = " ".join(tex.split())  # pandoc wraps long lines
+        self.assertIn("\\cvheader{Lebenslauf}{Max Mustermann}", flat)
+        self.assertIn("\\cvstation{04/2021", flat)
+
+    def test_letter_gets_its_own_page_geometry_and_no_cv_filter(self):
+        # the Anschreiben uses 25 mm left (AS-3.3) and no Lebenslauf macros
+        result = subprocess.run(
+            [sys.executable, EXPORTER, self.source, "--format", "tex", "--doc-type", "letter", "--out-dir", self.out, "--name", "Test_Brief"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(self.out, "Test_Brief.tex"), encoding="utf-8") as handle:
+            tex = handle.read()
+        self.assertIn("left=25mm", tex)
+        self.assertNotIn("\\cvstation{", tex)
+
+    def test_year_in_the_period_column_is_not_taken_for_a_page_number(self):
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        self.assertEqual(export_document.READBACK_MACROS.count("newcommand"), 3)
 
     @unittest.skipUnless(python_docx_available(), "python-docx is not installed")
     def test_docx_export_keeps_headings_in_order_and_bullets(self):

@@ -1,18 +1,28 @@
 % Pandoc template for Bewerbungsdokumente (Lebenslauf, Anschreiben).
 % Used by scripts/export_document.py with --template. Requires LuaLaTeX (decision O-3).
 %
-% Design: one column, one accent colour, thin rules, no tables, no icons, no text in header or
-% footer. Colour and rules do not change the text a parser reads (spec R-8.3). The font is Lato when
-% it is installed (package fonts-lato) and Latin Modern Sans otherwise.
+% Design (spec/job-application/lebenslauf/en.md LB-11): one column, one accent colour, thin rules under
+% section headings, no tables, no icons, no text in header or footer except a quiet page number. Colour and
+% rules do not change the text a parser reads (spec R-8.3). Font: Lato when installed (package fonts-lato),
+% Latin Modern Sans otherwise.
+%
+% Sizes: name 25 pt, section heading 13 pt, position 11 pt, body 10.5 pt on 14.3 pt leading, period and
+% employer 9.5 pt. The macros \cvheader, \cvstation and \cvrow are emitted by templates/cv.lua.
 \documentclass[11pt,a4paper]{article}
 \usepackage[ngerman]{babel}
 \usepackage{fontspec}
 \usepackage{xcolor}
-\usepackage[left=22mm,right=20mm,top=18mm,bottom=18mm]{geometry}
+$if(letter)$
+\usepackage[left=25mm,right=20mm,top=20mm,bottom=20mm]{geometry}
+$else$
+\usepackage[left=20mm,right=18mm,top=17mm,bottom=19mm,footskip=9mm]{geometry}
+$endif$
 \usepackage{hyperref}
 \usepackage{longtable,booktabs}
 \usepackage{graphicx}
+\usepackage{microtype}
 
+% Colours: ink 15.8:1, accent 8.7:1 and muted 6.1:1 against white; all three stay readable in grayscale.
 \definecolor{accent}{HTML}{1F4E79}
 \definecolor{ink}{HTML}{1E2328}
 \definecolor{muted}{HTML}{5A6270}
@@ -22,31 +32,76 @@
 
 \hypersetup{colorlinks=true,urlcolor=accent,linkcolor=accent}
 
+\makeatletter
+\renewcommand{\normalsize}{\@setfontsize\normalsize{10.5}{14.3}}
+\renewcommand{\small}{\@setfontsize\small{9.5}{12.6}}
+\renewcommand{\footnotesize}{\@setfontsize\footnotesize{9}{11.5}}
+\renewcommand{\large}{\@setfontsize\large{13}{16}}
+\normalsize
+
+% Ragged right with a bounded stretch: unlike \raggedright (infinite stretch) it lets TeX balance the lines,
+% so a paragraph rarely ends in a single word. Hyphenation stays rare. \@rightskip makes lists inherit it.
+\def\cvragged{\let\\\@centercr\@rightskip=0pt plus 5em\relax\rightskip\@rightskip\leftskip\z@skip\parindent\z@}
+\cvragged
+\tolerance=1500
+\emergencystretch=2em
+\hyphenpenalty=1500
+\exhyphenpenalty=300
+\lefthyphenmin=3
+\righthyphenmin=3
+\widowpenalty=10000
+\clubpenalty=10000
+\raggedbottom
+
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.45em}
-\linespread{1.06}
 \setcounter{secnumdepth}{0}
+\providecommand{\tightlist}{\setlength{\itemsep}{2pt}\setlength{\parskip}{0pt}}
+
+% Page number: quiet, centred, no other footer content.
+\def\ps@plain{\let\@oddhead\@empty\def\@oddfoot{\hfil{\footnotesize\color{muted}\thepage}\hfil}\let\@evenhead\@empty\let\@evenfoot\@oddfoot}
 \pagestyle{plain}
-\providecommand{\tightlist}{\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}}
 
-% Bullets: accent-coloured, narrower indent.
+% Bullets: accent-coloured, narrower indent, tight spacing inside a list.
 \setlength{\leftmargini}{1.2em}
+\setlength{\leftmarginii}{1.1em}
 \renewcommand{\labelitemi}{\textcolor{accent}{\textbullet}}
-
-% Headings. Level 1 is the document title, level 2 a section with a rule, level 3 a station line.
-\makeatletter
-% Heading text and rule form one box, so a page break cannot leave a heading alone at the page end.
-\newcommand{\cvtitle}[1]{\vbox{\offinterlineskip\hbox{\fontsize{24}{28}\selectfont\bfseries\color{accent}#1}\kern9pt\hbox{\color{accent}\rule{2.2cm}{2pt}}}}
-\newcommand{\cvsection}[1]{\vbox{\offinterlineskip\hbox{\large\bfseries\color{accent}#1}\kern3pt\hbox{\color{accent}\rule{\linewidth}{0.7pt}}}}
-\newcommand{\cvstation}[1]{{\normalsize\bfseries\color{ink}#1}}
-% Start a new page when less than #1 is left, so a heading is never the last thing on a page.
-\newcommand{\cvneedspace}[1]{\par\penalty-100\begingroup\setlength{\dimen@}{#1}\dimen@ii\pagegoal\advance\dimen@ii-\pagetotal\ifdim\dimen@>\dimen@ii\break\fi\endgroup}
-\renewcommand{\section}[1]{\par\cvtitle{#1}\par\nobreak\vspace{0.8em}\nobreak}
-\renewcommand{\subsection}[1]{\par\cvneedspace{6\baselineskip}\addvspace{1.5em}\cvsection{#1}\par\nobreak\vspace{0.1em}\nobreak}
-\renewcommand{\subsubsection}[1]{\par\cvneedspace{4\baselineskip}\addvspace{0.7em}\cvstation{#1}\par\nobreak\vspace{-0.2em}\nobreak}
-% Lists sit close to the heading above them; the heading macros set the distance.
+\renewcommand{\labelitemii}{\textcolor{muted}{\textendash}}
 \setlength{\topsep}{0pt}
 \setlength{\partopsep}{0pt}
+\setlength{\itemsep}{2pt}
+
+% Grid: a left column for periods and labels, the content to its right.
+\newlength{\cvperiodwidth}
+\setlength{\cvperiodwidth}{3.3cm}
+
+% Start a new page when less than #1 is left, so a heading is never the last thing on a page.
+\newcommand{\cvneedspace}[1]{\par\penalty-100\begingroup\setlength{\dimen@}{#1}\dimen@ii\pagegoal\advance\dimen@ii-\pagetotal\ifdim\dimen@>\dimen@ii\break\fi\endgroup}
+
+% Section heading: text and rule form one box.
+\newcommand{\cvsection}[1]{\vbox{\offinterlineskip\hbox{\large\bfseries\color{accent}#1}\kern3pt\hbox{\color{accent}\rule{\linewidth}{0.7pt}}}}
+\renewcommand{\section}[1]{\par\addvspace{0.6em}\hbox{\large\bfseries\color{accent}#1}\par\nobreak\vspace{0.6em}\nobreak}
+\renewcommand{\subsection}[1]{\par\cvneedspace{6\baselineskip}\addvspace{1.2em}\cvsection{#1}\par\nobreak\vspace{0.2em}\nobreak}
+\renewcommand{\subsubsection}[1]{\par\cvneedspace{3.5\baselineskip}\addvspace{0.8em}{\bfseries #1}\par\nobreak\vspace{0.1em}\nobreak}
+
+% Header block: title label, name, then the personal data in the grid.
+\newcommand{\cvheader}[4]{%
+  \par\noindent{\small\bfseries\color{accent}#1}\par\vspace{2pt}%
+  \noindent{\fontsize{25}{29}\selectfont\bfseries\color{ink}#2}\par\vspace{5pt}%
+  \noindent\makebox[\cvperiodwidth][l]{\small\color{muted}#3}\parbox[t]{\dimexpr\linewidth-\cvperiodwidth\relax}{\cvragged\small #4}\par}
+
+% Station: period in the left column, position bold, employer below in the muted colour.
+\newcommand{\cvstation}[3]{%
+  \par\cvneedspace{3.5\baselineskip}\addvspace{0.8em}\begingroup\parskip=0pt
+  \hyphenpenalty=10000\exhyphenpenalty=10000
+  \noindent\makebox[\cvperiodwidth][l]{\small\color{muted}#1}%
+  \parbox[t]{\dimexpr\linewidth-\cvperiodwidth\relax}{\cvragged\fontsize{11}{14.3}\selectfont\bfseries #2\\[-1pt]{\small\normalfont\color{muted}#3}}\par
+  \endgroup\nobreak\vspace{0.15em}\nobreak}
+
+% Row: a period in the left column and its text to the right (education, certificates).
+\newcommand{\cvrow}[2]{%
+  \par\noindent\makebox[\cvperiodwidth][l]{\small\color{muted}#1}%
+  \parbox[t]{\dimexpr\linewidth-\cvperiodwidth\relax}{\cvragged #2}\par\vspace{2pt}}
 \makeatother
 
 $if(title)$\title{$title$}$endif$

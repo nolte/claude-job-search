@@ -125,33 +125,43 @@ def export_docx(pandoc, source, out_file, name, grundlage_hash):
     return text, None
 
 
-def export_tex(pandoc, source, out_file, grundlage_hash):
-    """LaTeX source with the Bewerbung template. Needs pandoc only, no LuaLaTeX."""
+# The layout macros that templates/cv.lua emits. For the content check each one reads back as its arguments
+# separated by spaces, so the words of the source are compared and the layout is not.
+READBACK_MACROS = "\\newcommand{\\cvheader}[4]{#1 #2 #3 #4\\par}\\newcommand{\\cvstation}[3]{#1 #2 #3\\par}\\newcommand{\\cvrow}[2]{#1 #2\\par}"
+
+
+def latex_args(pandoc, source, out_file, grundlage_hash, doc_type):
+    """pandoc arguments for the LaTeX source. The Lebenslauf gets the layout filter; other types get the letter page."""
     args = [pandoc, str(source), "-f", "markdown", "-t", "latex", "--template", str(TEMPLATES / "document.tex"),
             "-M", "lang=de", "-o", str(out_file)]
+    if doc_type == "cv":
+        args += ["--lua-filter", str(TEMPLATES / "cv.lua")]
+    else:
+        args += ["-V", "letter=true"]
     if grundlage_hash:
         args += ["-M", f"keywords=grundlage_hash:{grundlage_hash}"]
-    subprocess.run(args, check=True)
+    return args
+
+
+def export_tex(pandoc, source, out_file, grundlage_hash, doc_type="cv"):
+    """LaTeX source with the Bewerbung template. Needs pandoc only, no LuaLaTeX."""
+    subprocess.run(latex_args(pandoc, source, out_file, grundlage_hash, doc_type), check=True)
     # Content check reads the LaTeX back as plain text. Only the document body counts: the preamble holds
     # the template's layout macros, which are not content and which some pandoc versions cannot read back.
     tex = out_file.read_text(encoding="utf-8")
     start = tex.index("\\begin{document}") + len("\\begin{document}")
     end = tex.rindex("\\end{document}")
-    body = "\n".join(line for line in tex[start:end].splitlines() if not line.lstrip().startswith("%"))
+    body = READBACK_MACROS + "\n".join(line for line in tex[start:end].splitlines() if not line.lstrip().startswith("%"))
     plain = subprocess.run([pandoc, "-f", "latex", "-t", "plain"], input=body,
                            capture_output=True, text=True, check=True).stdout
     return plain, None
 
 
-def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit):
+def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit, doc_type="cv"):
     engine = require("lualatex", "Installiere TeX Live mit LuaLaTeX (Paket texlive-luatex) — Entscheidung O-3.")
     require("pdfinfo", "Installiere poppler-utils (pdfinfo, pdftotext).")
     tex = out_dir / f"{name}.tex"
-    args = [pandoc, str(source), "-f", "markdown", "-t", "latex", "--template", str(TEMPLATES / "document.tex"),
-            "-M", "lang=de", "-o", str(tex)]
-    if grundlage_hash:
-        args += ["-M", f"keywords=grundlage_hash:{grundlage_hash}"]
-    subprocess.run(args, check=True)
+    subprocess.run(latex_args(pandoc, source, tex, grundlage_hash, doc_type), check=True)
     result = subprocess.run(
         [engine, "-interaction=nonstopmode", f"-output-directory={out_dir}", tex.name],
         cwd=out_dir, capture_output=True, text=True,
@@ -168,9 +178,17 @@ def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit):
     if page_limit and pages > page_limit:
         print(f"Warnung: {pages} Seiten, Grenze für diesen Dokumenttyp ist {page_limit} (FA-O13).", file=sys.stderr)
     raw = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, check=True).stdout
-    # Page numbers printed by the template are layout, not content: drop lines that hold only a number.
-    text = "\n".join(line for line in raw.splitlines() if not re.fullmatch(r"\s*\d+\s*", line))
-    return text, pages
+    # The page number printed by the template is layout, not content. Drop it from the end of its page only:
+    # a line that holds just a year, as in the period column of the Lebenslauf, is content.
+    kept = []
+    for number, page_text in enumerate(raw.split("\f"), 1):
+        lines = page_text.splitlines()
+        while lines and not lines[-1].strip():
+            lines.pop()
+        if lines and lines[-1].strip() == str(number):
+            lines.pop()
+        kept.extend(lines)
+    return "\n".join(kept), pages
 
 
 def main(argv=None):
@@ -201,12 +219,12 @@ def main(argv=None):
         elif args.format == "html":
             exported_text, _ = export_html(pandoc, args.input, out_file, grundlage_hash)
         elif args.format == "tex":
-            exported_text, _ = export_tex(pandoc, args.input, out_file, grundlage_hash)
+            exported_text, _ = export_tex(pandoc, args.input, out_file, grundlage_hash, args.doc_type)
         elif args.format == "docx":
             exported_text, _ = export_docx(pandoc, args.input, out_file, name, grundlage_hash)
         else:
             exported_text, pages = export_pdf(pandoc, args.input, out_dir, name, grundlage_hash,
-                                              PAGE_LIMITS[args.doc_type])
+                                              PAGE_LIMITS[args.doc_type], args.doc_type)
 
         status = "ok"
         if exported_text is not None:

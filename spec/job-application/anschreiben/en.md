@@ -61,8 +61,8 @@ Retrieved 2026-10-22.
    its use is voluntary (sources of AS-2). The plugin follows it as a convention for German applications.
 2. **Page.** A4, one column, no tables, no images, no coloured background.
 3. **Margins.** The sources recommend about 25 mm left, 20 mm right, 20 mm top and bottom. They differ on the
-   minimum of the right margin (10 mm and 15 mm are named). The template uses 22 mm left and 20 mm right.
-   This deviation is recorded as an open point (AS-13).
+   minimum of the right margin (10 mm and 15 mm are named). The template uses 25 mm left, 20 mm right, and
+   20 mm top and bottom for the letter (document type `letter`); the Lebenslauf has its own margins.
 4. **Typeface.** DIN 5008 does not prescribe one (sources of AS-2). The template font applies (Lato with a
    fallback, 11 pt, `skills/job-application-export/templates/document.tex`).
 5. **Form A and Form B.** DIN 5008 defines forms that differ in the position of the address field and the
@@ -211,7 +211,7 @@ Word count, stock phrases, and consistency between the documents are judged in r
 | Area | Point | Status |
 |---|---|---|
 | DIN 5008 | Form A or Form B, the exact position of the address field, and fold marks are not verified. A primary source (the standard text or DIN Media) is needed before the template claims a form | open |
-| Margins | The template uses 22 mm left. The sources name 25 mm. Decide whether the letter gets its own geometry | open |
+| Margins | The letter has its own geometry (25 mm left, 20 mm right). It follows the recommendation of the sources, which differ on the minimum of the right margin | done |
 | Automation | Deterministic checks for word count, stock phrases, and salutation, in `scripts/` | open |
 | Skill | `job-application-cover-letter-create` implements AS-6 to AS-9 only as far as its `SKILL.md` states them; the skill must be aligned with this document | open |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

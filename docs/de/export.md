@@ -23,9 +23,20 @@ Für die LaTeX-Quelle allein (`--format tex`) reicht pandoc. LuaLaTeX ist dafür
 ## Layout
 
 Die PDF ist einspaltig und nutzt eine Akzentfarbe (dunkles Blau), dünne Linien unter den Abschnittsüberschriften
-und farbige Aufzählungspunkte. Es gibt keine Tabellen, Symbole, Fotos oder Text in Kopf- und Fußzeile, ein
-Parser liest also denselben Text wie zuvor (Spec R-8.3). Dasselbe Template gilt für Lebenslauf und Anschreiben.
-Das Design steht in `skills/job-application-export/templates/document.tex`.
+und farbige Aufzählungspunkte. Es gibt keine Tabellen, Symbole, Fotos oder Text in Kopf- und Fußzeile außer einer
+dezenten Seitenzahl, ein Parser liest also denselben Text wie zuvor (Spec R-8.3).
+
+- **Kopfbereich:** Der Name steht zuerst und groß, darunter die persönlichen Angaben.
+- **Stationen:** Der Zeitraum steht in einer linken Spalte, die Position fett, Arbeitgeber und Ort darunter in Grau.
+  Ausbildung und Zertifikate nutzen dieselbe Spalte für ihre Zeiträume.
+- **Typografie:** Lato in 10,5 pt auf 14,3 pt Zeilenabstand, Flattersatz, wenig Silbentrennung, Produktnamen wie
+  `VMware Tanzu` brechen nicht um. Die Schrift wird nicht verkleinert, um zwei Seiten zu erreichen.
+- **Druck und Bildschirm:** Die Farben behalten ihren Kontrast auf Weiß (Text 15,8:1, Akzent 8,7:1, Grau 6,1:1),
+  und die Hierarchie bleibt in Graustufen sichtbar.
+- **Brief:** Das Anschreiben nutzt dasselbe Template mit eigenen Rändern (25 mm links).
+
+Das Design steht in `skills/job-application-export/templates/` (`document.tex` und `cv.lua`), die Regeln in
+`spec/job-application/lebenslauf/en.md` (LB-11).
 
 ## Eingabe
 
