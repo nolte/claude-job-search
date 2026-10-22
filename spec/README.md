@@ -11,6 +11,9 @@ translation is produced via `/nolte-shared:spec`.
 | `spec/job-application/kontaktklassifikation/en.md` | Classification of the counterpart (recruiter, employer directly, referral, platform), each one's motivation, disclosure rules, and communication by counterpart (rules KK-1 … KK-9) |
 | `spec/job-application/unternehmensanalyse/en.md` | Analysis of the companies behind an application (Anstellungsgeber, Bedarfsträger, Vermittler, Kontaktgeber), source ranking, conflicts, storage in `analyse.md` and `firmen/`, and consequences for the documents (rules UA-1 … UA-9) |
 | `spec/job-application/traumjob-interview/en.md` | Preference interview in seven phases, the stored Wunschprofil with priorities and Ausschlüsse, and the fit check of a posting or company against it, with vetoes and sourced results (rules WJ-1 … WJ-10) |
+| `spec/job-application/lebenslauf/en.md` | Document type Lebenslauf: purpose, formats, sections and their order, entry shapes, layout, metadata, checks and scenarios (rules LB-1 … LB-16) |
+| `spec/job-application/anschreiben/en.md` | Document type Anschreiben: purpose, components and order, DIN 5008 layout, Betreff and Anrede, text structure, length, variants, tone, checks (rules AS-1 … AS-15) |
+| `spec/job-application/motivationsschreiben/en.md` | Document type Motivationsschreiben: difference to the Anschreiben, when to write it, where motivation may come from, structure, evidence for competences, length, variants, checks (rules MS-1 … MS-15) |
 | `spec/job-application/lokale-struktur/en.md` | Local structure of the Wurzel, where Stammdaten, Metadaten and Notizen are persisted, the Vorgang lifecycle S0–S9, Markdown conventions and Obsidian (rules LS-1 … LS-10) |
 
 Every skill under `skills/` names the spec section it obeys in its `SKILL.md`.

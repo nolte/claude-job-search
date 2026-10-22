@@ -32,10 +32,10 @@ rewrite content.
 ## Command
 
 ```bash
-task export -- <datei.md> --format <pdf|docx|html|md> --doc-type <cv|letter|email> [--out-dir DIR] [--name NAME]
+task export -- <datei.md> --format <pdf|docx|html|md> --doc-type <cv|letter|motivation|email> [--out-dir DIR] [--name NAME]
 ```
 
-- `--doc-type`: `cv` checks a maximum of two pages, `letter` one page, `email` no page limit.
+- `--doc-type`: `cv` checks a maximum of two pages, `letter` one page, `motivation` two pages (a Motivationsschreiben for a job is one page by default, MS-7), `email` no page limit.
 - `--out-dir`: default `<quelle>/export/`, inside the git-ignored `job-application/` folder.
 - `--name`: default is the source file name. Use `Vorname_Nachname_Lebenslauf` (spec R-4).
 

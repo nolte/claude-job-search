@@ -5,7 +5,7 @@ Formats: pdf (LaTeX via LuaLaTeX), docx, html, md. The Markdown file is the only
 nothing is edited in place (spec R-10, requirement ausgabeformate.md FA-O1).
 
 Usage:
-  export_document.py INPUT.md --format {pdf,docx,html,md} --doc-type {cv,letter,email}
+  export_document.py INPUT.md --format {pdf,docx,html,md} --doc-type {cv,letter,motivation,email}
                      [--out-dir DIR] [--name NAME]
 """
 
@@ -19,7 +19,7 @@ from collections import Counter
 from pathlib import Path
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
-PAGE_LIMITS = {"cv": 2, "letter": 1, "email": None}
+PAGE_LIMITS = {"cv": 2, "letter": 1, "motivation": 2, "email": None}
 REFERENCE_DOCX = Path.home() / ".cache" / "claude-job-search" / "reference.docx"
 
 

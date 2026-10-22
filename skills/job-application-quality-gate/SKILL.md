@@ -72,7 +72,9 @@ country conventions, employer instructions, and the requested format.
 | Check | Severity when it fails |
 |---|---|
 | `[ERGÄNZEN` placeholder left in any document | Blocker |
-| Required document missing (Lebenslauf, Anschreiben, E-Mail if `email`, Zeugnisse if requested) | Blocker |
+| Required document missing (Lebenslauf, Anschreiben, Motivationsschreiben if asked for, E-Mail if `email`, Zeugnisse if requested) | Blocker |
+| Motivationsschreiben: a statement of motivation without a source in `## Auswahl Motivationsschreiben` (user statement or confirmed Wunschprofil entry), or `[ERGÄNZEN: Beweggrund]` left (MS-3) | Blocker |
+| Motivationsschreiben: a competence without a proof, or text that retells the Lebenslauf (MS-6.1, MS-5.3) | Warnung |
 | Company, role, reference number, or contact name differ between documents | Blocker |
 | Claim in a document not traceable to the Grundlage entry (R-1, CG-2) | Blocker |
 | Muss requirement presented as *erfüllt* without evidence (CV-07) | Blocker |

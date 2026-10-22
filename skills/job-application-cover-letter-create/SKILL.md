@@ -1,6 +1,6 @@
 ---
 name: job-application-cover-letter-create
-description: "Writes a German Anschreiben (cover letter) for one Stellenanzeige in DIN-5008-style layout, maximum one page, with requirement-to-proof paragraphs taken from job-application/profil.md and the posting analysis. Supports ausschreibung, initiativ, quereinstieg and berufseinstieg variants. Writes Markdown to job-application/<slug>/anschreiben.md. Use on \"schreib ein Anschreiben\", \"Motivationsschreiben für diese Stelle\", \"Initiativbewerbung schreiben\", or equivalent German requests. Don't use for the CV (job-application-cv-create), the E-Mail (job-application-email-create), or the review of finished documents (job-application-quality-gate)."
+description: "Writes a German Anschreiben (cover letter) for one Stellenanzeige in DIN-5008-style layout, maximum one page, with requirement-to-proof paragraphs taken from job-application/profil.md and the posting analysis. Supports ausschreibung, initiativ, quereinstieg and berufseinstieg variants. Writes Markdown to job-application/<slug>/anschreiben.md. Use on \"schreib ein Anschreiben\", \"Initiativbewerbung schreiben\", or equivalent German requests. Don't use for a Motivationsschreiben (job-application-motivation-letter-create), for the CV (job-application-cv-create), the E-Mail (job-application-email-create), or the review of finished documents (job-application-quality-gate)."
 tags: [bewerbung, anschreiben, motivationsschreiben, deutsch, din-5008]
 phase: create
 summary: "Writes a one-page German cover letter that maps the posting's requirements to proven experience from the profile."
@@ -10,11 +10,14 @@ use_when:
   - "you want an unsolicited application (Initiativbewerbung) letter"
   - "you are changing careers or starting out and need a tailored letter"
 dont_use_when:
+  - situation: "The posting or programme asks for a Motivationsschreiben"
+    alternative: job-application-motivation-letter-create
   - situation: "You need the CV"
     alternative: job-application-cv-create
   - situation: "You need the text for the sending e-mail"
     alternative: job-application-email-create
 see_also:
+  - job-application-motivation-letter-create
   - job-application-posting-analysis
   - job-application-cv-create
   - job-application-email-create
@@ -23,8 +26,9 @@ see_also:
 
 # Bewerbung Anschreiben erstellen
 
-Spec: `spec/job-application/konventionen/en.md` R-1 (facts), R-3 (letter form, length,
-tone), R-7 (quality gate). Addressee and disclosure: `spec/job-application/kontaktklassifikation/en.md`
+Spec: `spec/job-application/anschreiben/en.md` (AS-1 to AS-12) and `spec/job-application/konventionen/en.md` R-1 (facts), R-3
+(letter form, length, tone), R-7 (quality gate). A text that mainly explains personal reasons and goals is a
+Motivationsschreiben: use `job-application-motivation-letter-create` (AS-1.4). Addressee and disclosure: `spec/job-application/kontaktklassifikation/en.md`
 KK-4.1 and KK-5; company facts and their sources: `spec/job-application/unternehmensanalyse/en.md` UA-4.5 and UA-6.
 
 ## Inputs
