@@ -20,6 +20,9 @@ German output is the default target language; the rules describe German-speaking
 
 ## R-2 Lebenslauf
 
+The document type is described in full in `spec/job-application/lebenslauf/en.md` (sections, entry shapes,
+layout, checks). The rules below stay in force and are the short form.
+
 - **Form:** einspaltig (single column, no layout tables), **rückwärts chronologisch** — the most recent
   entry comes first.
 - **Umfang:** typically 1–2 pages; longer only with substantial, relevant experience.
@@ -69,6 +72,10 @@ Sources: [lebenslauf.de – Berufserfahrung](https://www.lebenslauf.de/ratgeber/
 5. **Traceability:** every bullet links to a Grundlage entry (FA-5, FA-7 of the Datengrundlage requirement). The link is kept in the Grundlage or in `pruefbericht.md`, never in the CV text itself.
 
 ## R-3 Anschreiben (cover letter)
+
+The document type is described in full in `spec/job-application/anschreiben/en.md`. A personal motivation
+letter is a separate document type (`spec/job-application/motivationsschreiben/en.md`). The rules below stay
+in force and are the short form.
 
 - **Layout:** DIN-5008-style letter: Absender block, Empfängeranschrift,
   Ort und Datum, **Betreff** in bold, Anrede, body, Schlussformel, Unterschrift.

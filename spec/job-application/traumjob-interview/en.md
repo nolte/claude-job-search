@@ -237,7 +237,9 @@ gesamturteil: Veto | Klärungsbedarf | Passt überwiegend
    `vorgang.md`.
 2. **Documents are not changed by the Wunschprofil.** The CV and the letter contain facts from the
    Grundlage and evidence from the posting analysis (CG-4). They do not state the candidate's wishes.
-   A wish is never a claim about the candidate's experience.
+   A wish is never a claim about the candidate's experience. The one exception is the
+   Motivationsschreiben: it may state a wish that the user has confirmed for that letter, and never a
+   wish marked `hypothese: ja` (`motivationsschreiben/en.md` MS-3.3).
 3. **Questions to the counterpart.** *nicht ermittelt* values become questions for the counterpart,
    written with `job-application-email-create` only after the counterpart and the disclosure are known
    (KK-4, KK-5).
