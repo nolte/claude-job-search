@@ -90,6 +90,15 @@ class ExportTests(unittest.TestCase):
         with open(os.path.join(self.out, "Test_Lebenslauf.html"), encoding="utf-8") as handle:
             self.assertIn("Latenz von 800 ms", handle.read())
 
+    def test_tex_export_writes_source_without_lualatex(self):
+        # tex is the LaTeX source of the PDF; it needs pandoc only and passes the content check
+        result = self.export("tex")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(self.out, "Test_Lebenslauf.tex"), encoding="utf-8") as handle:
+            tex = handle.read()
+        self.assertIn("\\begin{document}", tex)
+        self.assertIn("Latenz von 800 ms", tex)
+
     @unittest.skipUnless(python_docx_available(), "python-docx is not installed")
     def test_docx_export_keeps_headings_in_order_and_bullets(self):
         # Scenario I/J: standard headings in source order, no bullet lost, no table
