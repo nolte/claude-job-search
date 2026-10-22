@@ -1,17 +1,54 @@
 % Pandoc template for Bewerbungsdokumente (Lebenslauf, Anschreiben).
 % Used by scripts/export_document.py with --template. Requires LuaLaTeX (decision O-3).
+%
+% Design: one column, one accent colour, thin rules, no tables, no icons, no text in header or
+% footer. Colour and rules do not change the text a parser reads (spec R-8.3). The font is Lato when
+% it is installed (package fonts-lato) and Latin Modern Sans otherwise.
 \documentclass[11pt,a4paper]{article}
 \usepackage[ngerman]{babel}
 \usepackage{fontspec}
-\usepackage[left=25mm,right=20mm,top=20mm,bottom=20mm]{geometry}
+\usepackage{xcolor}
+\usepackage[left=22mm,right=20mm,top=18mm,bottom=18mm]{geometry}
 \usepackage{hyperref}
 \usepackage{longtable,booktabs}
 \usepackage{graphicx}
+
+\definecolor{accent}{HTML}{1F4E79}
+\definecolor{ink}{HTML}{1E2328}
+\definecolor{muted}{HTML}{5A6270}
+
+\IfFontExistsTF{Lato}{\setmainfont{Lato}}{\setmainfont{Latin Modern Sans}}
+\color{ink}
+
+\hypersetup{colorlinks=true,urlcolor=accent,linkcolor=accent}
+
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{0.5em}
+\setlength{\parskip}{0.45em}
+\linespread{1.06}
 \setcounter{secnumdepth}{0}
 \pagestyle{plain}
-\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\providecommand{\tightlist}{\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}}
+
+% Bullets: accent-coloured, narrower indent.
+\setlength{\leftmargini}{1.2em}
+\renewcommand{\labelitemi}{\textcolor{accent}{\textbullet}}
+
+% Headings. Level 1 is the document title, level 2 a section with a rule, level 3 a station line.
+\makeatletter
+% Heading text and rule form one box, so a page break cannot leave a heading alone at the page end.
+\newcommand{\cvtitle}[1]{\vbox{\offinterlineskip\hbox{\fontsize{24}{28}\selectfont\bfseries\color{accent}#1}\kern9pt\hbox{\color{accent}\rule{2.2cm}{2pt}}}}
+\newcommand{\cvsection}[1]{\vbox{\offinterlineskip\hbox{\large\bfseries\color{accent}#1}\kern3pt\hbox{\color{accent}\rule{\linewidth}{0.7pt}}}}
+\newcommand{\cvstation}[1]{{\normalsize\bfseries\color{ink}#1}}
+% Start a new page when less than #1 is left, so a heading is never the last thing on a page.
+\newcommand{\cvneedspace}[1]{\par\penalty-100\begingroup\setlength{\dimen@}{#1}\dimen@ii\pagegoal\advance\dimen@ii-\pagetotal\ifdim\dimen@>\dimen@ii\break\fi\endgroup}
+\renewcommand{\section}[1]{\par\cvtitle{#1}\par\nobreak\vspace{0.8em}\nobreak}
+\renewcommand{\subsection}[1]{\par\cvneedspace{6\baselineskip}\addvspace{1.5em}\cvsection{#1}\par\nobreak\vspace{0.1em}\nobreak}
+\renewcommand{\subsubsection}[1]{\par\cvneedspace{4\baselineskip}\addvspace{0.7em}\cvstation{#1}\par\nobreak\vspace{-0.2em}\nobreak}
+% Lists sit close to the heading above them; the heading macros set the distance.
+\setlength{\topsep}{0pt}
+\setlength{\partopsep}{0pt}
+\makeatother
+
 $if(title)$\title{$title$}$endif$
 $if(author)$\author{$author$}$endif$
 \date{}

@@ -28,6 +28,7 @@ RUN apt-get update \
       texlive-luatex \
       texlive-lang-german \
       texlive-fonts-recommended \
+      fonts-lato \
       poppler-utils \
       python3 \
       python3-docx \

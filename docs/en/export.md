@@ -11,7 +11,7 @@ source are generated from it.
 | pandoc | Markdown to LaTeX, DOCX, HTML | `pandoc` |
 | LuaLaTeX | compiling the PDF from the LaTeX source | `texlive-luatex` |
 | German language support for LaTeX | `babel` with `ngerman` in the template | `texlive-lang-german` |
-| Fonts for LuaLaTeX | the template sets no font, so the `fontspec` default is used | `texlive-fonts-recommended` |
+| Fonts for LuaLaTeX | the template uses Lato and falls back to Latin Modern Sans when Lato is missing | `fonts-lato`, `texlive-fonts-recommended` |
 | poppler-utils | `pdfinfo` and `pdftotext`, used for the page check and the text check | `poppler-utils` |
 | python-docx | DOCX only, not for PDF | `pip install python-docx` |
 
@@ -19,6 +19,13 @@ The table lists the typical package names. They are not verified on every system
 result with `pdfinfo` and the export's content check.
 
 For the LaTeX source alone (`--format tex`), only pandoc is needed. LuaLaTeX is not required.
+
+## Layout
+
+The PDF uses one column, one accent colour (dark blue), thin rules under the section headings and
+coloured bullets. There are no tables, icons, photos or text in the header and footer, so a parser reads the
+same text as before (spec R-8.3). The same template is used for the Lebenslauf and the Anschreiben. The
+design is in `skills/job-application-export/templates/document.tex`.
 
 ## Input
 

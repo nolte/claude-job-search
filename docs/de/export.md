@@ -11,7 +11,7 @@ Markdown-Quelle. PDF und LaTeX-Quelle entstehen daraus.
 | pandoc | Markdown nach LaTeX, DOCX, HTML | `pandoc` |
 | LuaLaTeX | Kompilieren der PDF aus der LaTeX-Quelle | `texlive-luatex` |
 | Deutsche Sprachunterstützung für LaTeX | `babel` mit `ngerman` im Template | `texlive-lang-german` |
-| Schriften für LuaLaTeX | Das Template setzt keine Schrift, es gilt der Standard von `fontspec` | `texlive-fonts-recommended` |
+| Schriften für LuaLaTeX | Das Template nutzt Lato und fällt ohne Lato auf Latin Modern Sans zurück | `fonts-lato`, `texlive-fonts-recommended` |
 | poppler-utils | `pdfinfo` und `pdftotext` für Seitenprüfung und Textprüfung | `poppler-utils` |
 | python-docx | Nur für DOCX, nicht für PDF | `pip install python-docx` |
 
@@ -19,6 +19,13 @@ Die Tabelle nennt typische Paketnamen. Sie sind nicht auf jedem System geprüft.
 prüfst du mit `pdfinfo` und mit der Inhaltsprüfung des Exports.
 
 Für die LaTeX-Quelle allein (`--format tex`) reicht pandoc. LuaLaTeX ist dafür nicht nötig.
+
+## Layout
+
+Die PDF ist einspaltig und nutzt eine Akzentfarbe (dunkles Blau), dünne Linien unter den Abschnittsüberschriften
+und farbige Aufzählungspunkte. Es gibt keine Tabellen, Symbole, Fotos oder Text in Kopf- und Fußzeile, ein
+Parser liest also denselben Text wie zuvor (Spec R-8.3). Dasselbe Template gilt für Lebenslauf und Anschreiben.
+Das Design steht in `skills/job-application-export/templates/document.tex`.
 
 ## Eingabe
 
