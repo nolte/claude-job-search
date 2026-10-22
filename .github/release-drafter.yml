@@ -1,0 +1,8 @@
+# Categories are inherited portfolio-wide from the commons config below.
+# Per spec/project/release-notes-audience-analysis/ §Non-Goals the
+# category-to-audience mapping MUST NOT live in this file (inline comments are
+# not deterministically locatable); it lives in the dedicated audience artifact
+# docs/release-audiences.md, which carries the category <-> audience
+# traceability table. Add a local override here only to deviate from the
+# portfolio category set, and reconcile docs/release-audiences.md when you do.
+_extends: nolte/gh-plumbing:.github/commons-release-drafter.yml

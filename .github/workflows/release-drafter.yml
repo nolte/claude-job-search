@@ -1,0 +1,92 @@
+name: release-drafter
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+# spec/project/github-actions-best-practices/ §B: an explicit block, read-only at
+# the workflow level, with the write scopes this workflow needs granted on the
+# job below. GitHub advises a read-only default token and OpenSSF Scorecard
+# checks exactly this shape.
+permissions:
+  contents: read
+
+# spec/project/github-actions-best-practices/ §F: the conditional group MUST
+# applies. Every run mutates the same shared resource — the single open draft
+# release — so two runs genuinely interfere.
+#
+# `cancel-in-progress` is false: §F's third rule forbids cancel-on-new-run on a
+# release workflow, and cancelling a run part-way through rewriting the draft can
+# leave it inconsistent.
+#
+# The group is a shared literal naming the contended resource, not a key derived
+# from this workflow. The draft release is one repository-wide object and it has
+# two writers: this workflow rewrites its body, and `release-publish.yml` flips it
+# to published. Both therefore sit in the group `release-draft`, and that string
+# is what puts them in one lane — the platform matches concurrency groups by
+# string equality across the whole repository, so a shared literal is the
+# construction that serialises two different workflows. It is the same mechanism
+# `release-cd-deliver-docs.yml` uses for the `pages` group.
+#
+# Deriving the key from this workflow instead would look more conventional and
+# would be wrong twice over. Within this file, `github.ref` splits the legs: the
+# `push` leg is pinned to `develop` while `workflow_dispatch` runs from whatever
+# ref the operator picks, so two runs would rewrite the same draft concurrently.
+# Across files, any workflow-derived key puts the drafter and the publish in
+# separate lanes, and a drafter run landing between the publish's
+# `gh release edit --target` and its `--draft=false` flip can move
+# `target_commitish` — cutting a tag from a commit the publish never verified.
+#
+# The price is that a drafter run queuing while a publish dispatch is still
+# pending supersedes that dispatch, and this file cannot make that visible. A
+# push to `develop` starts a drafter run after every merge, so the window is not
+# rare. `skills/release-publish-trigger/` reports the run URL and stops without
+# following the run to its conclusion, so a superseded publish is `cancelled`
+# with nothing surfacing it — the release simply does not happen. Recovering it
+# is a re-dispatch; noticing it currently means opening the run URL by hand.
+# Tracked as a follow-up against that skill. The trade is still the right way
+# round: a re-dispatch is recoverable, a tag cut from an unverified commit is
+# not. The reverse direction is free:
+# a superseded pending *drafter* run loses nothing, because the reusable
+# recomputes the whole draft body from the merge history rather than appending to
+# it. (That is a property of the reusable called below, not of this file.)
+#
+# No collision with the reusable called below: at the pinned digest it declares
+# its own `release-drafter-${{ github.ref }}` group, so adopting the shared
+# `release-draft` literal here does not recreate the nested identical group this
+# change set removes from the publish side.
+#
+# §F's second rule wants the workflow identity plus a branch identity in the key.
+# This group carries neither, deliberately: a global resource cannot be keyed by
+# the thing contending for it without splitting the lane that protects it. See the
+# §Open Questions entry on resource-scoped groups.
+#
+# GitHub still supersedes a *pending* run when a newer one queues into this
+# group. That is harmless here because release-drafter recomputes the whole draft
+# body from the merge history on every run rather than appending to it, so the run
+# that does execute sees every pull request the skipped one would have seen. (This
+# is a property of the reusable workflow called below, not of this file.)
+concurrency:
+  group: release-draft
+  cancel-in-progress: false
+
+jobs:
+  update_release_draft:
+    uses: nolte/gh-plumbing/.github/workflows/reusable-release-drafter.yml@80cb5ebb91a3b49126729de31b1037f11c34b5cd # v2.2.0
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+    # Scoped to what `reusable-release-drafter.yml@v2.0.0` declares at the pinned
+    # digest: `contents: write` (a release draft is a contents-scope object) and
+    # `pull-requests: read` (release-drafter categorises merged pull requests into
+    # the changelog; it reads them, it does not write them).
+    #
+    # `read` is correct *for these triggers*. The inherited
+    # `nolte/gh-plumbing:.github/commons-release-drafter.yml` does declare an
+    # `autolabeler:`, which mutates pull requests and would need `write` — but it
+    # only fires on `pull_request` / `pull_request_target`, and this workflow
+    # triggers on neither. Adding such a trigger means widening this scope in the
+    # same change.
+    permissions:
+      contents: write
+      pull-requests: read
