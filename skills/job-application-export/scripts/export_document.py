@@ -132,9 +132,12 @@ def export_tex(pandoc, source, out_file, grundlage_hash):
     if grundlage_hash:
         args += ["-M", f"keywords=grundlage_hash:{grundlage_hash}"]
     subprocess.run(args, check=True)
-    # Content check reads the LaTeX back as plain text. LaTeX comments (the template header) are not content.
-    body = "\n".join(line for line in out_file.read_text(encoding="utf-8").splitlines()
-                     if not line.lstrip().startswith("%"))
+    # Content check reads the LaTeX back as plain text. Only the document body counts: the preamble holds
+    # the template's layout macros, which are not content and which some pandoc versions cannot read back.
+    tex = out_file.read_text(encoding="utf-8")
+    start = tex.index("\\begin{document}") + len("\\begin{document}")
+    end = tex.rindex("\\end{document}")
+    body = "\n".join(line for line in tex[start:end].splitlines() if not line.lstrip().startswith("%"))
     plain = subprocess.run([pandoc, "-f", "latex", "-t", "plain"], input=body,
                            capture_output=True, text=True, check=True).stdout
     return plain, None
