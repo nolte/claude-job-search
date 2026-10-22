@@ -87,8 +87,10 @@ Section headings are the standard headings (R-8.3). No tables, no columns, no te
 5. **Entries.** Each selected station: header line `Zeitraum | Position | Arbeitgeber, Ort` (R-2.1.1),
    then the bullets allowed by CG-6.2: up to 5 for a station with a *Muss* or *Wunsch* entry that is
    *erfüllt* or *teilweise*, up to 2 for other stations, header line only where a station does not support the application.
-6. **Bullets.** Formula Verb + Objekt + Umfang + Ergebnis. Use a number only if the profile
-   states it. Otherwise use a qualitative result. Routine tasks without result are dropped.
+6. **Bullets.** Write each bullet in the form of CG-8.1 (object and scope first, past participle of the
+   activity verb last, optional result after a semicolon, no subject, no final period). Use the verbs and
+   avoid the phrases of CG-8.2, and write measured values as digits with their unit (CG-8.3). Use a number
+   only if the profile states it. Otherwise use a qualitative result. Routine tasks without result are dropped.
 7. **Length.** Standard about two pages. Einseitig for Einsteiger, Praktikum, Schüler. Trim older
    or less relevant entries before recent ones.
 8. **Write** the file with the frontmatter.

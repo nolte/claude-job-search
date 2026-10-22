@@ -47,7 +47,11 @@ GRUNDLAGE_HEADER = re.compile(r"^### (\S+) – (\S+) \| ([^|]+?) \| (.+?)\s*$")
 HEADER_ANY = re.compile(r"^### ")
 PLACEHOLDER = re.compile(r"\[(ERGÄNZEN|KLÄREN)")
 NUMBER = re.compile(r"(?<![\d.,])\d+(?:[.,]\d+)?(?![\d])")
-GENERIC = re.compile(r"verantwortlich für|zuständig für|involved in|worked on", re.IGNORECASE)
+GENERIC = re.compile(
+    r"verantwortlich für|zuständig für|involved in|worked on|erfolgreich|innovativ|dynamisch|"
+    r"vielfältig|\bdiverse\b|Expertise in|sicher in",
+    re.IGNORECASE,
+)
 LEADERSHIP = re.compile(
     r"\b(?:geleitet|leitete|leiten|Teamleitung|Teamleiter|Teamlead|Führung|geführt|führte|führen|"
     r"Personalverantwortung|Mitarbeiterführung|Vorgesetzte|disziplinarisch|verantwortete das Team)\b",

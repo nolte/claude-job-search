@@ -226,6 +226,14 @@ class ScenarioTests(unittest.TestCase):
         # CG-13.3
         self.assertEqual(run(CLEAN_CV, GRUNDLAGE), run(CLEAN_CV, GRUNDLAGE))
 
+    def test_new_forbidden_phrases_are_notes(self):
+        # CG-8.2.3: unsourced evaluative wording is flagged
+        cv = CLEAN_CV.replace(
+            "- Mitarbeit an einer Integrationsplattform mit REST-Schnittstellen.",
+            "- Erfolgreich fünf Teams unterstützt.",
+        )
+        self.assertIn("CV-11", rules(run(cv), "Hinweis"))
+
 
 class StationNoteTests(unittest.TestCase):
     """Vault-style station notes: frontmatter periods, years only, Erfolge and Team sections."""

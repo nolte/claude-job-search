@@ -57,6 +57,7 @@ a Blocker exists. Its rule IDs:
 | CV-10 | Heading outside the standard headings (CG-11.2a) | Warnung |
 | CV-11 | Generic phrase that hides the task | Hinweis |
 | CV-12 | Bullet longer than two lines | Hinweis |
+| — | Bullet form not as CG-8.1 (subject, finite verb, final period, list longer than two items) or phrase not as CG-8.2 (judged in review) | Warnung |
 | CV-13 | Employment gap over two months without a gap entry | Blocker |
 | CV-14 | Invalid status or strength in the analysis (e.g. `fehlt`) | Warnung |
 | CV-15 | Station title or employer not in the Grundlage (note `titel` and `arbeitgeber`, or an R-2.1 header) | Blocker (Warnung if the Grundlage has no station records) |
