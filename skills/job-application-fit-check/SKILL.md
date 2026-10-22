@@ -22,13 +22,20 @@ see_also:
 # Bewerbung Passungsprüfung
 
 Spec: `spec/job-application/traumjob-interview/en.md` WJ-6 (fit check), WJ-7 (use in the process), WJ-8
-(privacy). Company facts and their sources: `spec/job-application/unternehmensanalyse/en.md` UA-3 and UA-5.
+(privacy). Company facts and their sources: `spec/job-application/unternehmensanalyse/en.md` UA-3 and UA-5. Paths and
+Vorgang: `spec/job-application/lokale-struktur/en.md` LS-2.6, LS-6.
+
+## Paths
+
+Read `job-application/konfiguration.md` first (the Anker, LS-2.3). Take `wurzel` (default `job-application/`) from its
+frontmatter. Relative paths resolve against the working directory that contains `job-application/konfiguration.md`
+(LS-2.6). `<wurzel>/<slug>/` is the Vorgang folder.
 
 ## Inputs
 
 - `<wurzel>/wunschprofil.md` with `bestaetigt: ja`. Without it, stop and point to `job-application-traumjob-interview`
   (WJ-6.1).
-- `job-application/<slug>/analyse.md`, including the requirements and the section `## Unternehmen`. If it is missing,
+- `<wurzel>/<slug>/analyse.md`, including the requirements and the section `## Unternehmen`. If it is missing,
   run `job-application-posting-analysis` first.
 - The working conditions from the posting: location, form of work, hours, contract form, salary if stated, team and
   leadership if stated.
@@ -56,7 +63,7 @@ Spec: `spec/job-application/traumjob-interview/en.md` WJ-6 (fit check), WJ-7 (us
 
 ## Output
 
-`job-application/<slug>/passung.md`:
+`<wurzel>/<slug>/passung.md`:
 
 ```markdown
 ---
@@ -88,8 +95,9 @@ Vetos come first. Every value names its source.
 ## Use in the application process
 
 - **Before the plan gate.** Run the fit check before `job-application-solution` step 3. A veto stops the plan gate
-  until the candidate decides: continue despite the veto, or stop this application. Record the decision in `vorgang.md`
-  under `Verlauf`.
+  until the candidate decides: continue despite the veto, or stop this application. Record the decision as one line in
+  `## Verlauf` of `<wurzel>/<slug>/vorgang.md` (LS-6.1). If the folder has no `vorgang.md` (an Ausprägungsordner or a
+  folder created before S1 existed), report that the decision could not be recorded; this is a Hinweis, not an error.
 - **The documents do not change.** The CV and the letter state facts and evidence (CG-4), never the candidate's wishes.
 - **Questions to the counterpart** for `nicht ermittelt` values are written only after the counterpart and the
   disclosure are known (KK-4, KK-5), by `job-application-email-create`.
@@ -102,3 +110,4 @@ Vetos come first. Every value names its source.
    (WJ-8.2).
 3. **No inferred values.** Do not value a wish from the company's reputation or from silence in the posting.
 4. **Stay local.** No web search carries wishes or interview content (WJ-8.2, UA-3.3).
+5. **Only the Wurzel is written** (LS-5.7): `passung.md` and the `## Verlauf` line of this Vorgang.

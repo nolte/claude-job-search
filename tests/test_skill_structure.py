@@ -66,6 +66,26 @@ class SkillStructureTests(unittest.TestCase):
                         missing.append(f"{os.path.relpath(path, ROOT)} -> {script}")
         self.assertEqual(missing, [])
 
+    def test_no_fixed_job_application_paths(self):
+        # lokale-struktur LS-2.6: the only fixed path is the Anker job-application/konfiguration.md; every other
+        # path is written as <wurzel>/… . The bare default root `job-application/` (followed by a backtick or a
+        # space) and spec paths (spec/job-application/…) are allowed.
+        pattern = re.compile(r"(?<![\w/-])job-application/(?!konfiguration\.md)(?=[A-Za-z<])")
+        offending = []
+        for path in SKILLS + AGENTS:
+            with open(path, encoding="utf-8") as handle:
+                for number, line in enumerate(handle, 1):
+                    if pattern.search(line):
+                        offending.append(f"{os.path.relpath(path, ROOT)}:{number}: {line.strip()}")
+        self.assertEqual(offending, [])
+
+    def test_cv_create_description_is_short(self):
+        # audit finding: the cv-create description states purpose, triggers and limits in at most 500 characters
+        path = os.path.join(ROOT, "skills", "job-application-cv-create", "SKILL.md")
+        header, _ = frontmatter(path)
+        description = re.search(r'^description: "(.*)"$', header, re.M).group(1)
+        self.assertLessEqual(len(description), 500, len(description))
+
     def test_cross_references_name_existing_skills(self):
         known = names_of_skills_and_agents()
         unknown = []

@@ -11,18 +11,66 @@
 -- no-break space (LB-11.9); in the row and label sections this applies to the text after the label only, so
 -- the binding never crosses the column or the colon.
 
--- Product names that must not break across lines (a no-break space replaces the space).
-local KEEP_TOGETHER = {
-  { "VMware", "Tanzu" }, { "Argo", "CD" }, { "Argo", "Workflows" }, { "GitLab", "CI" },
-  { "Docker", "Compose" }, { "Jenkins", "Groovy" },
-}
+-- Product names must not break across lines (a no-break space replaces the space). Two rules:
+--   1. Heuristic: two consecutive words that both start with a capital letter, and at least one of them
+--      carries an inner capital or a digit ("VMware Tanzu", "Argo CD", "GitLab CI", "Windows 11").
+--   2. The document's frontmatter key `keep_together` (a list of phrases) adds names the heuristic misses,
+--      for example `keep_together: [Docker Compose, Jenkins Groovy]`.
+local KEEP_TOGETHER = {}
 local NBSP = "\u{00A0}"
 
+-- Sections whose list items have the shape "- Zeitraum: Inhalt" (LB-6.1) and become \cvrow lines.
 local ROW_SECTIONS = {
   ["Ausbildung und Studium"] = true, ["Schulbildung"] = true,
   ["Weiterbildung und Zertifikate"] = true, ["Ehrenamt"] = true,
+  ["Praktika"] = true, ["Relevante Projekte"] = true,
 }
-local LABEL_SECTIONS = { ["IT- und Fachkenntnisse"] = true, ["Sprachkenntnisse (GER-Niveau)"] = true }
+-- Sections whose list items have the shape "- Gruppe: Einträge" (LB-7); matched by prefix, so a heading
+-- with a qualifier such as "Sprachkenntnisse (GER-Niveau)" is included (CG-11.2a).
+local LABEL_SECTIONS = { "IT- und Fachkenntnisse", "Sprachkenntnisse" }
+
+local function is_label_section(section)
+  for _, prefix in ipairs(LABEL_SECTIONS) do
+    if section == prefix or section:sub(1, #prefix + 1) == prefix .. " " then return true end
+  end
+  return false
+end
+
+local function starts_capital(word)
+  return word:match("^[A-Z]") ~= nil or word:match("^[ÄÖÜ]") ~= nil
+end
+
+local function has_inner_capital_or_digit(word)
+  return word:sub(2):match("[A-Z%d]") ~= nil
+end
+
+local function is_name_word(word)
+  return word:match("^[%w%-%.]+$") ~= nil or word:match("^[ÄÖÜäöüß%w%-%.]+$") ~= nil
+end
+
+-- Heuristic rule 1 for a pair of words; trailing punctuation of the second word is ignored for the test.
+local function looks_like_product_name(first, second)
+  local second_core = second:gsub("[,;:.]+$", "")
+  if not (is_name_word(first) and is_name_word(second_core)) then return false end
+  if not (starts_capital(first) and starts_capital(second_core)) then return false end
+  return has_inner_capital_or_digit(first) or has_inner_capital_or_digit(second_core)
+end
+
+-- Read `keep_together` from the frontmatter into KEEP_TOGETHER as lists of words.
+local function load_keep_together(meta)
+  local value = meta and meta.keep_together
+  if not value then return end
+  -- pandoc 3 passes a MetaList as a plain list of MetaValues (tables or strings), MetaInlines as a list of
+  -- Inline elements (userdata), and a MetaString as a Lua string.
+  local items = value
+  local first = type(value) == "table" and value[1] or nil
+  if type(value) ~= "table" or (first ~= nil and type(first) ~= "table" and type(first) ~= "string") then items = { value } end
+  for _, item in ipairs(items) do
+    local words = {}
+    for word in pandoc.utils.stringify(item):gmatch("%S+") do words[#words + 1] = word end
+    if #words >= 2 then KEEP_TOGETHER[#KEEP_TOGETHER + 1] = words end
+  end
+end
 
 local function raw(s) return pandoc.RawInline("latex", s) end
 
@@ -54,22 +102,39 @@ end
 
 local function append(target, list) for _, el in ipairs(list) do target[#target + 1] = el end end
 
--- Replace the space inside the listed product names by a no-break space.
+-- Length of a configured phrase that starts at position i of the inline list (Str Space Str ...), or nil.
+local function phrase_at(list, i)
+  for _, words in ipairs(KEEP_TOGETHER) do
+    local ok = true
+    for k, word in ipairs(words) do
+      local el = list[i + 2 * (k - 1)]
+      local sep = list[i + 2 * (k - 1) - 1]
+      if not el or el.t ~= "Str" or el.text ~= word or (k > 1 and (not sep or sep.t ~= "Space")) then ok = false; break end
+    end
+    if ok then return #words end
+  end
+  return nil
+end
+
+-- Replace the space inside product names by a no-break space (frontmatter phrases first, then the heuristic).
 local function keep_together(list)
   local out, i = {}, 1
   while i <= #list do
-    local joined = false
-    if list[i].t == "Str" and list[i + 1] and list[i + 1].t == "Space" and list[i + 2] and list[i + 2].t == "Str" then
-      for _, pair in ipairs(KEEP_TOGETHER) do
-        if list[i].text == pair[1] and list[i + 2].text == pair[2] then
-          out[#out + 1] = pandoc.Str(pair[1] .. NBSP .. pair[2])
-          i = i + 3
-          joined = true
-          break
-        end
-      end
+    local el = list[i]
+    local count = el.t == "Str" and phrase_at(list, i) or nil
+    if count then
+      local parts = {}
+      for k = 1, count do parts[#parts + 1] = list[i + 2 * (k - 1)].text end
+      out[#out + 1] = pandoc.Str(table.concat(parts, NBSP))
+      i = i + 2 * count - 1
+    elseif el.t == "Str" and list[i + 1] and list[i + 1].t == "Space" and list[i + 2] and list[i + 2].t == "Str"
+        and looks_like_product_name(el.text, list[i + 2].text) then
+      out[#out + 1] = pandoc.Str(el.text .. NBSP .. list[i + 2].text)
+      i = i + 3
+    else
+      out[#out + 1] = el
+      i = i + 1
     end
-    if not joined then out[#out + 1] = list[i]; i = i + 1 end
   end
   return out
 end
@@ -171,6 +236,7 @@ end
 
 function Pandoc(doc)
   if FORMAT ~= "latex" then return nil end
+  load_keep_together(doc.meta)
   -- 1. no-break product names everywhere. The last two words are bound in step 2, after the label split, so
   --    the no-break space never lands between a label and its text.
   for _, block in ipairs(doc.blocks) do
@@ -219,7 +285,7 @@ function Pandoc(doc)
       end
     end
     if block.t == "BulletList" then
-      if LABEL_SECTIONS[section] then
+      if is_label_section(section) then
         for k, item in ipairs(block.content) do block.content[k] = bold_label(item) end
       else
         bind_items(block)

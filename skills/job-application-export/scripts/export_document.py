@@ -10,6 +10,14 @@ is frozen: the PDF dates and the PDF ID are derived from the source, so the same
 give a byte-identical PDF (spec lebenslauf-versionen LV-6). `--reproduce` rebuilds an output from its
 manifest and compares it.
 
+Defaults (spec lokale-struktur LS-3, lebenslauf-versionen LV-6): `--out-dir` is `export/` next to the source. A frozen
+Version in `versionen/vNNN_<datum>.md` is exported to `../export/` of that folder, so the export sits next to the
+Arbeitsstand. `--name` defaults to the source file name without `.md`. Every name is transliterated to ASCII
+(`ä→ae, ö→oe, ü→ue, ß→ss`, spaces to `-`), so the file name travels through mail clients and portals unchanged (R-4).
+
+DOCX metadata: the author fields (`dc:creator`, `cp:lastModifiedBy`) are cleared, so a portal does not read a tool
+or account name as the author.
+
 Usage:
   export_document.py INPUT.md --format {pdf,docx,html,md,tex} --doc-type {cv,letter,motivation,email}
                      [--out-dir DIR] [--name NAME]
@@ -49,6 +57,23 @@ def require(tool, hint):
 
 def sha256_file(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+TRANSLITERATION = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue", "ß": "ss", " ": "-"})
+
+
+def ascii_name(name):
+    """File name in ASCII (R-4): umlauts transliterated, spaces to hyphens, hyphens and underscores kept."""
+    name = name.translate(TRANSLITERATION)
+    return re.sub(r"[^A-Za-z0-9._-]", "", name)
+
+
+def default_out_dir(source):
+    """`export/` next to the source; for a frozen Version in `versionen/` the `export/` folder of the parent."""
+    parent = source.parent
+    if parent.name == "versionen":
+        return parent.parent / "export"
+    return parent / "export"
 
 
 def source_date_epoch(meta):
@@ -171,6 +196,10 @@ def export_docx(pandoc, source, out_file, name, grundlage_hash):
 
     doc = Document(out_file)
     doc.core_properties.title = name
+    # Neutral metadata: no tool or account name as author (ATS portals show these fields).
+    doc.core_properties.author = ""
+    doc.core_properties.last_modified_by = ""
+    doc.core_properties.comments = ""
     if grundlage_hash:
         doc.core_properties.keywords = f"grundlage_hash:{grundlage_hash}"
     doc.save(out_file)
@@ -275,7 +304,7 @@ def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch):
         "dokumenttyp": doc_type,
         "format": fmt,
         "quelle": {"pfad": os.path.relpath(source, out_file.parent), "sha256": sha256_file(source)},
-        "frontmatter": {key: meta[key] for key in ("auspraegung", "version", "version_datum", "grundlage_hash", "format", "situation") if key in meta},
+        "frontmatter": {key: meta[key] for key in ("auspraegung", "version", "version_datum", "grundlage_hash", "format") if key in meta},
         "source_date_epoch": epoch,
         "byte_reproduzierbar": reproducible,
         "vorlage": {"document.tex": sha256_file(TEMPLATES / "document.tex"), "cv.lua": sha256_file(TEMPLATES / "cv.lua")},
@@ -352,8 +381,10 @@ def main(argv=None):
         if not grundlage_hash:
             print("Warnung: kein grundlage_hash im Frontmatter. Der Export ist nicht prüfbar gegen die Grundlage.",
                   file=sys.stderr)
-        name = args.name or args.input.stem
-        out_dir = (args.out_dir or args.input.parent / "export").resolve()
+        name = ascii_name(args.name or args.input.stem)
+        if not name:
+            raise ExportError("Der Dateiname ist nach der ASCII-Umschrift leer. --name angeben (R-4).")
+        out_dir = (args.out_dir or default_out_dir(args.input)).resolve()
         out_dir.mkdir(parents=True, exist_ok=True)
         out_file = out_dir / f"{name}.{args.format}"
         pandoc = require("pandoc", "Installiere pandoc (z. B. pip install pypandoc_binary oder Paket pandoc).")
