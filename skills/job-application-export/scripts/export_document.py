@@ -54,10 +54,13 @@ def sha256_file(path):
 def source_date_epoch(meta):
     """Midnight UTC of the frontmatter date `version_datum`, or None when the document is not frozen."""
     value = meta.get("version_datum")
-    if value and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+    if not value:
+        return None
+    try:
         day = datetime.date.fromisoformat(value)
-        return int(datetime.datetime(day.year, day.month, day.day, tzinfo=datetime.timezone.utc).timestamp())
-    return None
+    except ValueError:
+        raise ExportError(f"version_datum '{value}' ist kein gültiges Datum (erwartet JJJJ-MM-TT).") from None
+    return int(datetime.datetime(day.year, day.month, day.day, tzinfo=datetime.timezone.utc).timestamp())
 
 
 def trailer_id(source, epoch, doc_type):
@@ -243,7 +246,7 @@ def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit, doc_ty
 
 
 def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch):
-    reproducible = fmt == "tex" or (fmt == "pdf" and epoch is not None)
+    reproducible = fmt in ("tex", "pdf") and epoch is not None
     return {
         "schema": 1,
         "name": name,
@@ -319,6 +322,9 @@ def main(argv=None):
             return reproduce(args.reproduce)
         except subprocess.CalledProcessError as error:
             print(f"Fehler: Werkzeug schlug fehl: {error.cmd[0]} (Exit {error.returncode})", file=sys.stderr)
+            return 1
+        except (OSError, KeyError, ValueError, ExportError) as error:
+            print(f"Fehler: Manifest nicht lesbar oder unvollständig: {error}", file=sys.stderr)
             return 1
     if not (args.input and args.format and args.doc_type):
         parser.error("INPUT, --format und --doc-type sind erforderlich (oder --reproduce MANIFEST)")

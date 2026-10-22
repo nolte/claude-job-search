@@ -175,6 +175,14 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(len(manifest["quelle"]["sha256"]), 64)
         self.assertEqual(len(manifest["ausgabe"]["sha256"]), 64)
 
+    def test_invalid_version_datum_is_an_error_not_a_traceback(self):
+        with open(self.source, "w", encoding="utf-8") as handle:
+            handle.write(SOURCE.replace("format: chronologisch\n", "format: chronologisch\nversion_datum: 2026-02-30\n"))
+        result = self.export("tex")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("version_datum", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
     def test_reproduce_confirms_an_unchanged_export_and_rejects_a_changed_source(self):
         self.freeze()
         self.export("tex")

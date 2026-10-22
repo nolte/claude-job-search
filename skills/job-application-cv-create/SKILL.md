@@ -103,7 +103,8 @@ Section headings are the standard headings (R-8.3). No tables, no columns, no te
    reproducible basis for `job-application-quality-gate` (CG-13.3).
 10. **Freeze on request.** Ask whether this state is the one to send. If the user confirms, copy it to
     `versionen/v<NNN>_<YYYY-MM-DD>.md` with `version_datum` set to today (LV-3). A frozen Version is never edited;
-    a correction is a new Version.
+    a correction is a new Version. When the Arbeitsstand was frozen before, raise `version` by one first (LV-3.3), so a
+    second freeze never reuses an existing `versionen/` file.
 
 ## Auswahl pro Bewerbung (R-9.11)
 

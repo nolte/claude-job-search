@@ -35,7 +35,8 @@ Related specs:
    `<firma>-<stelle>` for one Vorgang).
 2. A Vorgang that needs a changed Lebenslauf gets its own Ausprägung, derived from an existing Version. It
    never edits another Ausprägung.
-3. Exports are named after the Version they were made from, not after the date of the export.
+3. Exports are named after the Version they were made from, not after the date of the export. The copy that is
+   sent to a recipient is additionally named `Vorname_Nachname_Lebenslauf.<ext>` (LB-11.13, R-4).
 
 ## LV-3 Frontmatter and freezing a Version
 
@@ -45,7 +46,7 @@ Related specs:
    set. After that the file is read-only by convention: a frozen Version is never edited. A correction is a new
    Version with the next number.
 3. The Arbeitsstand moves to the next `version` number when the first change after a freeze is made.
-4. A skill that sees a Version whose hash differs from the one in a Manifest reports it and stops (LV-6.3).
+4. A skill that sees a Version whose hash differs from the one in a Manifest reports it and stops (LV-6.4).
    It does not repair the file.
 5. A Version holds the facts as they were. It is not updated when the Grundlage changes. `grundlage_hash`
    records which Grundlage state it came from (R-9.4).
