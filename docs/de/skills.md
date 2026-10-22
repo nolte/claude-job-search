@@ -10,6 +10,7 @@
 | `job-application-traumjob-interview` | intake | Siebenphasiges Interview, das das bestätigte Wunschprofil speichert |
 | `job-application-fit-check` | analyse | Prüft eine Stelle oder ein Unternehmen gegen das Wunschprofil; Vetos zuerst, jeder Wert belegt |
 | `job-application-cover-letter-create` | create | Einseitiges Anschreiben im DIN-Format, vier Varianten |
+| `job-application-motivation-letter-create` | create | Motivationsschreiben aus den vom Nutzer genannten Beweggründen und belegten Nachweisen, mit Herkunftsnachweis |
 | `job-application-email-create` | deliver | Begleit-E-Mail mit Betreff, Anhangsliste und Dateinamen |
 | `job-application-export` | deliver | Exportiert ein fertiges Dokument als DOCX, HTML oder Markdown; PDF über LaTeX (braucht LuaLaTeX) via `task export` |
 | `job-application-quality-gate` | review | Qualitätsprüfung: Blocker, Warnungen, Hinweise |
@@ -34,6 +35,7 @@ flowchart LR
         plan{Plan approved?}
         cv[job-application-cv-create]
         letter[job-application-cover-letter-create]
+        motivation[job-application-motivation-letter-create]
         mail[job-application-email-create]
         gate[job-application-quality-gate]
     end
@@ -50,6 +52,8 @@ flowchart LR
     analysis --> plan
     plan -->|yes| cv
     cv -->|CV| letter
+    letter -.->|if asked for| motivation
+    motivation -.-> gate
     letter -->|email only| mail
     letter --> gate
     mail --> gate

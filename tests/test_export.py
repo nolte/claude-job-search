@@ -90,6 +90,19 @@ class ExportTests(unittest.TestCase):
         with open(os.path.join(self.out, "Test_Lebenslauf.html"), encoding="utf-8") as handle:
             self.assertIn("Latenz von 800 ms", handle.read())
 
+    def test_motivation_doc_type_is_accepted_with_a_two_page_limit(self):
+        # MS-7: the Motivationsschreiben has its own document type; pandoc only, no LuaLaTeX
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        self.assertEqual(export_document.PAGE_LIMITS["motivation"], 2)
+        result = subprocess.run(
+            [sys.executable, EXPORTER, self.source, "--format", "tex", "--doc-type", "motivation", "--out-dir", self.out, "--name", "Test_Motivation"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_tex_export_writes_source_without_lualatex(self):
         # tex is the LaTeX source of the PDF; it needs pandoc only and passes the content check
         result = self.export("tex")

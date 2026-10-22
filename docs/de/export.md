@@ -54,6 +54,8 @@ task export -- job-application/<slug>/lebenslauf.md --format tex --doc-type cv
 | `--format docx` | Word-Dokument, braucht `python-docx` |
 | `--format html` oder `md` | HTML- oder Markdown-Kopie |
 | `--doc-type cv` | Lebenslauf, höchstens zwei Seiten |
+| `--doc-type letter` | Anschreiben, eine Seite |
+| `--doc-type motivation` | Motivationsschreiben, höchstens zwei Seiten |
 | `--name` | Dateiname ohne Endung, Standard ist der Name der Quelle |
 | `--out-dir` | Ausgabeordner, Standard `job-application/<slug>/export/` |
 

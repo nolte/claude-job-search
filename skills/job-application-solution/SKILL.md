@@ -60,8 +60,9 @@ them, and enforces the quality gate.
    (`kontaktart`, `auftraggeber`, confidence), the Anstellungsgeber and its source (UA-6.1), any disclosure still
    missing (KK-4.1), and any double submission found (KK-4.2). Wait for explicit
    approval. Do not generate anything before it.
-4. **Lebenslauf**, then **Anschreiben**. The Lebenslauf goes first, so the cover
-   letter references the same entries and dates.
+4. **Lebenslauf**, then **Anschreiben**, then **Motivationsschreiben** only when the posting or the programme asks for
+   it (MS-2, `job-application-motivation-letter-create`). The Lebenslauf goes first, so the letters reference the same
+   entries and dates. The plan in step 3 states which letters are written.
 5. **E-Mail**, only when `bewerbungsweg` is `email`.
 6. **Quality gate.** Run `job-application-quality-gate` on the folder. Fix blockers with the
    owning skill and re-run. Stop with the open blockers listed if the user does not

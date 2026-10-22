@@ -175,8 +175,8 @@ mandatory instruction that is not met is a Blocker.
 | Stock phrase | MS-10.4 | review | Warnung |
 | The counterpart's mandatory instruction is not met | MS-11 | review | Blocker |
 
-The export has page limits for `cv`, `letter`, and `email`. A document type `motivation` does not exist there
-yet, so the limit of two pages is checked by hand (MS-13).
+The export has page limits for `cv`, `letter`, `motivation`, and `email`. The `motivation` limit is two pages; the
+stricter one page of the variant `stelle` is checked by hand (MS-13).
 
 ## MS-13 Open points
 
@@ -185,8 +185,8 @@ yet, so the limit of two pages is checked by hand (MS-13).
 | Sources | The structure and the length come from ratgeber pages. Study and scholarship rules were not found in the search. The institution's own rules are the authority | open |
 | Internship and training | No source for a specific rule. The posting's wording decides | open |
 | Online forms | Rules for a motivation text field on a portal (character limit, no letter layout) are not defined | open |
-| Export | Add a `motivation` document type with a two-page limit to `export_document.py` | open |
-| Skill | No skill writes a Motivationsschreiben. `job-application-cover-letter-create` lists the word in its triggers but treats it as a variant of the Anschreiben. A skill or a variant that follows this document is needed | open |
+| Export | The `motivation` document type with a two-page limit exists in `export_document.py`. A one-page limit for the variant `stelle` is not enforced and is checked by hand | done, variant limit open |
+| Skill | `job-application-motivation-letter-create` writes the document. `job-application-cover-letter-create` no longer lists the word in its triggers and points to the new skill | done |
 | WJ-7.2 | `traumjob-interview/en.md` WJ-7.2 forbids wishes in documents. MS-3.3 allows a confirmed wish in this document type only. WJ-7.2 refers here | done in the same change |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
 
