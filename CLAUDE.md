@@ -51,7 +51,7 @@ The skills refuse a Wurzel inside this repository (LS-2.4), so the default `job-
 
 ## Authoring rules
 
-- **Application data is personal.** The `job-application/` working folder, PDFs and DOCX files are local and git-ignored by default; tracking them in a private, unpublished repository is the user's decision (R-6, LV-4). This repository is public: never commit a profile, a CV, or a letter here, and never commit fixtures with real data.
+- **Application data is personal.** The `job-application/` working folder (its Wurzel lies outside this checkout, see Dogfooding), PDFs and DOCX files are local and git-ignored by default; tracking them in a private, unpublished repository is the user's decision (R-6, LV-4). This repository is public: never commit a profile, a CV, or a letter here, and never commit fixtures with real data.
 - **Fictional examples only.** Examples in specs and skills use fictional names (Musterfirma GmbH, Beispiel AG); never real stations, employers or people.
 - **No invented facts.** Skills must not generate employer names, dates, grades, skills or certificates that are not in the Datengrundlage, in `profil.md` derived from it, or stated by the user in the session. Unknown items become `[ERGÄNZEN: …]`.
 - **Paths through the Anker.** Every skill resolves paths through `job-application/konfiguration.md` (LS-2: keys `wurzel`, `grundlage`, `grundlage_index`); no hard-coded `job-application/` paths except the Anker itself.

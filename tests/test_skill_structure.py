@@ -133,7 +133,7 @@ class SkillStructureTests(unittest.TestCase):
         def sub_rule_exists(prefix, number, sub):
             body = section(prefix, number)
             full = f"{prefix}-{number}.{sub}"
-            if re.search(rf"^#{{3,4}} {re.escape(full)}\b", specs[prefix], re.M) or full in specs[prefix]:
+            if re.search(rf"(?<![\w.-]){re.escape(full)}(?![\w-]|\.\d)", specs[prefix]):
                 return True
             items = {int(n) for n in re.findall(r"^\s*(\d+)\. ", body, re.M)}
             items |= {int(n) for n in re.findall(r"^\| ?(\d+) ?\|", body, re.M)}
@@ -166,7 +166,7 @@ class SkillStructureTests(unittest.TestCase):
             with open(path, encoding="utf-8") as handle:
                 text = handle.read()
             # the rule must be cited together with the refusal step, not only named in the spec line
-            if "LS-2.4" not in text or not re.search(r"refus|reject", text, re.I) or "claude-job-search" not in text:
+            if "LS-2.4" not in text or not re.search(r"plugin\.json.{0,300}claude-job-search.{0,150}refus", text, re.S | re.I):
                 missing.append(name)
         self.assertEqual(missing, [])
 

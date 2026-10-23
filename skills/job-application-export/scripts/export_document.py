@@ -401,6 +401,9 @@ def reproduce(manifest_path):
         if manifest["vorlage"].get(tool) != sha256_file(TEMPLATES / tool):
             differences.append(f"Vorlage {tool} hat sich geändert")
     print("Reproduktion: byte-identisch" if identical else "Reproduktion: abweichend")
+    if manifest["ausgabe"].get("seitenlimit_ueberschritten"):
+        print(f"Hinweis: Der ursprüngliche Export überschritt das Seitenlimit "
+              f"({manifest['ausgabe'].get('seiten')} von {manifest['ausgabe'].get('seitenlimit')}).")
     for line in differences:
         print(f"  Unterschied: {line}")
     if not identical and not manifest["byte_reproduzierbar"]:
