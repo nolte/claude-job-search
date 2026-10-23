@@ -5,6 +5,7 @@ The *Stage* column names the step of the application process (S0 to S10, see
 
 | Name | Stage | Purpose |
 |---|---|---|
+| `job-application-job-search` | search (before S1) | Optional: builds a Suchbrief from your Wunschprofil, shows it, and after your yes searches job boards through the optional [JobSpy](jobspy.md) server. Returns a shortlist, records it in `suche/`, and hands one chosen posting to `job-application-solution` |
 | `job-application-solution` | front door (S1–S5) | Front door: profile, analysis, plan approval, documents, quality gate. Writes the approved plan to `vorgang.md` |
 | `job-application-profile-capture` | intake (S0) | Builds the Datengrundlage from your raw documents and derives `profil.md` from it |
 | `job-application-cv-maintain` | intake (S0) | Guided maintenance interview for an existing Datengrundlage: checks core points, asks about findings |
@@ -26,6 +27,7 @@ else. The status in `vorgang.md` tells you how far an application has come:
 
 | Step | Who writes | Files | Status afterwards |
 |---|---|---|---|
+| Postings searched | `job-application-job-search` | `suche/<JJJJ-MM-TT>-<slug>.md` (not a Vorgang: no `vorgang.md`) | none |
 | Posting captured | `job-application-posting-analysis` | `stellenanzeige.md`, `vorgang.md`, `notizen.md` (empty), `firmen/<company>.md` on first contact | `erfasst` |
 | Analysed | `job-application-posting-analysis` | `analyse.md` | `analysiert` |
 | Plan approved | `job-application-solution` | section *Plan* in `vorgang.md` | `geplant` |
@@ -51,6 +53,7 @@ to the next one. Dashed arrows are optional.
 <!-- diagram-source: user-described—order of the job-application skills per posting, from intake to quality gate and export -->
 ```mermaid
 flowchart LR
+    search[job-application-job-search]
     subgraph intake ["Intake (once, or when data changes)"]
         interview[job-application-traumjob-interview]
         capture[job-application-profile-capture]
@@ -70,6 +73,7 @@ flowchart LR
     export[job-application-export]
     reviewer[job-application-reviewer agent]
 
+    search -.->|chosen posting| solution
     solution -->|no Grundlage| capture
     maintain -->|updated Grundlage| capture
     capture -->|profile| analysis

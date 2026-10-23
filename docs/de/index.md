@@ -24,6 +24,7 @@ Bewerbung. Den Ablauf zeigt dir [Erste Schritte](getting-started.md), die Begrif
 - Neu hier? Lies [Erste Schritte](getting-started.md): installieren, konfigurieren, Daten erfassen, erste Bewerbung.
 - `/claude-job-search:job-application-profile-capture`, wenn noch keine Datengrundlage existiert.
 - Du willst erst wissen, was du suchst? Führe einmal `/claude-job-search:job-application-traumjob-interview` aus und danach `/claude-job-search:job-application-fit-check` für jede Stelle oder Firma.
+- Hast du noch keine Anzeige? Führe `/claude-job-search:job-application-job-search` aus, um Jobbörsen mit einem Brief zu durchsuchen, den du zuerst freigibst; dafür brauchst du den optionalen Server [JobSpy](jobspy.md), mit eigenen Risiken.
 - `/claude-job-search:job-application-solution` mit dem Text der Stellenanzeige für eine komplette Bewerbung.
 - `/claude-job-search:job-application-quality-gate` vor dem Versand eines vorhandenen Bewerbungsordners.
 - Bewirbst du dich über einen Personalvermittler oder Headhunter? Lies zuerst [Gegenpartei](counterparts.md).

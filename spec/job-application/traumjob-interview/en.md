@@ -275,7 +275,13 @@ gesamturteil: Veto | Klärungsbedarf | Passt überwiegend
    default; a private, unpublished repository is allowed (R-6, LS-2.1, `lebenslauf-versionen` LV-4).
 2. **Never sent.** No skill sends the Wunschprofil, a fit check or a wish to any service or counterpart.
    A web search does not include any wish or interview content (UA-3.2). The same holds for every
-   optional network channel (`recherche/en.md` RC-5.0 rule 5).
+   optional network channel (`recherche/en.md` RC-5.0 rule 5). **One exception:** a job search
+   (`stellensuche/en.md`) necessarily sends search terms derived from the wishes. Only the terms of the
+   Suchbrief that the user approved before the first query leave the machine: role titles, skills,
+   location, radius, remote, job type, posting age, the list of boards and the number of results per board.
+   Ausschluss reasons, salary
+   expectations, personal circumstances and Datengrundlage text never do, and no other part of the
+   Wunschprofil does.
 3. **Deletion.** The candidate can delete the Wunschprofil and the fit checks at any time. The skill
    deletes only the files the candidate names, after showing them.
 4. **Sensitive content** volunteered in the interview is stored only as far as WJ-4.2 allows, with the

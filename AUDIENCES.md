@@ -8,7 +8,7 @@ Do not add audiences without first declaring the bounded context below.
 
 ## Bounded context
 
-A Claude Code plugin with twelve skills and one read-only agent for German-speaking job applications (Bewerbungsunterlagen): Wunschprofil and fit check, Lebenslauf, Anschreiben, Motivationsschreiben, Bewerbungs-E-Mail, requirement match against a Stellenanzeige, a quality gate before sending, and export to PDF, DOCX, HTML and Markdown. The repository contains the skills, the specs, the templates, the export script, the tests, and the documentation site.
+A Claude Code plugin with thirteen skills and one read-only agent for German-speaking job applications (Bewerbungsunterlagen): Wunschprofil and fit check, Lebenslauf, Anschreiben, Motivationsschreiben, Bewerbungs-E-Mail, requirement match against a Stellenanzeige, a quality gate before sending, and export to PDF, DOCX, HTML and Markdown. The repository contains the skills, the specs, the templates, the export script, the tests, and the documentation site.
 
 Explicitly outside the bounded context:
 - The candidate's personal Datengrundlage. It lives in the user's own working folder or vault, not in this repository.

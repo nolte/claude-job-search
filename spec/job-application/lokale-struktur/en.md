@@ -65,6 +65,8 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
 │   └── foto.jpg                            optional, referenced from the Grundlage
 ├── firmen/                                 Stammdaten and Notizen of companies, one file each (LS-4)
 │   └── musterfirma-gmbh.md
+├── suche/                                  one record per job search: brief, shortlist, decisions (LS-4, `stellensuche` ST-8)
+│   └── 2026-10-23-backend-berlin.md
 ├── lebenslauf-basis/                       one Ausprägung without a Vorgang (lebenslauf-versionen LV-1, LV-2)
 │   ├── lebenslauf.md                       Arbeitsstand
 │   ├── pruefbericht.md                     Auswahl Lebenslauf and Prüfung (LS-7.4)
@@ -92,7 +94,10 @@ AS-8.1.1), otherwise on request. `motivationsschreiben-portal.txt` is written un
 the Motivationsschreiben. Both are plain text without frontmatter and are Ableitungen of the document of the same
 Vorgang.
 
-Vorgänge sit directly in the Wurzel, next to `grundlage/`, `rohdaten/` and `firmen/`. They are
+`suche/` is not a Vorgang and not an Ausprägung: it holds no `vorgang.md`, so a skill never treats it as one.
+A file in it is named `<JJJJ-MM-TT>-<slug>.md` after the date of the search.
+
+Vorgänge sit directly in the Wurzel, next to `grundlage/`, `rohdaten/`, `firmen/` and `suche/`. They are
 not nested below a `vorgaenge/` folder, so the paths already used by the skills stay valid.
 
 An **Ausprägung** (`lebenslauf-versionen` LV-1) is the second kind of folder in the Wurzel. It
@@ -130,6 +135,7 @@ never a second master.
 | Profile for the generators | `profil.md`, Ableitung | profile-capture, cv-maintain (re-derive) | posting-analysis, cv-create, cover-letter-create, email-create, quality-gate |
 | Wunschprofil: wishes, priorities, Ausschlüsse, Hypothesen (preference, not a fact) | `wunschprofil.md` in the Wurzel, next to the Grundlage; versions kept in `Verlauf` (WJ-5) | traumjob-interview (after confirmation) | fit-check, solution (veto before the plan gate) |
 | Passung of one posting against the Wunschprofil | `passung.md`, in the Vorgang folder (WJ-6.4) | fit-check | the user, solution (plan gate) |
+| Job search record: the approved Suchbrief, the shortlist (firm, role, location, date posted, board, URL) and the decision per entry: `übernommen` with the Vorgang slug, `abgelehnt` with a short reason, or `offen`. No contact e-mail addresses and no application state | `suche/<JJJJ-MM-TT>-<slug>.md` (`stellensuche/en.md` ST-8); the posting text of an `übernommen` entry lives in `stellenanzeige.md` of its Vorgang | job-application-job-search | job-application-job-search, solution, the user |
 | Counterpart and company roles of a Vorgang | `analyse.md`, frontmatter keys (KK-6) and section `## Unternehmen` (UA-5.1); stable firm facts in `firmen/` (UA-5.2) | posting-analysis | cover-letter-create, email-create, solution, quality-gate |
 | Research record of a Vorgang: level, channels, status per item, signals, assessment, questions to the counterpart. Identity values are not repeated here; they stay in `## Unternehmen` | `analyse.md`, section `## Recherche` (`recherche/en.md` RC-9); date of the last research in `firmen/<firma-slug>.md`, key `recherche_stand` | the skill that runs the research (posting-analysis, `recherche/en.md` RC-11), on the user's request | cover-letter-create, email-create, solution, quality-gate, the user |
 | Ausprägung (Lebenslauf variant without a Vorgang): Arbeitsstand, Versionen, exports | `<wurzel>/<ausprägung>/` (LS-3, `lebenslauf-versionen` LV-2) | cv-create (Arbeitsstand, freeze), export (exports and Manifeste) | cv-create (derive a Vorgang's Lebenslauf from a Version), export, quality-gate |
@@ -415,6 +421,12 @@ another file, and the user adds more in `notizen.md` and `firmen/`.
    to `rohdaten/` or `notizen.md`. The person data of the section is removed at any final status,
    including `zusage`, as S10 states (LS-6 rule 8). The page text that was read is not copied into
    the Vorgang.
+7. `suche/` holds postings and firm names, no contact e-mail addresses and no application state
+   (`stellensuche/en.md` ST-8 rule 2 and ST-9). It is covered by R-6 and `lebenslauf-versionen` LV-4: a private,
+   unpublished repository only. A search record is deleted 90 days after its date, unless the user keeps
+   it. The rule names the place and the period; no skill deletes in Phase 1, as for S10. The skill lists
+   the records past their date (`stellensuche/en.md` ST-8 rule 5). A rejected entry is not suggested again
+   while its record exists.
 
 ## LS-10 Open points and required changes in skills
 
@@ -435,6 +447,7 @@ The following changes are required before the skills follow the spec:
 | `kontaktart` in `vorgang.md` | posting-analysis writes the KK-6 value into `vorgang.md` as well (LS-6.1) | done (skill, 0.2.0) |
 | Research record | The section `## Recherche` and the key `recherche_stand` (LS-4, LS-6.2), the S2 writes and the later runs, the S10 removal of contact-person data, the link rule (LS-8.1). `job-application-posting-analysis` writes the section and the key (levels 0 to 2, `recherche/en.md` RC-1 to RC-10); `job-application-quality-gate` checks it (RC-11). The S10 removal is done by the user | done |
 | Documents of the Vorgang | The files `motivationsschreiben.md`, `anschreiben-portal.txt`, `motivationsschreiben-portal.txt` and `email-nachfassen.md` (LS-3); the key `dokumenttyp` (LS-7.2) | done |
+| Job search records | The folder `suche/` (LS-3, LS-4, LS-9 rule 7) with the 90-day retention. `job-application-job-search` writes the records and lists those past their date; the user deletes | done (skill, 0.6.0) |
 | Dogfooding in this repository | Requires `wurzel` outside the repository (LS-2.4) | decision for the user |
 
 ## Related rules
