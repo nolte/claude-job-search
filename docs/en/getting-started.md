@@ -87,7 +87,8 @@ If you start a skill without this file, it asks for the paths once and writes th
 ## 3. Capture your data
 
 Put your raw material into `<wurzel>/rohdaten/`: old CVs, certificates, a LinkedIn export, notes.
-Then run
+If you have connected the optional LinkedIn server, [LinkedIn access](linkedin.md) shows how to
+bring in your own profile. Then run
 
 ```text
 /claude-job-search:job-application-profile-capture

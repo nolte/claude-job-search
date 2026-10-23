@@ -27,6 +27,7 @@ Bewerbung. Den Ablauf zeigt dir [Erste Schritte](getting-started.md), die Begrif
 - `/claude-job-search:job-application-solution` mit dem Text der Stellenanzeige für eine komplette Bewerbung.
 - `/claude-job-search:job-application-quality-gate` vor dem Versand eines vorhandenen Bewerbungsordners.
 - Bewirbst du dich über einen Personalvermittler oder Headhunter? Lies zuerst [Gegenpartei](counterparts.md).
+- Claude soll LinkedIn-Anzeigen, Firmenseiten und Profile direkt lesen? Siehe [LinkedIn-Zugriff](linkedin.md), ein optionaler MCP-Server mit eigenen Risiken.
 
 !!! note "Datenschutz"
     Bewerbungsdaten bleiben lokal, in dem Ordner, den du konfigurierst (standardmäßig

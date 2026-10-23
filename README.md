@@ -76,6 +76,11 @@ The step-by-step guide with examples is the docs page *Getting started*:
 <https://nolte.github.io/claude-job-search/getting-started/> (German: *Erste Schritte*,
 <https://nolte.github.io/claude-job-search/de/getting-started/>).
 
+Optional, for direct access to LinkedIn postings, company pages and your own profile: the
+third-party [LinkedIn MCP server](https://github.com/stickerdaniel/linkedin-mcp-server). No skill
+needs it. Setup and the risks (LinkedIn's terms prohibit automated access) are on the docs page
+*LinkedIn access*: <https://nolte.github.io/claude-job-search/linkedin/>.
+
 ## Usage
 
 Install the plugin via its marketplace, then invoke a skill with

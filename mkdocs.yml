@@ -63,6 +63,7 @@ plugins:
             Counterparts: Gegenpartei
             Glossary: Glossar
             Export: Export
+            LinkedIn: LinkedIn
 
 markdown_extensions:
   - admonition
@@ -88,3 +89,4 @@ nav:
   - Counterparts: en/counterparts.md
   - Glossary: en/glossary.md
   - Export: en/export.md
+  - LinkedIn: en/linkedin.md
