@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Claude Code skills and an agent for German-speaking job applications.",
-    "version": "0.5.1"
+    "version": "0.6.0"
   },
   "plugins": [
     {
       "name": "claude-job-search",
       "source": ".",
       "description": "Claude Code skills and an agent for Bewerbungsunterlagen im deutschsprachigen Raum — Wunschprofil und Passung, Lebenslauf, Anschreiben, Motivationsschreiben, Bewerbungs-E-Mail, Stellenanzeigen-Abgleich, Qualitätsprüfung, Export (PDF, DOCX, HTML, Markdown) und Vorgangsverwaltung.",
-      "version": "0.5.1"
+      "version": "0.6.0"
     }
   ]
 }

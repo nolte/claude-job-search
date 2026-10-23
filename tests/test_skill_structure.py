@@ -319,6 +319,60 @@ class SkillStructureTests(unittest.TestCase):
         for lang, word in (("en", "At most 6 page reads"), ("de", "Höchstens 6 Seitenabrufe")):
             self.assertIn(word, read("docs", lang, "linkedin.md"), lang)
 
+    def test_job_search_skill_follows_the_stellensuche_spec(self):
+        # issue #17: the skill cites existing ST rules and scenarios, shows the brief first, keeps LinkedIn out of JobSpy,
+        # sets no proxy and keeps Ausschluss text out of the brief
+        def read(*parts):
+            with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
+                return handle.read()
+
+        spec = read("spec", "job-application", "stellensuche", "en.md")
+        skill = read("skills", "job-application-job-search", "SKILL.md")
+        flat = " ".join(skill.split())
+        rules = set(re.findall(r"^## (ST-\d+) ", spec, re.MULTILINE))
+        scenarios = set(re.findall(r"^\| (SS-[A-Z]) \|", spec, re.MULTILINE))
+        cited_rules = {f"ST-{n}" for n in re.findall(r"\bST-(\d+)", skill)}
+        cited_scenarios = set(re.findall(r"\bSS-[A-Z]\b", skill))
+        self.assertTrue(cited_rules and cited_scenarios)
+        self.assertEqual(sorted(cited_rules - rules), [])
+        self.assertEqual(sorted(cited_scenarios - scenarios), [])
+        # the scenarios that need behaviour of their own in the skill are cited by it, not only defined in the spec
+        for scenario in ("SS-B", "SS-D", "SS-E", "SS-J", "SS-N", "SS-P", "SS-Q", "SS-R", "SS-S", "SS-U"):
+            self.assertIn(scenario, cited_scenarios, scenario)
+        for needle in ("No query before the yes", "Never `linkedin` through JobSpy", "Set no proxy", "Ausschluss reason",
+                       "RC-5.8", "WJ-8.2", "Never delete"):
+            self.assertIn(needle, flat, needle)
+        # the scenario that checks the brief names the Ausschluss and states that the brief does not contain it
+        self.assertRegex(spec, r"\| SS-A \|[^\n]*Ausschluss[^\n]*neither the Ausschluss")
+        # the skill never passes `linkedin` as a board and names no proxy setting
+        self.assertNotRegex(skill, r"HTTPS_PROXY|proxies\s*=")
+
+    def test_search_records_have_a_place_and_a_retention_in_the_local_structure(self):
+        with open(os.path.join(ROOT, "spec", "job-application", "lokale-struktur", "en.md"), encoding="utf-8") as handle:
+            text = " ".join(handle.read().split())
+        for needle in ("suche/", "deleted 90 days after its date", "`übernommen`", "`abgelehnt`", "`offen`",
+                       "not a Vorgang"):
+            self.assertIn(needle, text, needle)
+
+    def test_jobspy_docs_page_is_in_nav_in_both_languages_and_pins_the_same_version(self):
+        def read(*parts):
+            with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
+                return handle.read()
+
+        self.assertRegex(read("mkdocs.yml"), r"-\s*JobSpy:\s*en/jobspy\.md")
+        versions = {}
+        for lang in ("en", "de"):
+            page = read("docs", lang, "jobspy.md")
+            self.assertIn("claude mcp add jobspy -- uvx mcp-jobspy@latest", page, lang)
+            self.assertIn("mcp-servers.md", page, lang)
+            self.assertNotRegex(page, r"HTTPS_PROXY", lang)
+            versions[lang] = set(re.findall(r"1\.4\.1", page))
+            overview = read("docs", lang, "mcp-servers.md")
+            self.assertIn("jobspy.md", overview, lang)
+            self.assertNotIn("Planned", overview, lang)
+        self.assertEqual(versions["en"], versions["de"])
+        self.assertTrue(versions["en"])
+
     def test_common_channel_rules_are_stated_once_in_the_research_spec(self):
         # issue #19: RC-5.0 carries the rules of all optional network channels; RC-5.2 to RC-5.5 refer to them
         with open(os.path.join(ROOT, "spec", "job-application", "recherche", "en.md"), encoding="utf-8") as handle:

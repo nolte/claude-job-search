@@ -143,7 +143,8 @@ A wish appears in exactly one section. Vetos come first. Every value names its s
 2. **Never send.** `passung.md` is for the candidate. It is never sent to a counterpart and never copied into a document
    (WJ-6.4 rule 2, WJ-8.2).
 3. **No inferred values.** Do not value a wish from the company's reputation or from silence in the posting.
-4. **Stay local.** No web search carries wishes or interview content (WJ-8.2, UA-3.2). A query holds only the firm name,
+4. **Stay local.** The fit check sends nothing. No web search carries wishes or interview content (WJ-8.2, UA-3.2). The job search is a
+   separate skill with its own approved brief (WJ-8.2); the fit check never starts a search. A query holds only the firm name,
    optionally the Sitz, and one generic term of RC-5.5, never candidate or Wunschprofil data (RC-5.5, RC-1.4); the search
    itself belongs to `job-application-posting-analysis` (RC-5.2 rules 8 and 9).
 5. **Only the Wurzel is written** (LS-5.7): `passung.md` and the `## Verlauf` line of this Vorgang.

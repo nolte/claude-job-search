@@ -157,4 +157,4 @@ Einwilligung am YYYY-MM-DD, Speicherort, Löschung auf Wunsch.
 1. **Only the Wurzel.** Write nothing outside `<wurzel>/wunschprofil.md`. Never write into the Grundlage or into a
    document, and never inside the plugin repository (Paths and boundary).
 2. **Consent first, delete on request.** Delete the files the candidate names, after showing them (WJ-8.3).
-3. **Nothing leaves the machine.** No web search, no message and no external service receives wishes or interview content.
+3. **Nothing leaves the machine.** The interview sends nothing: no web search, no message and no external service receives wishes or interview content. The only exception is a job search run by `job-application-job-search`, which sends just the terms of the Suchbrief the user approved (WJ-8.2, ST-2); Ausschluss reasons, salary expectations, personal circumstances and Datengrundlage text never leave.

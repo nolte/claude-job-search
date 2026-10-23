@@ -5,6 +5,7 @@ Die Spalte *Stufe* nennt den Schritt des Bewerbungsprozesses (S0 bis S10, siehe
 
 | Name | Stufe | Zweck |
 |---|---|---|
+| `job-application-job-search` | Suche (vor S1) | Optional: baut aus deinem Wunschprofil einen Suchbrief, zeigt ihn und durchsucht nach deinem Ja Jobbörsen über den optionalen Server [JobSpy](jobspy.md). Liefert eine Shortlist, hält sie in `suche/` fest und übergibt eine gewählte Anzeige an `job-application-solution` |
 | `job-application-solution` | Einstieg (S1–S5) | Einstieg: Profil, Analyse, Freigabe des Plans, Unterlagen, Qualitätsprüfung. Schreibt den freigegebenen Plan in `vorgang.md` |
 | `job-application-profile-capture` | Erfassung (S0) | Erstellt die Datengrundlage aus deinen Rohdaten und leitet daraus `profil.md` ab |
 | `job-application-cv-maintain` | Erfassung (S0) | Geführtes Pflegeinterview für eine bestehende Datengrundlage: prüft Kernpunkte, fragt nach Befunden |
@@ -26,6 +27,7 @@ sonst nirgendwohin. Der Status in `vorgang.md` sagt dir, wie weit eine Bewerbung
 
 | Schritt | Wer schreibt | Dateien | Status danach |
 |---|---|---|---|
+| Anzeigen gesucht | `job-application-job-search` | `suche/<JJJJ-MM-TT>-<slug>.md` (kein Vorgang: keine `vorgang.md`) | keiner |
 | Anzeige erfasst | `job-application-posting-analysis` | `stellenanzeige.md`, `vorgang.md`, `notizen.md` (leer), `firmen/<firma>.md` beim ersten Kontakt | `erfasst` |
 | Analysiert | `job-application-posting-analysis` | `analyse.md` | `analysiert` |
 | Plan freigegeben | `job-application-solution` | Abschnitt *Plan* in `vorgang.md` | `geplant` |
@@ -51,6 +53,7 @@ welche Datei an den nächsten übergibt. Gestrichelte Pfeile sind optional.
 <!-- diagram-source: user-described—order of the job-application skills per posting, from intake to quality gate and export -->
 ```mermaid
 flowchart LR
+    search[job-application-job-search]
     subgraph intake ["Erfassung (einmalig oder bei geänderten Daten)"]
         interview[job-application-traumjob-interview]
         capture[job-application-profile-capture]
@@ -70,6 +73,7 @@ flowchart LR
     export[job-application-export]
     reviewer[Agent job-application-reviewer]
 
+    search -.->|gewählte Anzeige| solution
     solution -->|keine Grundlage| capture
     maintain -->|Grundlage aktualisiert| capture
     capture -->|Profil| analysis

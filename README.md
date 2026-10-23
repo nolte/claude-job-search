@@ -31,6 +31,7 @@ never invents experience.
 
 | Skill | Phase | What it does |
 |---|---|---|
+| `job-application-job-search` | search | Optional step before the application. Builds a Suchbrief from the confirmed Wunschprofil, shows it with the source of each term, and after your yes searches job boards through the optional JobSpy MCP server. Returns a shortlist (vetoes shown, duplicates merged), records it in `suche/`, and hands one chosen posting to `job-application-solution`. See `spec/job-application/stellensuche/en.md`. |
 | `job-application-solution` | plan | Front door. Checks the Datengrundlage and profile, analyses the posting, shows a plan, creates the documents in order, and ends with the quality gate. |
 | `job-application-profile-capture` | intake | Builds the Datengrundlage (chronological Markdown) from existing CVs, certificates, and notes, and derives `profil.md` from it. |
 | `job-application-cv-maintain` | intake | Maintains an existing Datengrundlage in a guided interview. Checks core points and inconsistencies, asks only about findings, and records changes in a Pflegeverlauf. |
@@ -76,7 +77,7 @@ The step-by-step guide with examples is the docs page *Getting started*:
 <https://nolte.github.io/claude-job-search/getting-started/> (German: *Erste Schritte*,
 <https://nolte.github.io/claude-job-search/de/getting-started/>).
 
-Optional network channels (LinkedIn, Handelsregister, web search) use third-party MCP servers. None is
+Optional network channels (LinkedIn, Handelsregister, web search, job boards) use third-party MCP servers. None is
 required, the plugin registers none, and the same rules hold for all of them. Overview and rules are on the
 docs page *Optional MCP servers*: <https://nolte.github.io/claude-job-search/mcp-servers/>.
 
@@ -89,6 +90,12 @@ Optional, for checking a firm's identity against the Handelsregister: the third-
 [handelsregister-mcp server](https://github.com/lexdoudkin/handelsregister-mcp). No skill needs it.
 Setup, the pinned commit and the risks are on the docs page *Handelsregister*:
 <https://nolte.github.io/claude-job-search/handelsregister/>.
+
+Optional, for searching job boards (Indeed and Glassdoor by default): the third-party
+[JobSpy MCP server](https://github.com/speedyapply/JobSpy), used by `job-application-job-search`. No
+skill needs it. Coverage in DACH, the risks (boards block automated access, their terms are to be
+checked per board) and the checked version are on the docs page *JobSpy*:
+<https://nolte.github.io/claude-job-search/jobspy/>.
 
 ## Usage
 
@@ -139,7 +146,7 @@ Taskfile.yml          # lint / test / docs / export automation
 
 ## Status
 
-Release `0.2.0`. Implemented: the twelve skills and the agent listed above; Vorgang persistence
+Release `0.6.0`. Implemented: the thirteen skills and the agent listed above; Vorgang persistence
 for the stages intake to review (`stellenanzeige.md`, `vorgang.md` with status and history,
 `notizen.md`, `firmen/`); Wurzel resolution through `konfiguration.md`; export with manifest and
 reproducible PDFs for frozen versions; text PDF as the default for ATS portals, DOCX only when a

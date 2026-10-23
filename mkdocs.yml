@@ -67,6 +67,7 @@ plugins:
             LinkedIn: LinkedIn
             Handelsregister: Handelsregister
             Web search: Websuche
+            JobSpy: JobSpy
 
 markdown_extensions:
   - admonition
@@ -96,3 +97,4 @@ nav:
   - LinkedIn: en/linkedin.md
   - Handelsregister: en/handelsregister.md
   - Web search: en/websearch.md
+  - JobSpy: en/jobspy.md
