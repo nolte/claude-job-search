@@ -1,6 +1,6 @@
 # Roadmap
 
-## MVP (0.1.0)
+## MVP
 
 - [x] Plugin scaffold in the claude-home-assistant repository structure
 - [x] DACH conventions spec (`spec/job-application/konventionen/en.md`)
@@ -16,7 +16,7 @@
 - [x] Motivationsschreiben `job-application-motivation-letter-create` (`spec/job-application/motivationsschreiben/en.md`)
 - [x] Export `job-application-export` to PDF (LaTeX), DOCX, HTML, Markdown, with manifest and reproducible PDFs for frozen versions (`spec/job-application/lebenslauf-versionen/en.md`)
 
-## 0.2.0 (this release)
+## After the MVP
 
 - [x] Vorgang persistence for the stages S1 to S5: `stellenanzeige.md`, `vorgang.md`, `notizen.md`, `firmen/<slug>.md` created by `job-application-posting-analysis`; plan written to `vorgang.md` by `job-application-solution`
 - [x] Status and Verlauf in `vorgang.md`: fixed status values S0 to S10, each skill sets the status of its stage, `job-application-quality-gate` sets `geprüft` or `in Arbeit`
@@ -29,7 +29,6 @@
 - [x] Retention and deletion (S10): final status other than `zusage` leads to deletion six months after closure, date `loeschen_ab` set by the user in `vorgang.md`, no skill deletes
 - [x] Docs pages *Getting started*, *Glossary*, *Counterparts* in English and German
 - [x] CV checks hardened (CV-01 to CV-17, including the sub-bullet rule CV-17)
-- [x] Both manifests at version 0.2.0
 
 ## Next
 
