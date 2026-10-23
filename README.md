@@ -146,7 +146,7 @@ Taskfile.yml          # lint / test / docs / export automation
 
 ## Status
 
-Release `0.6.0`. Implemented: the thirteen skills and the agent listed above; Vorgang persistence
+Implemented: the thirteen skills and the agent listed above; Vorgang persistence
 for the stages intake to review (`stellenanzeige.md`, `vorgang.md` with status and history,
 `notizen.md`, `firmen/`); Wurzel resolution through `konfiguration.md`; export with manifest and
 reproducible PDFs for frozen versions; text PDF as the default for ATS portals, DOCX only when a

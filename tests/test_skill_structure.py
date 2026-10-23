@@ -384,6 +384,18 @@ class SkillStructureTests(unittest.TestCase):
             section = spec.split(f"### RC-{number} ", 1)[1].split("\n### ", 1)[0]
             self.assertIn("RC-5.0 rule", section, f"RC-{number}")
 
+    def test_release_workflow_aligns_the_manifests_and_no_pr_bumps_the_version(self):
+        # the tag comes from release-drafter; the manifests are set to it by the `chore(release): <tag>` commit of
+        # release-publish.yml (auto-align), never by a feature PR (claude-shared spec release-automation)
+        def read(*parts):
+            with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
+                return handle.read()
+
+        self.assertRegex(read(".github", "workflows", "release-publish.yml"), r"(?m)^\s+auto-align:\s*true\s*$")
+        guide = " ".join(read("CLAUDE.md").split())
+        self.assertIn("No version bumps in PRs", guide)
+        self.assertNotIn("Version bump on every user-visible change", guide)
+
 
 if __name__ == "__main__":
     unittest.main()
