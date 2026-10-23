@@ -201,8 +201,8 @@ Procedure for levels 1 and 2 (RC-6):
 
 1. **Level, channels, consent.** Name the level and the channels (Anzeige, Impressum and other public pages of the
    firm, registers, press, LinkedIn). Tell the user once per run that what is read from the network enters the session
-   and is processed by the model provider (RC-10.2). A register lookup with a fee needs the user's decision first
-   (RC-5.3, UA-9). Check whether the tools of the LinkedIn MCP server, of the open-webSearch server and, where a
+   and is processed by the model provider (RC-10.2). Every register lookup needs the user's yes first
+   (RC-5.3 rule 2). Check whether the tools of the LinkedIn MCP server, of the open-webSearch server and, where a
    register lookup is offered, of the Handelsregister server are connected (RC-5.4 rule 7, RC-5.3 rule 9); the result
    goes into `Kanäle`.
 2. **Local first, roles** (level 0 above).
@@ -316,7 +316,7 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
   `Query` and `Datum`, so the query rules can be checked afterwards; it is omitted when no web search ran. A blocked
   engine or failed search is noted there with the reason.
 - **Register in `Kanäle` (RC-9 rule 8).** `Kanäle` names the register route in the fixed form
-  `Handelsregister über handelsregister-mcp (n Abrufe)`, so the count can be read back for the shared budget. When no
+  `Handelsregister über handelsregister-mcp (n Abruf|Abrufe)` (`1 Abruf`, otherwise `n Abrufe`), so the count can be read back for the shared budget. When no
   lookup ran, it says `Handelsregister nicht abgefragt (abgelehnt)`, `Handelsregister nicht abgefragt (Server nicht
   verbunden)` or `Handelsregister nicht abgefragt`, as the case was. The row of an item read from the register cites
   `Handelsregister` as source with the date; no birthdate or private address appears in the record.

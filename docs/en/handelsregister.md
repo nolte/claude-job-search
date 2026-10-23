@@ -58,7 +58,7 @@ shareholder research and profiling, which an application does not need (RC-5.3 r
 4. **Failure is not an abort.** A failed lookup, an empty result or an unresolved ambiguity leaves
    the item `nicht ermittelt` with the reason, and the research continues (rule 8).
 5. **Records.** The line `Kanäle` states the route and the count, for example
-   `Handelsregister über handelsregister-mcp (2 Abrufe)`, or why no lookup ran (RC-9 rule 8).
+   `Handelsregister über handelsregister-mcp (2 Abrufe)` (`1 Abruf` for a single retrieval), or why no lookup ran (RC-9 rule 8).
 
 ## What it does not cover
 

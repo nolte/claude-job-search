@@ -435,6 +435,14 @@ class BirthdateTests(unittest.TestCase):
         "Erika Mustermann *03.05.1971",
         "Erika Mustermann (* 1971-05-03), Geschäftsführerin",
         "Erika Mustermann, geborene Beispiel, 03.05.1971",
+        "Erika Mustermann, Geburtsdatum: 03. Mai 1971",
+        "Erika Mustermann, geboren am 3. Mai 1971",
+        "Erika Mustermann, geb. 03/05/1971",
+        "Erika Mustermann, 03.05.1971 geboren",
+        "Erika Mustermann (03.05.1971 geb.)",
+        "Erika Mustermann, Geburtsdatum: 1971",
+        "Erika Mustermann, geb. 1971",
+        "Musterfirma GmbH: Erika Mustermann *03. Mai 1971",
     )
     NEGATIVE = (
         "Stand: 2026-10-23",
@@ -446,6 +454,14 @@ class BirthdateTests(unittest.TestCase):
         "* 2026-10-23 Frist des Postings",
         "*Stand: 2026-10-23*",
         "Zeitraum 03.2019 – 05.2021 bei der Beispiel AG",
+        "Frist *31.12.2026 bis*",
+        "Stand *2026-10-23 (Impressum)*",
+        "**Stand:** *2026-10-23",
+        "Beispiel AG, geb. Zeitarbeit 01.01.2020",
+        "Gegründet 1971 als Musterfirma GmbH",
+        "Musterfirma GmbH, gegründet am 3. Mai 1971",
+        "Geburtsdatum nicht erfasst, Gründung 1971",
+        "Frist 15/11/2026",
     )
 
     def test_birthdate_forms_are_warnings(self):
@@ -476,6 +492,28 @@ class BirthdateTests(unittest.TestCase):
             with contextlib.redirect_stdout(out):
                 cv_checks.main([paths["lebenslauf.md"], "--firma", paths[firm]])
             self.assertEqual(rules(json.loads(out.getvalue())["befunde"]), expected, firm)
+
+    def test_missing_optional_paths_are_findings_not_crashes(self):
+        import contextlib
+        import io
+        import json
+        base = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, base, True)
+        cv = os.path.join(base, "lebenslauf.md")
+        with open(cv, "w", encoding="utf-8") as handle:
+            handle.write(CLEAN_CV)
+        firm = os.path.join(base, "musterfirma.md")
+        with open(firm, "w", encoding="utf-8") as handle:
+            handle.write("# Musterfirma GmbH\nErika Mustermann, geb. 03.05.1971\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            cv_checks.main([cv, "--firma", os.path.join(base, "fehlt.md"), "--firma", firm, "--analyse", os.path.join(base, "fehlt-analyse.md")])
+        report = json.loads(out.getvalue())
+        missing = [f for f in report["befunde"] if "nicht lesbar" in f["befund"]]
+        self.assertEqual(sorted(f["regel"] for f in missing), ["CV-14", "CV-18"])
+        self.assertTrue(all(f["schweregrad"] == "Warnung" for f in missing))
+        # the other firm file is still checked
+        self.assertEqual(sum(1 for f in report["befunde"] if f["regel"] == "CV-18" and "Geburtsdatum einer Person" in f["befund"]), 1)
 
 
 if __name__ == "__main__":

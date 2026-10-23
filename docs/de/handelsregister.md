@@ -61,7 +61,7 @@ dienen der Gesellschafterrecherche und dem Profiling, was eine Bewerbung nicht b
    eine offene Mehrdeutigkeit lässt den Punkt `nicht ermittelt` mit dem Grund, und die Recherche
    läuft weiter (Regel 8).
 5. **Protokoll.** Die Zeile `Kanäle` nennt den Weg und die Zahl, etwa
-   `Handelsregister über handelsregister-mcp (2 Abrufe)`, oder warum keine Abfrage lief
+   `Handelsregister über handelsregister-mcp (2 Abrufe)` (bei einem einzigen Abruf `1 Abruf`), oder warum keine Abfrage lief
    (RC-9 Regel 8).
 
 ## Was er nicht abdeckt

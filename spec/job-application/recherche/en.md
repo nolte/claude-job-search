@@ -480,8 +480,8 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
    `### Suchen` lists each search with `Engine`, `Query` and `Datum`; it is omitted when no web
    search ran. A blocked engine or a failed search is noted there with the reason.
 8. **Register route.** The line `Kanäle` names the register route and the count of retrievals
-   (RC-5.3 rule 4) in the fixed form `Handelsregister über handelsregister-mcp (n Abrufe)`, so that
-   the count can be read back and compared. When no lookup ran, the line says `Handelsregister
+   (RC-5.3 rule 4) in the fixed form `Handelsregister über handelsregister-mcp (n Abruf|Abrufe)`: `1 Abruf`,
+   otherwise `n Abrufe` (`0 Abrufe`, `2 Abrufe`), so that the count can be read back and compared. When no lookup ran, the line says `Handelsregister
    nicht abgefragt (abgelehnt)`, `Handelsregister nicht abgefragt (Server nicht verbunden)` or
    `Handelsregister nicht abgefragt`, as the case was. Without a register entry in `Kanäle` the
    budget counts from 0.
@@ -544,16 +544,21 @@ Rules for the quality-gate checks:
    that names a web route while `### Suchen` is missing or the counts differ (RC-9 rule 7).
 4. **Birthdate from the register.** A birthdate of a managing director or another person in
    `analyse.md` or in a firm file is a Warnung (RC-5.3 rule 5). It is recognised by the word
-   `Geburtsdatum`, `geb.` or `geboren` followed on the same line by a date, or by a `*` followed by a
-   date and preceded by a word on the same line (`Erika Mustermann (* 03.05.1971)`). The date forms
-   are `TT.MM.JJJJ`, `T.M.JJ` and `JJJJ-MM-TT`. A plain date such as `Stand: 2026-10-23` or a
-   Frist, a note that no birthdate was recorded, and a `*` that opens a list item or emphasis are not
-   findings. The check is deterministic: `scripts/cv_checks.py` runs it as rule CV-18 on
+   `Geburtsdatum`, `geb.` or `geboren` followed on the same line by a date (only whitespace, punctuation and `am` between
+   them), by a date directly before `geboren` or `geb.` (`03.05.1971 geboren`), or by a `*` or `(*`
+   and a date after a capitalised name token (`Erika Mustermann (* 03.05.1971)`), provided no
+   closing emphasis star follows on the line. The date forms are `TT.MM.JJJJ`, `T.M.JJ`,
+   `TT/MM/JJJJ`, `JJJJ-MM-TT` and with a spelled-out month (`3. Mai 1971`); a bare year counts only
+   directly after `Geburtsdatum` or `geb.`. A plain date such as `Stand: 2026-10-23` or a
+   Frist, a note that no birthdate was recorded, a founding date, and a `*` that opens a list item
+   or emphasis (`Frist *31.12.2026 bis*`) are not findings. The check is deterministic: `scripts/cv_checks.py` runs it as rule CV-18 on
    `analyse.md` (`--analyse`) and on each firm file (`--firma`). The owning skill removes the date
    with the user's agreement.
 5. **Register entry in `Kanäle`.** The gate reports as a Warnung a count of `Handelsregister über
-   handelsregister-mcp (n Abrufe)` above the budget of RC-5.3 rule 4 (4 at level 1, 8 at level 2,
-   shared by both levels), and a register entry that is none of the four forms of RC-9 rule 8. This
+   handelsregister-mcp (n Abruf|Abrufe)` above the budget of RC-5.3 rule 4 (4 at level 1, 8 at level 2,
+   shared by both levels), a count that falls below the count of an earlier record of the same
+   Vorgang (`## Verlauf` or an earlier `Kanäle`), and a register entry that is none of the four forms
+   of RC-9 rule 8. This
    is a review of the record, no script.
 6. The gate reads the record. It runs no research of its own.
 

@@ -249,6 +249,16 @@ class SkillStructureTests(unittest.TestCase):
                 self.assertIn(needle, text, f"{label}: {needle}")
         for needle in ("RC-5.3 rule 4", "RC-5.3 rule 5", "RC-9 rule 8", "RC-11 rule 4", "RC-11 rule 5", "CV-18", "--firma"):
             self.assertIn(needle, gate, needle)
+        # singular form: `1 Abruf`, otherwise `n Abrufe`, in spec, skill, gate and docs
+        for label, text in (("spec", spec), ("skill", analysis), ("gate", gate),
+                            ("docs en", flat("docs", "en", "handelsregister.md")), ("docs de", flat("docs", "de", "handelsregister.md"))):
+            self.assertRegex(text, r"1 Abruf[`)]", label)
+        for label, text in (("spec", spec), ("skill", analysis)):
+            self.assertIn("handelsregister-mcp (n Abruf|Abrufe)", text, label)
+        self.assertIn("handelsregister-mcp (1 Abruf)", gate)
+        self.assertIn("falls below the count of an earlier record", spec)
+        self.assertIn("falls below the count of an earlier record", gate)
+        self.assertNotIn("register lookup with a fee", analysis)
         for rule in ("4. **Birthdate from the register.**", "5. **Register entry in `Kanäle`.**"):
             self.assertIn(rule, spec, rule)
         for lang, rule in (("en", "RC-9 rule 8"), ("de", "RC-9 Regel 8")):
