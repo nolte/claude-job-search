@@ -518,8 +518,9 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
 
 ## RC-10 Data protection
 
-1. **What leaves the machine:** search terms (RC-5.5), URLs requested, and the pages that the
-   user's own LinkedIn session reads. Nothing from the Grundlage, the Wunschprofil or the documents.
+1. **What leaves the machine:** search terms (RC-5.5), URLs requested, the pages that the
+   user's own LinkedIn session reads, and the register queries (company name, Sitz or register
+   number, RC-5.3). Nothing from the Grundlage, the Wunschprofil or the documents (RC-5.0 rule 5).
    Search queries go to the search engine chosen (RC-5.5 rule 5); the privacy properties of an engine
    are those of its operator and are not asserted here as fact. A request that a redirect passes on to
    another address leaves the machine as well, before the final URL can be checked (RC-5.2 rule 9). A statement of the open-webSearch
@@ -528,14 +529,16 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
 2. **What is read from the network ends up in the session** and is processed by the model
    provider like any other text of the session. The user is told this once per research run.
 3. **Third-party personal data** is limited to the contact person: name, function, firm, tenure
-   (RC-1.5). It is stored only in `analyse.md` of the Vorgang. At any final status, including `zusage`, the
+   (RC-1.5), and, from the register, the names and functions of the managing directors as far as
+   E-1 needs them, never their birthdates or private addresses (RC-5.3 rule 5). It is stored only
+   in `analyse.md` of the Vorgang. At any final status, including `zusage`, the
    person data is removed (`lokale-struktur` LS-6 rule 8, LS-9 rule 6).
    `get_person_profile` is called with the narrowest section selection that yields the current
    position. The record keeps only function, firm and tenure; the rest of the returned text is not
    copied to any file. It does enter the session (rule 2), which is why the user is told before the
    call (RC-5.4 rule 4).
 4. **No covert contact.** Research does not message, follow, connect or visit more than the items
-   require (RC-5.4).
+   require (RC-5.4). Tools that act in the user's name stay off (RC-5.4 rule 1).
 5. **Private repository.** If the Wurzel is tracked in a private repository, `## Recherche` is
    tracked with it. A public repository never holds it (R-6, LV-4).
 
