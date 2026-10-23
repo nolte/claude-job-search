@@ -293,7 +293,7 @@ document-level checks and shows which are automated.
 | Kurzprofil | No source found for a Kurzprofil as usual in Germany. Decision: required in `kombiniert`, opt-in elsewhere, at most three sentences (LB-4.2) | done (decision of this plugin) |
 | Photo | Sources call the photo still common in practice. The default of R-8.2 is none. The user's choice decides; no change proposed | open |
 | Automation | Checks for list-entry form (LB-6), skill group size (LB-7.6), and the closing date (LB-9.4) are not in `cv_checks.py` | open |
-| CV-16 severity | `cv_checks.py` reports every hit as Blocker; the spec distinguishes Warnung (`ungeklärt`, missing) and Blocker (`nein`). The script follows the spec | open (script) |
+| CV-16 severity | `cv_checks.py` distinguishes Warnung (`ungeklärt`, missing) and Blocker (`nein`) | done (script, 0.2.0) |
 | Signature image | Not supported in Phase 1 (LB-9.3). An image-capable export is a later requirement | open, deliberate |
 | Deckblatt | Not generated (LB-2.2). No requirement known | closed |
 | English documents | Language override produces the German structure with English text; a dedicated spec is a stub (R-11) | open |

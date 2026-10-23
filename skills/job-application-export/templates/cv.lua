@@ -36,8 +36,10 @@ local function is_label_section(section)
   return false
 end
 
+-- Lua character classes work on bytes: `[ÄÖÜ]` would also match the UTF-8 lead byte of ä, ö, ü and ß,
+-- so the capitals are tested as their two-byte sequences.
 local function starts_capital(word)
-  return word:match("^[A-Z]") ~= nil or word:match("^[ÄÖÜ]") ~= nil
+  return word:match("^[A-Z]") ~= nil or word:match("^\xC3[\x84\x96\x9C]") ~= nil
 end
 
 local function has_inner_capital_or_digit(word)

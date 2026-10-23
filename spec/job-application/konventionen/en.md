@@ -159,7 +159,7 @@ A set is ready to send only when `job-application-quality-gate` reports **zero b
 - German spelling and grammar free of obvious errors,
 - the Datengrundlage hash in every output matches the current Grundlage (R-9.4),
 - every Eintragsblock follows R-2.1 (header order, bullet limits of CG-6, no invented numbers),
-- every automated rule of CG-13 (CV-01 to CV-16, as reported by `scripts/cv_checks.py`) has no Blocker,
+- every automated rule of CG-13 (CV-01 to CV-17, as reported by `scripts/cv_checks.py`) has no Blocker,
 - for ATS or portal applications, the ATS rules of R-8.3 hold.
 
 ## R-8 Formatauswahl nach Situation

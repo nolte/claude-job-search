@@ -138,8 +138,8 @@ by digest, but the Debian packages (pandoc, TeX Live, fonts) are resolved at bui
 | Mapping the same Version to several PDF layouts | Not specified. A layout change of the plugin changes `document.tex` and is visible in the Manifest. |
 | Freezing is done by a skill step, not enforced by a hook | Accepted. A changed hash is detected at reproduction (LV-6.4). |
 | Versioning of Anschreiben and Motivationsschreiben | Not specified. Both are written per Vorgang and are not frozen; whether a sent letter needs the same Version and Manifest rules is open. |
-| Manifest key `situation` | Removed from the Manifest (LV-6.3); `export_document.py` is to follow (open, export). |
-| Export path of a frozen Version | `<ausprägung>/export/vNNN_<datum>.<ext>` (LV-2.3); `export_document.py` is to follow (open, export). |
+| Manifest key `situation` | Removed from the Manifest (LV-6.3); `export_document.py` writes no `situation` (done, export, 0.2.0). |
+| Export path of a frozen Version | `<ausprägung>/export/vNNN_<datum>.<ext>` (LV-2.3); `export_document.py` resolves `versionen/` to the `export/` folder of the Ausprägung (done, export, 0.2.0). |
 
 ## LV-10 Acceptance scenarios
 

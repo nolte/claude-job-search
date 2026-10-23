@@ -66,19 +66,22 @@ GENERIC = re.compile(
     r"vielfältig|\bdiverse\b|Expertise in|sicher in",
     re.IGNORECASE,
 )
-# Personnel leadership only (CG-7.2). `Führung`, `geführt`, `führen` and `Vorgesetzte` alone are not
-# matched: they also describe technical leadership, conversations or reporting lines.
+# Personnel leadership only (CG-7.2, CG-7.3). The unambiguous terms match alone. The lead verbs (`geleitet`,
+# `führte`, `geführt`, `Führung`, …) match only together with a people object (Team, Mitarbeiter, Abteilung):
+# alone they also describe technical leadership, conversations or reporting lines.
 LEADERSHIP_TERMS = re.compile(
     r"\b(?:Teamleitung|Teamleiter(?:in)?|Teamlead|Personalverantwortung|Mitarbeiterführung|"
     r"Führungsverantwortung|disziplinarisch\w*)\b",
     re.IGNORECASE,
 )
-LEADERSHIP_VERB = re.compile(r"\bgeleitet\b", re.IGNORECASE)
+LEADERSHIP_VERB = re.compile(r"\b(?:geleitet|leitete|leite|geführt|führte|führe|führen|Führung)\b", re.IGNORECASE)
 LEADERSHIP_OBJECT = re.compile(r"\b(?:Team|Teams|Mitarbeiter\w*|Abteilung\w*)\b", re.IGNORECASE)
-# Neutral gap wording (CG-9, R-8.1). A gap entry is a line between two stations, not a bullet.
+# Neutral gap wording (CG-9, R-8.1). A gap entry is a line between two stations, not a bullet. The wording
+# opens the entry (`Elternzeit (04/2019 – 08/2019)`, `… | Weiterbildung | …`); a job title that merely
+# contains one of the words (`Referent Weiterbildung`) is a station.
 GAP_ENTRY = re.compile(
-    r"Auszeit|Elternzeit|Pflegezeit|Pflege eines Angehörigen|Weiterbildung|Berufliche Neuorientierung|"
-    r"Bewerbungsphase|ERGÄNZEN: Grund der Lücke"
+    r"^(?:Auszeit|Elternzeit|Pflegezeit|Pflege eines Angehörigen|Weiterbildung|Berufliche Neuorientierung|"
+    r"Bewerbungsphase|\[ERGÄNZEN: Grund der Lücke)\b"
 )
 STANDARD_HEADINGS = (
     "Persönliche Daten", "Kurzprofil", "Berufserfahrung", "Relevante Projekte", "Praktika",
@@ -146,7 +149,16 @@ def key_of(position, employer):
 
 
 def is_gap_entry(position):
-    return bool(GAP_ENTRY.search(position))
+    return bool(GAP_ENTRY.match(position.strip()))
+
+
+def is_gap_line(line):
+    """A non-bullet line of Berufserfahrung that opens with neutral gap wording: a header line whose position
+    field is gap wording (`### <von> – <bis> | Elternzeit | —`), a header line without a period
+    (`### Elternzeit (04/2019 – 08/2019)`), or a plain paragraph."""
+    match = STATION_HEADER.match(line)
+    text = match.group(3) if match else line[4:] if HEADER_ANY.match(line) else line
+    return is_gap_entry(text)
 
 
 def cv_stations(lines):
@@ -264,8 +276,10 @@ def check_period(cv, source, file):
         year_pairs = [(cv_start, src_start), (cv_end, src_end)]
         if any(c and s and c[0] != s[0] for c, s in year_pairs):
             findings.append(finding("CV-06", "Blocker", file, cv["line"], f"Jahr weicht von der Grundlage ab (CV-06): {label} statt {source_label}"))
-        else:
-            findings.append(finding("CV-02", "Warnung", file, cv["line"], f"Monat fehlt (Lebenslauf {label}, Grundlage {source_label}); Zeitraum nur auf Jahresebene geprüft (R-2.1)"))
+        elif cv["strict"]:
+            # A year-only CV header already carries the CV-02 header-form warning of check_cv; only a
+            # Grundlage that lacks the month is reported here.
+            findings.append(finding("CV-02", "Warnung", file, cv["line"], f"Monat fehlt in der Grundlage ({source_label}); Zeitraum nur auf Jahresebene geprüft (R-2.1)"))
         return findings
     if (cv_start, cv_end) != (src_start, src_end):
         findings.append(finding("CV-06", "Blocker", file, cv["line"], f"Zeitraum weicht von der Grundlage ab (CV-06): {label} statt {source_label}"))
@@ -307,7 +321,7 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
     current = None
     bullets = {}
     seen_bullets = {}
-    gap_candidates = []  # (line number) of non-bullet lines with neutral gap wording in Berufserfahrung
+    gap_candidates = []  # line numbers of non-bullet lines with neutral gap wording in Berufserfahrung
     for number, line in enumerate(lines, 1):
         if line.startswith("## "):
             section = line[3:].strip()
@@ -319,13 +333,13 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
         if line.lstrip().startswith("|"):
             findings.append(finding("CV-08", "Blocker" if ats else "Warnung", file, number, "Tabelle im Lebenslauf (R-8.3)"))
         in_experience = bool(section) and section.startswith("Berufserfahrung")
-        is_gap_line = in_experience and not line.startswith("- ") and not SUB_BULLET.match(line) and GAP_ENTRY.search(line)
-        if is_gap_line:
+        gap_line = in_experience and not line.startswith("- ") and not SUB_BULLET.match(line) and is_gap_line(line)
+        if gap_line:
             gap_candidates.append(number)
         if in_experience and HEADER_ANY.match(line):
             current = number
             bullets[current] = []
-            if not CV_HEADER.match(line) and not is_gap_line:
+            if not CV_HEADER.match(line) and not gap_line:
                 findings.append(finding("CV-02", "Warnung", file, number, f"Kopfzeile nicht in der Form „{EXPECTED_HEADER}“ (R-2.1): " + line.strip()))
         if line.startswith("- ") and current is not None:
             bullets[current].append((number, line[2:].strip()))
@@ -347,7 +361,7 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
         if len(items) > MAX_BULLETS:
             findings.append(finding("CV-03", "Warnung", file, station_line, f"{len(items)} Stichpunkte, Obergrenze {MAX_BULLETS} (CG-6)"))
         station = station_of_line.get(station_line)
-        if not items and not (station and station["gap"]):
+        if not items and station_line not in gap_candidates and not (station and station["gap"]):
             findings.append(finding("CV-03", "Hinweis", file, station_line, "Station ohne Stichpunkte: „nur Kopfzeile“ bewusst entscheiden (CG-6.5)"))
 
     by_key = {}
@@ -411,7 +425,8 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
 
 
 def leadership_wording(bullet):
-    """True for personnel-leadership wording (CG-7.2): a leadership term, or `geleitet` with Team, Mitarbeiter or Abteilung."""
+    """True for personnel-leadership wording (CG-7.2, CG-7.3): a leadership term, or a lead verb (`geleitet`,
+    `führte`, `geführt`, `Führung`, …) with Team, Mitarbeiter or Abteilung."""
     if LEADERSHIP_TERMS.search(bullet):
         return True
     return bool(LEADERSHIP_VERB.search(bullet) and LEADERSHIP_OBJECT.search(bullet))

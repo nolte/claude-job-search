@@ -70,7 +70,7 @@ Before the analysis, create the Vorgang folder with these files (LS-6, S1). Exis
    versendet_am:                       # S7, user statement
    weg:                                # S7
    anhaenge: []                        # S7
-   wiedervorlage:                      # empty until sent; then versendet_am plus the follow-up period of KK-5.4
+   wiedervorlage:                      # empty until sent; the user sets it with versendet_am (versendet_am plus the follow-up period of KK-5.4)
    loeschen_ab:                        # S10: deletion date set by the user, or empty (LS-6 rule 8)
    tags: []
    ---

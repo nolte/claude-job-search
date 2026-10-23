@@ -226,7 +226,7 @@ grundlage_hash: <sha256>            # set in S4, see LS-5.4
 versendet_am:                       # S7
 weg:                                # S7: E-Mail, Portal, Post
 anhaenge: []                        # S7: list of file names sent
-wiedervorlage:                      # S7: versendet_am plus the default of KK-5 (set by posting-analysis, empty until sent)
+wiedervorlage:                      # S7: set by the user together with versendet_am, as versendet_am plus the follow-up period of KK-5 (rule 7; empty until sent)
 loeschen_ab:                        # S9/S10: date of the final status plus six months; empty for zusage
 tags: []                            # free labels, for example for Obsidian search
 ---
@@ -380,8 +380,8 @@ The following changes are required before the skills follow the spec:
 | `job-application-quality-gate` | Check the status against the existence of the documents; compare `grundlage_hash` in `vorgang.md` | done |
 | Nachverfolgung (S7, S8) | No skill in Phase 1. A tracking skill is a later requirement | open, deliberate |
 | S10 Löschung | Rule defined (LS-6 rule 8, `loeschen_ab`); no skill deletes. The legal reference (AGG § 15 Abs. 4) is to be verified by the user | rule defined, no skill |
-| Ausprägung folders | Second folder kind in LS-3; `cv-create` and `export` tell it apart by the missing `vorgang.md` | open (skill) |
-| `kontaktart` in `vorgang.md` | posting-analysis writes the KK-6 value into `vorgang.md` as well (LS-6.1) | open (skill) |
+| Ausprägung folders | Second folder kind in LS-3; `cv-create` and `export` tell it apart by the missing `vorgang.md` | done (skill, 0.2.0) |
+| `kontaktart` in `vorgang.md` | posting-analysis writes the KK-6 value into `vorgang.md` as well (LS-6.1) | done (skill, 0.2.0) |
 | Dogfooding in this repository | Requires `wurzel` outside the repository (LS-2.4) | decision for the user |
 
 ## Related rules

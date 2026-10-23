@@ -36,6 +36,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from collections import Counter
 from pathlib import Path
 
@@ -59,12 +60,20 @@ def sha256_file(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-TRANSLITERATION = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue", "ß": "ss", " ": "-"})
+# German umlauts keep their conventional two-letter form; letters without a decomposition get the nearest
+# Latin letter. Everything else is decomposed (NFKD) and stripped of its accents: é -> e, ç -> c.
+TRANSLITERATION = str.maketrans({
+    "ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue", "ß": "ss", " ": "-",
+    "æ": "ae", "Æ": "Ae", "œ": "oe", "Œ": "Oe", "ø": "o", "Ø": "O", "ł": "l", "Ł": "L", "đ": "d", "Đ": "D",
+    "ð": "d", "Ð": "D", "þ": "th", "Þ": "Th", "ı": "i",
+})
 
 
 def ascii_name(name):
-    """File name in ASCII (R-4): umlauts transliterated, spaces to hyphens, hyphens and underscores kept."""
-    name = name.translate(TRANSLITERATION)
+    """File name in ASCII (R-4): umlauts and accented letters transliterated, spaces to hyphens, hyphens and
+    underscores kept. Characters without a Latin equivalent are dropped."""
+    name = unicodedata.normalize("NFKD", name.translate(TRANSLITERATION))
+    name = "".join(ch for ch in name if not unicodedata.combining(ch))
     return re.sub(r"[^A-Za-z0-9._-]", "", name)
 
 
@@ -337,7 +346,9 @@ def reproduce(manifest_path):
                      "--out-dir", tmp, "--name", manifest["name"], "--no-manifest"])
         if code not in (0, 2):
             return 1
-        rebuilt = Path(tmp) / manifest["ausgabe"]["datei"]
+        # The file is named as main() names it today; an older manifest may record a name that was
+        # transliterated differently (`Max_Müller` before 0.2.0), so the recorded `datei` is not used.
+        rebuilt = Path(tmp) / f"{ascii_name(manifest['name'])}.{manifest['format']}"
         identical = sha256_file(rebuilt) == manifest["ausgabe"]["sha256"]
     differences = [f"{tool}: {manifest['werkzeuge'].get(tool)} -> {version}"
                    for tool, version in tool_versions(manifest["format"]).items()

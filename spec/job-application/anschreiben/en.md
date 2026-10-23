@@ -254,7 +254,7 @@ Word count, stock phrases, and consistency between the documents are judged in r
 | Automation | Deterministic checks for word count, stock phrases, and salutation, in `scripts/` | open |
 | Skill | `job-application-cover-letter-create` implements AS-6 to AS-9 only as far as its `SKILL.md` states them; the skill must be aligned with this document | in Arbeit (skill) |
 | Page limit | The export check reports a second page; the severity Blocker (AS-12) is to be set in `export_document.py` and the quality gate | open (export) |
-| Portal fields | AS-8.1 defines the plain-text reduction; no skill step writes `anschreiben-portal.txt` yet | open (skill) |
+| Portal fields | AS-8.1 defines the plain-text reduction; `job-application-cover-letter-create` writes `anschreiben-portal.txt` for `bewerbungsweg: portal` | done (skill, 0.2.0) |
 | Versioning | Anschreiben and Motivationsschreiben are not versioned like the Lebenslauf (`lebenslauf-versionen` LV-9) | open |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
 

@@ -410,11 +410,11 @@ example, not by a script.
 
 | Area | Point | Status |
 |---|---|---|
-| CV-11 severity | `cv_checks.py` reports Hinweis; the spec sets Warnung for the whole phrase set (CG-7.3). The script follows the spec | open (script) |
-| CV-16 severity | `cv_checks.py` reports Blocker for every hit; the spec distinguishes Warnung (`ungeklärt`, missing) and Blocker (`nein`) (CG-13.4.3). The script follows the spec | open (script) |
-| CV-13 position | The gap entry must stand between the two affected stations (CG-13.4.2); the script check for the position is to be verified | open (script) |
-| CV-02 scope | Stations with a non-conformant header line are still checked for CV-05, CV-09, CV-11, CV-12, CV-16 (CG-13.4.1); the script behaviour is to be verified | open (script) |
+| CV-11 severity | `cv_checks.py` reports Warnung for the whole phrase set (CG-7.3) | done (script, 0.2.0) |
+| CV-16 severity | `cv_checks.py` distinguishes Warnung (`ungeklärt`, missing) and Blocker (`nein`) (CG-13.4.3); lead verbs count only with a people object | done (script, 0.2.0) |
+| CV-13 position | The gap entry must stand between the two affected stations (CG-13.4.2); the script checks the position | done (script, 0.2.0) |
+| CV-02 scope | Stations with a non-conformant header line are still checked for CV-05, CV-09, CV-11, CV-12, CV-15, CV-16 (CG-13.4.1) | done (script, 0.2.0) |
 | Year-only periods | No `[ERGÄNZEN: Monat]` placeholder, no completion of the station note required (CG-2.4, CG-9) | done (decision) |
 | Gap wording | Neutral wording chosen by the user from the list in CG-9; `Auszeit` is not a default | done (decision) |
-| DOCX metadata | The DOCX export strips author, revisions and comments (CG-11.5); implementation in `export_document.py` | open (export) |
+| DOCX metadata | The DOCX export clears the author fields (`dc:creator`, `cp:lastModifiedBy`) in `export_document.py` (CG-11.5); a fresh pandoc DOCX carries no revisions or comments | done (export, 0.2.0) |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

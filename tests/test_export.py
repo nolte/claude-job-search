@@ -236,6 +236,22 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(changed.returncode, 3)
         self.assertIn("Quelle verändert", changed.stderr)
 
+    def test_reproduce_accepts_a_manifest_with_a_non_ascii_name(self):
+        # a manifest written before 0.2.0 may carry an umlaut in `name` and `ausgabe.datei`; the rebuilt
+        # file is found under today's transliteration (LV-6)
+        self.freeze()
+        self.export("tex")
+        manifest = os.path.join(self.out, "Test_Lebenslauf.tex.manifest.json")
+        with open(manifest, encoding="utf-8") as handle:
+            data = json.load(handle)
+        data["name"] = "Test_Lébenslauf"  # transliterates to the same file name as the export above
+        data["ausgabe"]["datei"] = "Test_Lébenslauf.tex"
+        with open(manifest, "w", encoding="utf-8") as handle:
+            json.dump(data, handle, ensure_ascii=False)
+        result = subprocess.run([sys.executable, EXPORTER, "--reproduce", manifest], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("byte-identisch", result.stdout)
+
     def test_frozen_version_exports_next_to_the_arbeitsstand_by_default(self):
         # lokale-struktur LS-3, lebenslauf-versionen: versionen/vNNN_<datum>.md -> ../export/vNNN_<datum>.<ext>
         folder = os.path.join(self.tmp, "lebenslauf-basis")
@@ -254,6 +270,10 @@ class ExportTests(unittest.TestCase):
         import export_document
 
         self.assertEqual(export_document.ascii_name("Jörg_Müller-Straße Lebenslauf"), "Joerg_Mueller-Strasse-Lebenslauf")
+        # accented and non-German letters are transliterated, not dropped
+        self.assertEqual(export_document.ascii_name("René_Dupont_Lebenslauf"), "Rene_Dupont_Lebenslauf")
+        self.assertEqual(export_document.ascii_name("Zoë_Łukasz_Ørsted"), "Zoe_Lukasz_Orsted")
+        self.assertEqual(export_document.ascii_name("François_Çelik"), "Francois_Celik")
         result = subprocess.run(
             [sys.executable, EXPORTER, self.source, "--format", "md", "--doc-type", "cv", "--out-dir", self.out, "--name", "Max_Müller_Lebenslauf"],
             capture_output=True, text=True,

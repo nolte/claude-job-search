@@ -131,17 +131,17 @@ class ScenarioTests(unittest.TestCase):
     def test_same_title_and_employer_twice_is_matched_by_period(self):
         # two stations with the same title at the same employer (another team): matched by period, no CV-06
         grundlage = GRUNDLAGE + """
-### 01/2014 – 12/2017 | Softwareentwickler | Hermes Europe GmbH, Hamburg
+### 01/2014 – 12/2017 | Softwareentwickler | Beispiel AG, Hamburg
 - Team Logistik: Schnittstellen für 4 Partnersysteme umgesetzt.
 
-### 03/2010 – 12/2013 | Softwareentwickler | Hermes Europe GmbH, Hamburg
+### 03/2010 – 12/2013 | Softwareentwickler | Beispiel AG, Hamburg
 - Team Tracking: Sendungsverfolgung mit 2 Kollegen aufgebaut.
 """
         cv = CLEAN_CV.replace("## Sprachkenntnisse", """\
-### 01/2014 – 12/2017 | Softwareentwickler | Hermes Europe GmbH, Hamburg
+### 01/2014 – 12/2017 | Softwareentwickler | Beispiel AG, Hamburg
 - Schnittstellen für 4 Partnersysteme umgesetzt
 
-### 03/2010 – 12/2013 | Softwareentwickler | Hermes Europe GmbH, Hamburg
+### 03/2010 – 12/2013 | Softwareentwickler | Beispiel AG, Hamburg
 - Sendungsverfolgung mit 2 Kollegen aufgebaut
 
 ## Sprachkenntnisse""")
@@ -288,6 +288,28 @@ class ScenarioTests(unittest.TestCase):
         unknown = cv.replace("Beispiel AG", "Erfundene GmbH")
         self.assertIn("CV-15", rules(run(unknown, GRUNDLAGE), "Blocker"))
 
+    def test_gap_wording_inside_a_job_title_is_a_station(self):
+        # `Weiterbildung` or `Elternzeit` inside a title must not turn the station into a gap entry
+        # and switch off CV-15 for it
+        cv = CLEAN_CV.replace("## Sprachkenntnisse", """\
+### 01/2016 – 12/2017 | Referent Weiterbildung | Erfundene GmbH, Köln
+- Schulungen für 40 Teilnehmende organisiert
+
+## Sprachkenntnisse""")
+        self.assertIn("CV-15", rules(run(cv, GRUNDLAGE), "Blocker"))
+        self.assertFalse(cv_checks.is_gap_entry("Referent Weiterbildung"))
+        self.assertFalse(cv_checks.is_gap_entry("Beraterin Elternzeit & Familie"))
+        self.assertTrue(cv_checks.is_gap_entry("Weiterbildung"))
+        self.assertTrue(cv_checks.is_gap_entry("Elternzeit (04/2019 – 08/2019)"))
+        self.assertTrue(cv_checks.is_gap_entry("[ERGÄNZEN: Grund der Lücke]"))
+
+    def test_gap_header_without_period_has_no_bullet_finding(self):
+        # a gap entry written as `### Elternzeit (…)` is neither a CV-02 header nor a station without bullets
+        cv = CLEAN_CV.replace("### 09/2018 – 03/2021", "### Elternzeit (04/2021 – 04/2021)\n\n### 09/2018 – 03/2021")
+        findings = run(cv)
+        self.assertNotIn("CV-03", rules(findings))
+        self.assertNotIn("CV-02", rules(findings))
+
     def test_number_from_another_station_is_a_note_not_a_blocker(self):
         # CV-05 checks the station record first; a number found elsewhere in the Grundlage is a Hinweis
         cv = CLEAN_CV.replace(
@@ -376,8 +398,18 @@ class StationNoteTests(unittest.TestCase):
             "- Team von 7 Entwicklern fachlich geleitet",
             "- Disziplinarische Verantwortung für 3 Mitarbeiter",
             "- Führungsverantwortung für die Abteilung übernommen",
+            # CG-7.3 names `führte` and the Führung family; with a people object they are personnel leadership
+            "- Team von 8 Mitarbeitern fachlich und personell geführt",
+            "- Führung eines Teams von 5 Entwicklern",
+            "- Führte die Abteilung Integration mit 3 Mitarbeitern",
         ):
             self.assertIn("CV-16", rules(run(head + bullet + "\n", {"station.md": STATION_NOTE}), "Blocker"), bullet)
+
+    def test_year_only_header_reports_cv02_once(self):
+        # the header-form warning of check_cv covers the missing month; check_period must not add a second CV-02
+        cv = "## Berufserfahrung\n\n### 2018 – 2021 | Softwareentwickler | Beispiel AG, Hamburg\n- Mitarbeit an einer Plattform.\n"
+        findings = run(cv, {"station.md": STATION_NOTE})
+        self.assertEqual(rules(findings).count("CV-02"), 1)
 
     def test_erfolge_numbers_are_traceable_from_note(self):
         # Erfolge and Team sections of the note are part of the source text (CV-05)
