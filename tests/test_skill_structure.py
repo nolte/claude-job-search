@@ -235,5 +235,56 @@ class SkillStructureTests(unittest.TestCase):
                 self.assertRegex(page, rf"\| {level} \| {word} {searches} \| {word} {fetches} \|", f"{lang} level {level}")
 
 
+    def test_register_route_is_cited_and_documented_in_both_languages(self):
+        # issue #16: the Handelsregister route lives in the spec, the two skills and the docs page in both languages
+        def flat(*parts):
+            with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
+                return " ".join(handle.read().split())
+
+        spec = flat("spec", "job-application", "recherche", "en.md")
+        analysis = flat("skills", "job-application-posting-analysis", "SKILL.md")
+        gate = flat("skills", "job-application-quality-gate", "SKILL.md")
+        for label, text in (("spec", spec), ("skill", analysis)):
+            for needle in ("handelsregister-mcp", "RC-5.3", "search_company", "get_company", "rate_limit_status"):
+                self.assertIn(needle, text, f"{label}: {needle}")
+        for needle in ("RC-5.3 rule 4", "RC-5.3 rule 5", "RC-9 rule 8", "RC-11 rule 4", "RC-11 rule 5", "CV-18", "--firma"):
+            self.assertIn(needle, gate, needle)
+        for rule in ("4. **Birthdate from the register.**", "5. **Register entry in `Kanäle`.**"):
+            self.assertIn(rule, spec, rule)
+        for lang, rule in (("en", "RC-9 rule 8"), ("de", "RC-9 Regel 8")):
+            page = flat("docs", lang, "handelsregister.md")
+            for needle in ("lexdoudkin/handelsregister-mcp", rule, "RC-5.3", "handelsregister-mcp (2 Abrufe)"):
+                self.assertIn(needle, page, f"{lang}: {needle}")
+
+    def test_register_budget_is_the_same_in_spec_skill_and_docs(self):
+        # 4 retrievals at level 1, 8 at level 2, shared by both levels
+        def flat(*parts):
+            with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
+                return " ".join(handle.read().split())
+
+        self.assertRegex(flat("spec", "job-application", "recherche", "en.md"), r"At most 4 retrievals \(tool calls except `rate_limit_status`\) per Vorgang at level 1 and at most 8 at level 2")
+        self.assertRegex(flat("skills", "job-application-posting-analysis", "SKILL.md"), r"shared by levels 1 and 2: at most 4 retrievals")
+        self.assertRegex(flat("skills", "job-application-posting-analysis", "SKILL.md"), r"at most 4 retrievals.{0,80}at level 1, 8 in total at level 2")
+        self.assertRegex(flat("skills", "job-application-quality-gate", "SKILL.md"), r"4 at level 1, 8 at level 2, shared by both levels")
+        self.assertRegex(flat("docs", "en", "handelsregister.md"), r"At most 4 retrievals per Vorgang at research level 1 and at most 8 at level 2")
+        self.assertRegex(flat("docs", "de", "handelsregister.md"), r"Höchstens 4 Abrufe pro Vorgang in Recherchestufe 1 und höchstens 8 in Stufe 2")
+
+    def test_register_server_commit_pin_is_the_same_in_both_docs_languages(self):
+        pins = {}
+        for lang in ("en", "de"):
+            with open(os.path.join(ROOT, "docs", lang, "handelsregister.md"), encoding="utf-8") as handle:
+                text = handle.read()
+            found = set(re.findall(r"(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])", text))
+            self.assertEqual(len(found), 1, f"{lang}: {found}")
+            pins[lang] = found
+        self.assertEqual(pins["en"], pins["de"])
+
+    def test_register_docs_page_is_in_the_mkdocs_nav(self):
+        with open(os.path.join(ROOT, "mkdocs.yml"), encoding="utf-8") as handle:
+            self.assertRegex(handle.read(), r"-\s*Handelsregister:\s*en/handelsregister\.md")
+        for lang in ("en", "de"):
+            self.assertTrue(os.path.isfile(os.path.join(ROOT, "docs", lang, "handelsregister.md")), lang)
+
+
 if __name__ == "__main__":
     unittest.main()

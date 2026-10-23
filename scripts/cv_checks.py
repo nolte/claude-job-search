@@ -25,6 +25,8 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
   CV-16 personnel-leadership wording: Blocker with `fuehrung: nein`,
         Warnung when the station note does not record leadership (`ungeklärt`, missing)
   CV-17 sub-bullets below a bullet (not part of R-2.1)            Hinweis
+  CV-18 birthdate of a person in analyse.md or a firm file (RC-5.3 rule 5,
+        RC-11 rule 4)                                             Warnung
 
 A station header that is not in the strict form `MM/JJJJ – MM/JJJJ | Position | Arbeitgeber, Ort`
 (for example years only) gets CV-02. Its bullets and its period are still checked: the station is
@@ -432,9 +434,25 @@ def leadership_wording(bullet):
     return bool(LEADERSHIP_VERB.search(bullet) and LEADERSHIP_OBJECT.search(bullet))
 
 
+DATE_FORMS = r"(?:\d{1,2}\.\d{1,2}\.(?:\d{4}|\d{2})|\d{4}-\d{2}-\d{2})(?![\d.-]*\d)"
+BIRTHDATE_KEYWORD = re.compile(r"(?:\bGeburtsdatum|\bgeb\.|\bgeboren(?:e[rn]?)?\b)[^\n]{0,30}?(?<![\d.-])" + DATE_FORMS, re.I)
+BIRTHDATE_STAR = re.compile(r"\w[^\n]{0,60}?[\s(]\*\s?(?<![\d.-])" + DATE_FORMS + r"(?!\s*\*)")
+
+
+def birthdate_findings(text, file):
+    """CV-18 (RC-11 rule 4): a birthdate in analyse.md or a firm file. `Geburtsdatum`, `geb.` or `geboren` with a date
+    on the same line, or a word followed by `*` and a date. Plain dates (`Stand: 2026-10-23`, a Frist) and a `*` that
+    opens a list item or emphasis do not match."""
+    findings = []
+    for number, line in enumerate(text.splitlines(), 1):
+        if BIRTHDATE_KEYWORD.search(line) or BIRTHDATE_STAR.search(line):
+            findings.append(finding("CV-18", "Warnung", file, number, "Geburtsdatum einer Person (RC-5.3 Regel 5, RC-11 Regel 4): nicht erfassen, mit Zustimmung entfernen"))
+    return findings
+
+
 def check_analysis(text, file):
     """Run the rules for analyse.md (CG-4): Muss evidence and status vocabulary."""
-    findings = []
+    findings = birthdate_findings(text, file)
     columns = None
     for number, line in enumerate(text.splitlines(), 1):
         if not line.lstrip().startswith("|"):
@@ -480,6 +498,7 @@ def main(argv=None):
     parser.add_argument("lebenslauf", help="path to lebenslauf.md")
     parser.add_argument("--grundlage", action="append", default=[], help="Grundlage file or directory (repeatable: directory and index note)")
     parser.add_argument("--analyse", help="path to analyse.md")
+    parser.add_argument("--firma", action="append", default=[], help="firm file in <wurzel>/firmen/ (repeatable): birthdate check CV-18")
     parser.add_argument("--ats", action="store_true", help="treat tables as Blocker (posting requires ATS)")
     args = parser.parse_args(argv)
 
@@ -492,6 +511,10 @@ def main(argv=None):
     if args.analyse:
         with open(args.analyse, encoding="utf-8") as handle:
             findings += check_analysis(handle.read(), args.analyse)
+
+    for firm_path in args.firma:
+        with open(firm_path, encoding="utf-8") as handle:
+            findings += birthdate_findings(handle.read(), firm_path)
 
     summary = {level: sum(1 for f in findings if f["schweregrad"] == level) for level in ("Blocker", "Warnung", "Hinweis")}
     report = {

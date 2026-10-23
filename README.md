@@ -42,7 +42,7 @@ never invents experience.
 | `job-application-motivation-letter-create` | create | Writes a Motivationsschreiben when the posting, a university, or a funder asks for one. Reasons and goals come from the user's own words, never invented; every statement gets a provenance note. See `spec/job-application/motivationsschreiben/en.md`. |
 | `job-application-email-create` | deliver | Writes the Bewerbungs-E-Mail: subject, short body, attachment list, and file names. |
 | `job-application-export` | deliver | Exports a finished document to PDF (LaTeX), DOCX, HTML, or Markdown via `task export`. Carries the hash and checks that the content is unchanged. |
-| `job-application-quality-gate` | review | Checks a folder before sending: blockers, warnings, and notes. Automated rules CV-01 to CV-17 come from `scripts/cv_checks.py`; the rest is judged in review. Sets the Vorgang status to `geprüft` or `in Arbeit`. |
+| `job-application-quality-gate` | review | Checks a folder before sending: blockers, warnings, and notes. Automated rules CV-01 to CV-18 come from `scripts/cv_checks.py`; the rest is judged in review. Sets the Vorgang status to `geprüft` or `in Arbeit`. |
 
 ### Agent
 
@@ -80,6 +80,11 @@ Optional, for direct access to LinkedIn postings, company pages and your own pro
 third-party [LinkedIn MCP server](https://github.com/stickerdaniel/linkedin-mcp-server). No skill
 needs it. Setup and the risks (LinkedIn's terms prohibit automated access) are on the docs page
 *LinkedIn access*: <https://nolte.github.io/claude-job-search/linkedin/>.
+
+Optional, for checking a firm's identity against the Handelsregister: the third-party
+[handelsregister-mcp server](https://github.com/lexdoudkin/handelsregister-mcp). No skill needs it.
+Setup, the pinned commit and the risks are on the docs page *Handelsregister*:
+<https://nolte.github.io/claude-job-search/handelsregister/>.
 
 ## Usage
 
@@ -140,7 +145,7 @@ Open, on the roadmap (`project/roadmap.md`): a tracking skill for sending and fo
 maintain `vorgang.md` by hand or in Obsidian for now), interview preparation, Zeugnisanalyse, and
 the German translations of the specs.
 
-Verified by `task test`: the CV rules CV-01 to CV-17, DOCX and HTML export with content check,
+Verified by `task test`: the CV rules CV-01 to CV-18, DOCX and HTML export with content check,
 the skill structure, and the spec index. PDF export needs pandoc and LuaLaTeX. Without LuaLaTeX
 its test is skipped, and the PDF page check is unverified. The plugin does not guarantee that any
 specific ATS parser reads a document correctly.
