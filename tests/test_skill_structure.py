@@ -6,6 +6,7 @@ an existing skill or agent.
 """
 
 import glob
+import json
 import os
 import re
 import unittest
@@ -169,6 +170,39 @@ class SkillStructureTests(unittest.TestCase):
             if "LS-2.4" not in text or not re.search(r"plugin\.json.{0,300}claude-job-search.{0,150}refus", text, re.S | re.I):
                 missing.append(name)
         self.assertEqual(missing, [])
+
+    def test_plugin_ships_no_mcp_server_configuration(self):
+        # issue #18: starting third-party code from a plugin needs a separate user step, so the plugin ships no
+        # .mcp.json (not even as an example) and the manifest registers no server
+        for relative in (".mcp.json", os.path.join(".claude-plugin", ".mcp.json")):
+            self.assertFalse(os.path.exists(os.path.join(ROOT, relative)), relative)
+        def keys(node):
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    yield key
+                    yield from keys(value)
+            elif isinstance(node, list):
+                for item in node:
+                    yield from keys(item)
+
+        for relative in (os.path.join(".claude-plugin", "plugin.json"), os.path.join(".claude-plugin", "marketplace.json")):
+            with open(os.path.join(ROOT, relative), encoding="utf-8") as handle:
+                self.assertNotIn("mcpServers", set(keys(json.load(handle))), relative)
+
+    def test_web_route_is_cited_and_documented_in_both_languages(self):
+        # issue #18: the skills cite the web-route rules, and the docs page exists in English and German
+        for name in ("posting-analysis", "fit-check"):
+            with open(os.path.join(ROOT, "skills", f"job-application-{name}", "SKILL.md"), encoding="utf-8") as handle:
+                text = handle.read()
+            self.assertIn("RC-5.2", text, name)
+            self.assertIn("RC-5.5", text, name)
+        pages = [os.path.join(ROOT, "docs", lang, "websearch.md") for lang in ("en", "de")]
+        for page in pages:
+            self.assertTrue(os.path.isfile(page), page)
+            with open(page, encoding="utf-8") as handle:
+                text = handle.read()
+            self.assertIn("open-websearch@", text, page)
+            self.assertNotIn("@latest\"", text, page)
 
 
 if __name__ == "__main__":

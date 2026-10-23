@@ -52,7 +52,8 @@ Questions to the counterpart: `spec/job-application/kontaktklassifikation/en.md`
 - **`## Recherche` (RC-11).** The rows E-5 (state of the position) and E-7 (conditions) with their source and `Stand` are
   input facts, used like the posting. Only rows with `Status` `ermittelt` count; `Konflikt` gives `unklar` with both values
   named, `offen` and `nicht ermittelt` give `nicht ermittelt`. Cite the source and the `Stand` of each row used. **The fit
-  check never researches itself**: no network, no LinkedIn, no registers. A missing section is not an error; the facts then
+  check never researches itself**: no network, no LinkedIn, no registers, no web search or page fetch (RC-5.2, RC-5.5; the
+  query rules are in "Stay local"). A missing section is not an error; the facts then
   come from the posting alone, and a Hinweis may point to the research of `job-application-posting-analysis`.
 
 ## Workflow
@@ -142,5 +143,7 @@ A wish appears in exactly one section. Vetos come first. Every value names its s
 2. **Never send.** `passung.md` is for the candidate. It is never sent to a counterpart and never copied into a document
    (WJ-6.4 rule 2, WJ-8.2).
 3. **No inferred values.** Do not value a wish from the company's reputation or from silence in the posting.
-4. **Stay local.** No web search carries wishes or interview content (WJ-8.2, UA-3.2).
+4. **Stay local.** No web search carries wishes or interview content (WJ-8.2, UA-3.2). A query holds only the firm name,
+   optionally the Sitz, and one generic term of RC-5.5, never candidate or Wunschprofil data (RC-5.5, RC-1.4); the search
+   itself belongs to `job-application-posting-analysis` (RC-5.2 rules 8 and 9).
 5. **Only the Wurzel is written** (LS-5.7): `passung.md` and the `## Verlauf` line of this Vorgang.

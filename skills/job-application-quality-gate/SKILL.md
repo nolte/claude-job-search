@@ -165,6 +165,9 @@ country conventions, employer instructions, and the requested format.
 | `## Auswahl …` section missing in `pruefbericht.md` for a generated document (R-9.11.5, CG-2.3) | Warnung |
 | Vorgang with a Vermittler and no `## Recherche` in `analyse.md` (RC-11) | Warnung |
 | A document names a firm, `## Recherche` exists, and the identity line E-1 is not `ermittelt` (RC-11, RC-6.4) | Blocker. Level 0 alone (no `## Recherche` beyond `Stufe: 0`) never blocks |
+| A query in the block `### Suchen` of `## Recherche` contains, after removing the firm name and the Sitz, a term outside the list of RC-5.5, or data beyond the firm name and the Sitz (review of the record, no script) (RC-5.5, UA-3.2, RC-9) | Warnung |
+| A search in `### Suchen` uses an engine outside the allowlist `duckduckgo`, `startpage`, `brave` without the user's wish for `bing` (RC-5.5 rule 5) | Warnung |
+| The counts in `Kanäle` (summed over all web entries) exceed the budget of the level (10 searches and 15 page fetches at level 1, 20 and 30 at level 2, shared by both levels), or `Kanäle` names a web route while `### Suchen` is missing or its rows differ from the count (RC-5.5 rule 6, RC-9 rule 7) | Warnung |
 | A document names a firm with `Warnzeichen` (RC-7, RC-8) | Blocker; a Warnung when the user decided against the assessment and the decision stands in `## Verlauf` of `vorgang.md` (RC-8.4) |
 
 ## Output
