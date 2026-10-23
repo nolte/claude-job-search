@@ -76,6 +76,10 @@ The step-by-step guide with examples is the docs page *Getting started*:
 <https://nolte.github.io/claude-job-search/getting-started/> (German: *Erste Schritte*,
 <https://nolte.github.io/claude-job-search/de/getting-started/>).
 
+Optional network channels (LinkedIn, Handelsregister, web search) use third-party MCP servers. None is
+required, the plugin registers none, and the same rules hold for all of them. Overview and rules are on the
+docs page *Optional MCP servers*: <https://nolte.github.io/claude-job-search/mcp-servers/>.
+
 Optional, for direct access to LinkedIn postings, company pages and your own profile: the
 third-party [LinkedIn MCP server](https://github.com/stickerdaniel/linkedin-mcp-server). No skill
 needs it. Setup and the risks (LinkedIn's terms prohibit automated access) are on the docs page

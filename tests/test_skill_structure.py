@@ -295,6 +295,33 @@ class SkillStructureTests(unittest.TestCase):
         for lang in ("en", "de"):
             self.assertTrue(os.path.isfile(os.path.join(ROOT, "docs", lang, "handelsregister.md")), lang)
 
+    def test_mcp_overview_is_in_nav_and_every_server_page_links_back(self):
+        # issue #19: one overview page for the optional MCP servers, linked from the nav, the indexes and the README;
+        # every detail page links back to it
+        def read(*parts):
+            with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
+                return handle.read()
+
+        self.assertRegex(read("mkdocs.yml"), r"-\s*Optional MCP servers:\s*en/mcp-servers\.md")
+        self.assertIn("Optional MCP servers: Optionale MCP-Server", read("mkdocs.yml"))
+        for lang in ("en", "de"):
+            self.assertTrue(os.path.isfile(os.path.join(ROOT, "docs", lang, "mcp-servers.md")), lang)
+            self.assertIn("mcp-servers.md", read("docs", lang, "index.md"), f"{lang} index")
+            for page in ("linkedin.md", "handelsregister.md", "websearch.md"):
+                self.assertIn("mcp-servers.md", read("docs", lang, page), f"{lang} {page}")
+        self.assertIn("/mcp-servers/", read("README.md"))
+
+    def test_common_channel_rules_are_stated_once_in_the_research_spec(self):
+        # issue #19: RC-5.0 carries the rules of all optional network channels; RC-5.2 to RC-5.5 refer to them
+        with open(os.path.join(ROOT, "spec", "job-application", "recherche", "en.md"), encoding="utf-8") as handle:
+            spec = handle.read()
+        self.assertIn("### RC-5.0 Rules for optional network channels", spec)
+        block = spec.split("### RC-5.0", 1)[1].split("### RC-5.1", 1)[0]
+        self.assertEqual(len(re.findall(r"^\d+\. \*\*", block, re.MULTILINE)), 8)
+        for number in ("5.2", "5.3", "5.4", "5.5"):
+            section = spec.split(f"### RC-{number} ", 1)[1].split("\n### ", 1)[0]
+            self.assertIn("RC-5.0 rule", section, f"RC-{number}")
+
 
 if __name__ == "__main__":
     unittest.main()

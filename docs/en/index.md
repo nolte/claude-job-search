@@ -26,6 +26,7 @@ application. See [Getting started](getting-started.md) for the walk-through and 
 - Run `/claude-job-search:job-application-solution` with the posting text for a complete application.
 - Run `/claude-job-search:job-application-quality-gate` on any existing application folder before sending.
 - Applying through a recruiter or an agency? Read [Counterparts](counterparts.md) first.
+- Curious which optional MCP servers exist and which rules they share? See [Optional MCP servers](mcp-servers.md); none is required.
 - Want Claude to read LinkedIn postings, company pages and profiles directly? See [LinkedIn access](linkedin.md), an optional MCP server with its own risks.
 - Want Claude to check a firm against the commercial register? See [Handelsregister access](handelsregister.md), an optional MCP server with its own risks.
 

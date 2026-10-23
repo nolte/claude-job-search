@@ -15,6 +15,7 @@ have to search the portal by hand.
     and the plugin installs nothing. Without it, everything still works: the research says so, and
     you may enter the register data yourself or leave the items as `nicht ermittelt`. The server is
     an independent project, not affiliated with this plugin or with the register portal.
+    The rules all optional servers share are on [Optional MCP servers](mcp-servers.md).
 
 ## When the lookup is offered
 

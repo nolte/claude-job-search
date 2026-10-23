@@ -75,7 +75,9 @@ Every fact records its source and the date it was read. Sources rank in this ord
    no application text and no Wunschprofil content is sent in a query (R-6, `traumjob-interview`
    WJ-8.2). The allowed terms are listed in `recherche/en.md` RC-5.5.
 3. **Network use (UA-3.3)** happens only when the user asks for it, as for postings
-   (posting-analysis rule on URLs). Without the request, the analysis uses only local material.
+   (posting-analysis rule on URLs). Without the request, the analysis uses only local material. The
+   optional network channels (MCP servers) follow the common rules of `recherche/en.md` RC-5.0:
+   consent, one route per source, budget, and no candidate data in a query.
 
 ## UA-4 Analysis procedure
 
