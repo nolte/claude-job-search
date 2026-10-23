@@ -170,6 +170,15 @@ class SkillStructureTests(unittest.TestCase):
                 missing.append(name)
         self.assertEqual(missing, [])
 
+    def test_plugin_ships_no_mcp_server_configuration(self):
+        # issue #18: starting third-party code from a plugin needs a separate user step, so the plugin ships no
+        # .mcp.json (not even as an example) and the manifest registers no server
+        for relative in (".mcp.json", os.path.join(".claude-plugin", ".mcp.json")):
+            self.assertFalse(os.path.exists(os.path.join(ROOT, relative)), relative)
+        for relative in (os.path.join(".claude-plugin", "plugin.json"), os.path.join(".claude-plugin", "marketplace.json")):
+            with open(os.path.join(ROOT, relative), encoding="utf-8") as handle:
+                self.assertNotIn("mcpServers", handle.read(), relative)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -64,6 +64,7 @@ plugins:
             Glossary: Glossar
             Export: Export
             LinkedIn: LinkedIn
+            Web search: Websuche
 
 markdown_extensions:
   - admonition
@@ -90,3 +91,4 @@ nav:
   - Glossary: en/glossary.md
   - Export: en/export.md
   - LinkedIn: en/linkedin.md
+  - Web search: en/websearch.md
