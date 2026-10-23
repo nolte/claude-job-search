@@ -59,7 +59,7 @@ UA-3.
 
 | ID | Information | Why it is needed | Where it comes from | Rank | Level |
 |---|---|---|---|---|---|
-| **E-1** | Legal identity: name, Rechtsform, Sitz, register number, managing directors | Addressee of the Anschreiben; protection against look-alike names and fake firms | Imprint of the website; register extract (RC-5.3) | 3 | 1 |
+| **E-1** | Legal identity: name, Rechtsform, Sitz, register number, managing directors | Addressee of the Anschreiben; protection against look-alike names and fake firms | Imprint of the website (RC-5.2); register extract (RC-5.3) | 3 | 1 |
 | **E-2** | Group and ownership: Muttergesellschaft, subsidiaries | Context for size, stability and who the contract partner is | Imprint, register, annual accounts (RC-5.3), own statements | 3, 4 | 2 |
 | **E-3** | Stability: size class, annual accounts if published, insolvency notices, reports of closures or mass layoffs | Risk of the position; question for the interview | Unternehmensregister, Bundesanzeiger, official insolvency notices (RC-5.3); press | 3, 4 | 1 |
 | **E-4** | Business: what the firm does, for whom, with which products | Fit and motivation (R-3); ability to talk about the firm | Own website, press releases | 3 | 1 |
@@ -82,8 +82,8 @@ and for whom does it act.
 
 | ID | Information | Why it is needed | Where it comes from | Level |
 |---|---|---|---|---|
-| **V-1** | Identity of the sender and of the firm: name, function, firm name, address, e-mail domain, phone | Is the message from whom it claims to be? | Message, signature, the firm's imprint; domain of the e-mail address against the domain of the website | 1 |
-| **V-2** | Existence and form of the firm: register entry, Rechtsform, Sitz, age | A firm without a verifiable identity is not a counterpart (UA-4.2) | Imprint, register (RC-5.3) | 1 |
+| **V-1** | Identity of the sender and of the firm: name, function, firm name, address, e-mail domain, phone | Is the message from whom it claims to be? | Message, signature, the firm's website and imprint (RC-5.2); domain of the e-mail address against the domain of the website | 1 |
+| **V-2** | Existence and form of the firm: register entry, Rechtsform, Sitz, age | A firm without a verifiable identity is not a counterpart (UA-4.2) | Imprint (RC-5.2), register (RC-5.3) | 1 |
 | **V-3** | Mandate and Auftraggeber: for which employer does the firm act, exclusively or not | Disclosure (KK-4.1), exclusivity (KK-4.6), double submission (KK-4.2) | **Ask** (KK-3.3). Cross-check: the same position on the named employer's career page | 1 |
 | **V-4** | Standing: since when active, specialisation, size, references, the sender's tenure and role | Whether the recruiter can place the candidate with the named employer | Website, press, the firm's page, and the sender's profile for position, firm and tenure only (RC-5.4) | 2 |
 | **V-5** | Warning signs of fraud or unlawful terms | Protection of identity data and money | RC-7.2 | 1 |
@@ -104,12 +104,39 @@ and for whom does it act.
 The posting (`stellenanzeige.md`), the messages and signatures the user provides, contracts and
 letters. No network. These are source ranks 1 and 2 and are read first (level 0).
 
-### RC-5.2 The firm's own website
+### RC-5.2 Public sources: web presence and imprint
 
-Read the imprint, the career page, the press and blog pages and the privacy notice for
-applications, in that order. The imprint is the first source for E-1. The page is fetched by URL;
-the URL comes from the posting or from the sender's domain, never from a search ranking alone
-(RC-7.2).
+The public web presence of a firm is the first network source and the cheapest one. It applies to
+the employer and the Bedarfsträger, and equally to the website of a recruiter's firm (V-1, V-2, V-4).
+The pages are read in the following order, because each one confirms or questions the one before.
+
+| Page | What it gives | Items | What to check |
+|---|---|---|---|
+| **Imprint** (Impressum) | Legal name, Rechtsform, address, register court and number, authorised representatives, contact, VAT ID if given | E-1, V-1, V-2 | Name and Sitz against the posting, the signature and the register (RC-5.3); a missing or incomplete imprint is a signal (RC-7) |
+| **Start page, Über uns** | Business, self-description, group affiliation, size statements | E-2, E-4 | Statements about size and age are the firm's own claims (rank 3), not proof |
+| **Career page** | The position with date and Ref.-Nr., process, conditions, benefits | E-5, E-7 | The same position as in the posting; differences in place, form of work or wording are recorded (RC-7.1) |
+| **Press, news, blog** | Announcements, projects, technology, changes | E-3, E-4, E-6 | Dates; a page without a date has no value as a current fact |
+| **Privacy notice for applicants** | Who is the responsible body, how application data is stored and for how long | E-1, KK-4.3 | The responsible body matches the imprint; no notice at all for a portal that asks for personal data is a signal |
+| **Contact, locations** | Addresses, a switchboard number | E-1, E-7 | The number is the one to use for a verification call (RC-7.2) |
+| **Recruiter's references and team pages** | Clients, sectors, people, specialisation | V-2, V-4 | Named clients are the firm's own claim; they do not confirm the named employer (V-3) |
+
+1. **The URL comes from a trusted place:** the posting, the domain of the sender's e-mail, the
+   register entry, or the user. It never comes from a search ranking alone (RC-7.2).
+2. **The page itself is read**, not the search snippet. A fetched page is recorded with its URL and
+   the date it was read (RC-9).
+3. **Domain consistency.** The domain of the website, of the e-mail address in the signature and
+   of the career page named in the posting should match. A mismatch is not a verdict. It is a
+   signal that triggers the identity gate (RC-6.4).
+4. **The imprint is a statement of the firm** (rank 3, UA-3). It establishes E-1 together with a
+   second attribute from another source, for example the register (RC-6.4).
+5. **Pages change.** A finding from a public page is dated. It is read again at the stages of
+   RC-2.3.
+6. **Other public pages** such as an encyclopedia entry or a business directory give context
+   only (rank 4) and never replace the imprint or the register. Private social-media pages of
+   employees are not read (RC-1.5).
+7. **Fetch for known URLs, search for leads.** A page with a known URL is fetched. Web search
+   (RC-5.5) only finds the URL when none is known. LinkedIn pages are never fetched this way
+   (RC-5.4 rule 6).
 
 ### RC-5.3 Official registers and portals
 
@@ -342,6 +369,8 @@ This table states the target. The skills do not implement it yet (RC-13).
 | RS-C | Zeitarbeit, client named | Anstellungsgeber is the agency, Bedarfsträger the client. V-6 asked in writing. The CV does not show the client as an employer |
 | RS-D | Message with free-mail address and a request for an ID copy | Two independent signals. Assessment `Warnzeichen`. No data given |
 | RS-E | LinkedIn MCP server not installed, or the user declines | The other channels run. The record states that LinkedIn was not read. Missing items are `nicht ermittelt`. The user may paste the text. No error, and no attempt to read LinkedIn by web search or page fetch |
+| RS-K | Recruiter writes from an e-mail domain that differs from the website named in the signature | The imprint of the website is read and compared with the register. The mismatch is a signal; the identity gate decides. The candidate does not reply with documents (RC-7.2) |
+| RS-L | Employer's imprint and the register disagree on the Sitz | Both values are recorded with their sources and dates (UA-3.1). The gate is not passed until the user decides |
 | RS-J | LinkedIn MCP server connected, posting found on LinkedIn | The posting is read with `get_job_details` after the consent of RC-5.4 rule 2. It is not fetched as a web page |
 | RS-F | Two firms with the same name | The identity gate separates them by Sitz or domain. Without two matching attributes, `Identität nicht bestätigt` |
 | RS-G | Offer received, research from 40 days ago | Findings older than 30 days are read again. The insolvency check is repeated before signing |
