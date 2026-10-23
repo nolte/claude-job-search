@@ -9,7 +9,8 @@ reliability of information. This specification keeps them apart.
 Related rules: `spec/job-application/lokale-struktur/en.md` LS-4 (storage of `firmen/` and
 `analyse.md`), LS-6 (Vorgang lifecycle), `spec/job-application/kontaktklassifikation/en.md`
 (who the counterpart is), `spec/job-application/konventionen/en.md` R-1 (facts), R-6 (data
-protection), `spec/job-application/cv-generierung/en.md` CG-4 (evidence for requirements).
+protection), `spec/job-application/cv-generierung/en.md` CG-4 (evidence for requirements),
+`spec/job-application/recherche/en.md` (how the facts are researched: levels, channels, signals).
 
 ## UA-1 Terms and firm roles
 
@@ -48,8 +49,9 @@ The analysis covers only facts that bear on the application. It does not profile
 1. **Reputation is opinion.** Reviews on rating portals are not facts. They may inform the
    candidate's own decision, but they are never written into a document and never stored as a
    Stammdatum.
-2. **No personal profiling.** The analysis uses the contact person named in the posting, and
-   only for the role of that person in the application (KK-5). It does not research employees,
+2. **No personal profiling.** The analysis uses the contact person named in the posting or the
+   sender who contacted the candidate, and only for the role of that person in the application
+   (KK-5; function, firm and tenure, `recherche/en.md` RC-4). It does not research employees,
    their private profiles or their history.
 
 ## UA-3 Sources and their reliability
@@ -101,6 +103,7 @@ The analysis is split between two files. Neither copies the other.
 | Notes about a firm | `firmen/<firma-slug>.md`, body | `## Notizen` | the user | the user only (LS-5.6) |
 | The analysis of this application: roles, dimensions, sources, confidence | `analyse.md` of the Vorgang | section `## Unternehmen` | posting-analysis | posting-analysis, when the analysis is re-run |
 | Classification of the counterpart | `analyse.md` of the Vorgang | keys of KK-6 | posting-analysis | the same |
+| Research record: level, channels, item status, signals, assessment, questions (not the identity values, which stay in `## Unternehmen`) | `analyse.md` of the Vorgang | section `## Recherche` (`recherche/en.md` RC-9); firm file key `recherche_stand` | the skill that runs the research | the same, when the research is re-run |
 
 ### UA-5.1 Section `## Unternehmen` in `analyse.md`
 
