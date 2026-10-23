@@ -63,7 +63,7 @@ entry to the `mcpServers` section of your MCP configuration:
 
 !!! info "Version checked"
     Version 2.2.0 (last checked in October 2026). The variable names and defaults below were
-    checked against the README of version 2.2.0. Before you change the pinned version, read the
+    checked against the [README of version 2.2.0](https://github.com/Aas-ee/open-webSearch/blob/v2.2.0/README.md). Before you change the pinned version, read the
     new README again and compare the variable names.
 
 | Setting | Why |

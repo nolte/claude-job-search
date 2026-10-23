@@ -52,7 +52,8 @@ Questions to the counterpart: `spec/job-application/kontaktklassifikation/en.md`
 - **`## Recherche` (RC-11).** The rows E-5 (state of the position) and E-7 (conditions) with their source and `Stand` are
   input facts, used like the posting. Only rows with `Status` `ermittelt` count; `Konflikt` gives `unklar` with both values
   named, `offen` and `nicht ermittelt` give `nicht ermittelt`. Cite the source and the `Stand` of each row used. **The fit
-  check never researches itself**: no network, no LinkedIn, no registers, no web search or page fetch of the open-webSearch server or the built-in tools (RC-5.2, RC-5.5). A missing section is not an error; the facts then
+  check never researches itself**: no network, no LinkedIn, no registers, no web search or page fetch (RC-5.2, RC-5.5; the
+  query rules are in "Stay local"). A missing section is not an error; the facts then
   come from the posting alone, and a Hinweis may point to the research of `job-application-posting-analysis`.
 
 ## Workflow

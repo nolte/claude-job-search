@@ -63,7 +63,7 @@ diesen Eintrag im Abschnitt `mcpServers` deiner MCP-Konfiguration ein:
 
 !!! info "Geprüfte Version"
     Version 2.2.0 (zuletzt geprüft im Oktober 2026). Die Variablennamen und Standardwerte unten
-    wurden gegen die README der Version 2.2.0 geprüft. Bevor du die festgelegte Version änderst,
+    wurden gegen die [README der Version 2.2.0](https://github.com/Aas-ee/open-webSearch/blob/v2.2.0/README.md) geprüft. Bevor du die festgelegte Version änderst,
     lies die neue README erneut und vergleiche die Variablennamen.
 
 | Einstellung | Grund |
