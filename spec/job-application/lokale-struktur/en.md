@@ -74,7 +74,7 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
     ├── vorgang.md                          Metadaten, status, Plan, Verlauf
     ├── notizen.md                          Notizen of the user, never changed by skills (LS-6.3)
     ├── stellenanzeige.md                   posting text, verbatim
-    ├── analyse.md                          requirement match, `## Unternehmen`, `## Recherche` (posting-analysis; `recherche/en.md` RC-9)
+    ├── analyse.md                          requirement match, firm analysis, research record (posting-analysis)
     ├── lebenslauf.md                       Lebenslauf (cv-create)
     ├── anschreiben.md                      cover letter (cover-letter-create)
     ├── email.md                            only when bewerbungsweg is email
@@ -164,7 +164,7 @@ as manual and still has a fixed place for its data.
 |---|---|---|---|
 | **S0 Vorbereitung** | first use or change of the person's data | `konfiguration.md`, `rohdaten/`, Grundlage, `profil.md` (profile-capture, cv-maintain) | no Vorgang yet |
 | **S1 Erfassung** | the user gives a posting | `stellenanzeige.md`, `vorgang.md`, `notizen.md` (created empty) | `erfasst` |
-| **S2 Analyse** | posting-analysis; on the user's request also the research of level 1 or 2 (`recherche/en.md` RC-2) | `analyse.md` (requirement match, `## Unternehmen`, and `## Recherche` when research was run), `firmen/` (first use; `recherche_stand` after a research), `vorgang.md` | `analysiert` |
+| **S2 Analyse** | posting-analysis; on the user's request also the research of level 1 or 2 (`recherche/en.md` RC-2) | `analyse.md` (requirement match, `## Unternehmen`, and `## Recherche` when research was run), `firmen/` (first use; `recherche_stand` after a research), `vorgang.md`. A later research run (level 2, refresh, `recherche/en.md` RC-2.3) in S6 to S8 rewrites `## Recherche` and `recherche_stand` in place; the status stays as it is | `analysiert` |
 | **S3 Plan** | the user approves the plan (solution, plan gate) | `vorgang.md` section *Plan* | `geplant` |
 | **S4 Erstellung** | cv-create, cover-letter-create, email-create | `lebenslauf.md`, `anschreiben.md`, `email.md`, `pruefbericht.md` (section *Auswahl*) | `erstellt` |
 | **S5 Prüfung** | quality-gate | `pruefbericht.md` (section *Prüfung*) | `geprüft` if zero blockers, otherwise `in Arbeit` |
@@ -205,6 +205,10 @@ Rules for the lifecycle:
    - A Vorgang with `zusage` is kept without a deletion date.
    - Notes with impressions of third parties (`notizen.md` passages about interviewers, recruiters
      or employees, LS-9.3) are deleted when the Vorgang reaches a final status, whatever the status.
+   - The same holds for the data of a contact person in `analyse.md`: name, function and tenure
+     (contact person of the posting, `## Recherche`). At a final status the user removes them, also
+     for `zusage`; the rest of `analyse.md` stays with a `zusage` Vorgang. For the other final
+     statuses they go with the folder.
    - The PDFs that were actually sent stay together with their Manifest (`lebenslauf-versionen`
      LV-4), also after the Vorgang folder is deleted; the user moves them to the Ausprägung the
      Lebenslauf came from, or keeps the `export/` folder alone.
@@ -248,16 +252,21 @@ rechtsform: GmbH
 sitz: Berlin
 website: https://…
 aktualisiert: 2026-10-21
-recherche_stand: 2026-10-23         # date of the last research, empty until a research ran (recherche/en.md RC-9)
+rollen: [Anstellungsgeber]          # UA-5.2, summary over all Vorgänge
+identitaet_quelle: Impressum        # UA-5.2
+identitaet_stand: 2026-10-21        # UA-5.2
+recherche_stand:                    # empty when created; date of the last research (recherche/en.md RC-9)
 tags: []
 ---
 ```
 
 Body: `## Notizen`, free Markdown written by the user.
 
-`recherche_stand` is set by the skill that runs the research. It is a date only: the findings of a
-research belong to one application and stay in `## Recherche` of the Vorgang (UA-5), not in the
-firm file. `rollen` and `identitaet_*` of UA-5.2 are added to the same frontmatter.
+`recherche_stand` is set by the skill that runs the research, never when the file is created. It
+is a date only: the findings belong to one application and stay in `## Recherche` of the Vorgang
+(UA-5), not in the firm file. The key is a hint, not proof: a firm researched for Vorgang A has a
+date, but a Vorgang B at the same firm is researched only if its own `analyse.md` has the section
+`## Recherche`. A skill never infers from the key that a Vorgang was researched.
 
 ### LS-6.3 Notizen of a Vorgang (`notizen.md`)
 
@@ -332,7 +341,7 @@ another file, and the user adds more in `notizen.md` and `firmen/`.
 | `<vorgang>/vorgang.md` | `../grundlage/lebenslauf-chronologisch.md` | Markdown link | source of the application |
 | `<vorgang>/vorgang.md` | own documents in the folder | `[Analyse](analyse.md)`, `[Lebenslauf](lebenslauf.md)`, `[Notizen](notizen.md)` and so on | document flow of the Vorgang |
 | `<vorgang>/analyse.md`, `lebenslauf.md` | `../grundlage/…md#<station>` | Markdown link to the `###` heading of a Station (LS-7.5) | traceability of a claim (R-9.6, FA-7) |
-| `<vorgang>/analyse.md`, section `## Recherche` | `## Unternehmen` of the same file; the public pages that were read | Markdown link `[Unternehmen](#unternehmen)`; external sources as `[Impressum](https://…)` with the source name as the link text, the date in the `Stand` column | traceability of a finding (`recherche/en.md` RC-1 rule 2, RC-9) |
+| `<vorgang>/analyse.md`, section `## Recherche` | `## Unternehmen` of the same file; the public pages that were read | Both are Markdown links. The anchor to the same file is `[Unternehmen](#unternehmen)`; the heading `## Unternehmen` is fixed by UA-5.1, a rename is a spec change. External sources are `[Impressum](https://…)` with the source name as the link text and the date in the `Stand` column. A link check treats the anchor as internal and the URL as external | traceability of a finding (`recherche/en.md` RC-1 rule 2, RC-9) |
 | `profil.md` | `grundlage/…md#<station>` | one link per entry | source reference per entry (R-9.6) |
 | `grundlage/…md` | `../rohdaten/<datei>` | Markdown link to a scan or certificate | proof of a Zeugnis entry (D-2) |
 | `notizen.md`, `firmen/*.md` | any file in the Wurzel | Wikilink (LS-8.3) or Markdown link, free to the user | personal references |
@@ -373,8 +382,9 @@ another file, and the user adds more in `notizen.md` and `firmen/`.
    Export and sending are separate, user-initiated acts (R-6).
 6. `## Recherche` holds, for a person, only function, firm and tenure of the one contact person
    (`recherche/en.md` RC-1 rule 5, RC-10 rule 3). No profile of a recruiter or an employee is saved
-   to `rohdaten/` or `notizen.md`. The section is deleted with the Vorgang folder under S10. The
-   page text that was read is not copied into the Vorgang.
+   to `rohdaten/` or `notizen.md`. The person data of the section is removed at any final status,
+   including `zusage`, as S10 states (LS-6 rule 8). The page text that was read is not copied into
+   the Vorgang.
 
 ## LS-10 Open points and required changes in skills
 
@@ -393,7 +403,7 @@ The following changes are required before the skills follow the spec:
 | S10 Löschung | Rule defined (LS-6 rule 8, `loeschen_ab`); no skill deletes. The legal reference (AGG § 15 Abs. 4) is to be verified by the user | rule defined, no skill |
 | Ausprägung folders | Second folder kind in LS-3; `cv-create` and `export` tell it apart by the missing `vorgang.md` | done (skill, 0.2.0) |
 | `kontaktart` in `vorgang.md` | posting-analysis writes the KK-6 value into `vorgang.md` as well (LS-6.1) | done (skill, 0.2.0) |
-| Research record | `analyse.md` section `## Recherche` and the key `recherche_stand` (LS-4, LS-6.2, `recherche/en.md` RC-9) are specified; no skill writes them yet | open (skill) |
+| Research record | Specified here: the section `## Recherche` and the key `recherche_stand` (LS-4, LS-6.2), the S2 writes and the later runs, the S10 removal of contact-person data, the link rule (LS-8.1). Open in the skills: `job-application-posting-analysis` writes the section and the key; `job-application-quality-gate` checks it (`recherche/en.md` RC-11, RC-13); the S10 removal is done by the user | open (skill) |
 | Dogfooding in this repository | Requires `wurzel` outside the repository (LS-2.4) | decision for the user |
 
 ## Related rules
