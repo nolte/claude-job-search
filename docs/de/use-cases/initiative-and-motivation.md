@@ -13,12 +13,16 @@ hat.
 ```
 
 Wähle die Variante `initiativ`. Ohne Anzeige gibt es weder eine Anforderungsliste noch eine
-Kennzahl. Der Betreff nennt den Zielbereich („Initiativbewerbung im Bereich …"), der Einstieg
-nennt den Bereich und deinen Grund für die Wahl, und die Belegabsätze nennen zwei oder drei
+Kennzahl. Der Betreff lautet „Initiativbewerbung als <Rolle>" oder „Initiativbewerbung im
+Bereich <Bereich>", der Einstieg nennt den Bereich und deinen Grund für die Wahl, und die Belegabsätze nennen zwei oder drei
 nachgewiesene Stärken. Der Brief sagt auch, was das Unternehmen bekommt, nicht nur, was du
 willst. Fakten über das Unternehmen brauchen eine Quelle. Den Lebenslauf erzeugst du wie üblich
-mit `job-application-cv-create`, die Qualitätsprüfung prüft den Satz. Der Vorgangsordner entsteht
-wie bei jeder anderen Bewerbung.
+mit `job-application-cv-create`, die Qualitätsprüfung prüft den Satz.
+
+Direkt aufgerufen, schreibt der Skill `anschreiben.md` in den Ordner `<wurzel>/<slug>/`. Die
+Anzeigenanalyse (`analyse.md`) ist für diese Variante optional. Status und Verlauf in
+`vorgang.md` werden nur fortgeschrieben, wenn der Ordner bereits eine `vorgang.md` enthält;
+lege sonst zuerst den Vorgang an, damit die Bewerbung wie jede andere nachverfolgt wird.
 
 ## Motivationsschreiben für Stelle, Studium oder Stipendium
 

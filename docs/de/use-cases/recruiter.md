@@ -33,15 +33,18 @@ Vor jedem Dokument fragt der Plan:
   deiner Zustimmung für diesen Arbeitgeber.
 - Ist eine Gebühr erwähnt? Dann entsteht kein Dokument, bevor du die Bedingungen geprüft hast.
 
-Deine Antworten werden mit Datum in `vorgang.md` festgehalten.
+Der Plan zeigt Gegenpartei, Verlässlichkeit und noch fehlende Offenlegung und führt den offenen
+Punkt, bis du entschieden hast. Nach deiner Freigabe steht der Plan im Abschnitt `## Plan` von
+`vorgang.md`.
 
-### 3. Ein Kurzprofil statt des vollen Satzes
+### 3. Kein voller Satz vor der Offenlegung
 
-Solange der Arbeitgeber unbekannt ist, schreibt das Plugin weder ein vollständiges Lebenslauf
-noch ein Anschreiben: Stationen lassen sich für eine namenlose Stelle nicht wahrheitsgemäß
-auswählen, und ein vollständiger Lebenslauf kann ohne dein Wissen weitergereicht werden. Du
-erhältst ein **Kurzprofil** und deine Verfügbarkeit. Die Antwortmail fragt den Recruiter nach dem
-Auftraggeber und dem Mandat.
+Solange der Arbeitgeber unbekannt ist, geht kein Dokument an den Recruiter: Stationen lassen sich
+für eine namenlose Stelle nicht wahrheitsgemäß auswählen, und ein vollständiger Lebenslauf kann
+ohne dein Wissen weitergereicht werden. Hinausgehen darf ein Kurzprofil mit deiner Verfügbarkeit.
+Der E-Mail-Skill formuliert eine solche Antwort an einen Vermittler, dessen Auftraggeber nicht
+genannt ist: Er nennt keinen Arbeitgeber und fragt nach Auftraggeber und Mandat. Das Kurzprofil
+ist Teil dieser Antwort; eine eigene Datei entsteht dafür nicht.
 
 ### 4. Der Arbeitgeber wird genannt
 
@@ -57,9 +60,10 @@ Firma prüfen ([Handelsregister-Zugriff](../handelsregister.md)). Ohne ihn bleib
 
 ## Was bleibt
 
-`analyse.md` mit Gegenpartei und deinen Antworten, das Kurzprofil, deine festgehaltene
-Zustimmung und der Verlauf in `vorgang.md`. Auch die Weigerung, den Arbeitgeber zu nennen, wird
-festgehalten und senkt die Verlässlichkeit des Eintrags; sie blockiert dich nicht.
+`analyse.md` mit Einordnung der Gegenpartei und ihrer Verlässlichkeit, der freigegebene Plan und
+der Verlauf in `vorgang.md` sowie die Antwortmail als `email.md`. Ob du ohne den Namen des
+Arbeitgebers weitermachst, entscheidest du; der Plan führt den Punkt offen, bis du entschieden
+hast.
 
 ## Wenn der Arbeitgeber dich direkt anschreibt
 

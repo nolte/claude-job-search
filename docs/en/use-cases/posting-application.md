@@ -95,6 +95,7 @@ musterfirma-senior-backend/
 ├── analyse.md          requirement match, counterpart
 ├── lebenslauf.md
 ├── anschreiben.md
+├── anschreiben-portal.txt only for a portal with a free-text field
 ├── email.md
 ├── email-nachfassen.md only if you asked for it
 ├── pruefbericht.md     selection and gate result
@@ -104,8 +105,8 @@ musterfirma-senior-backend/
 
 ## Variations
 
-- **Portal instead of e-mail:** say so in the plan. No `email.md` is written; the letter gets a
-  plain-text copy for the free-text field.
+- **Portal instead of e-mail:** say so in the plan. No `email.md` is written; if the portal has a
+  free-text field for the letter, the cover letter skill also writes `anschreiben-portal.txt`.
 - **The posting asks for a Motivationsschreiben:** the plan adds it, see
   [Initiative application and Motivationsschreiben](initiative-and-motivation.md).
 - **ATS portal:** choose the CV format `ats`.

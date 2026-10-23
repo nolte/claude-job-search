@@ -19,8 +19,9 @@ Pflegeverlauf. Zum Schluss meldet er den Hash der Grundlage. Skills, die darauf 
 vergleichen diesen Hash und melden, wenn `profil.md` veraltet ist.
 
 Neues Rohmaterial (ein frisches Zertifikat, ein aktueller LinkedIn-Export) legst du in
-`rohdaten/` ab; danach bringt `job-application-profile-capture` es ein und leitet `profil.md`
-neu ab.
+`rohdaten/` ab; `job-application-cv-maintain` verarbeitet es zuerst (nur lesend, die Rohdateien
+werden nie verändert). Danach bietet er an, `profil.md` neu abzuleiten, und übergibt an
+`job-application-profile-capture`; ob du annimmst, entscheidest du.
 
 ## Lebenslauf-Ausprägungen
 
@@ -33,9 +34,10 @@ Lege eine Variante "teamleitung" an: Schwerpunkt Führung und Projektverantwortu
 
 Jede Ausprägung hat einen Ordner (zum Beispiel `lebenslauf-teamleitung/`) mit `lebenslauf.md`,
 `pruefbericht.md`, den eingefrorenen Versionen in `versionen/` und deren Exporten in `export/`.
-Ein Vorgang, der einen geänderten Lebenslauf braucht, erhält eine eigene Ausprägung, abgeleitet
-aus einer bestehenden Version; er ändert nie eine andere Ausprägung. Kein Skill ändert eine
-eingefrorene Version oder löscht sie ohne deine Aufforderung.
+Ein Vorgang, der einen geänderten Lebenslauf braucht, nimmt eine Version einer Ausprägung als
+schreibgeschützten Ausgangspunkt und schreibt das Ergebnis in seinen eigenen Vorgangsordner; die
+Ausprägung selbst bleibt unverändert. Kein Skill ändert eine eingefrorene Version oder löscht sie
+ohne deine Aufforderung.
 
 ## Eine Version vor dem Versand einfrieren
 

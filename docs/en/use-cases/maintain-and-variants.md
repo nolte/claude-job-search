@@ -18,8 +18,10 @@ Each confirmed answer goes into the file; every change is logged in the Pflegeve
 end it reports the hash of the Grundlage. Skills that build on it compare this hash and tell
 you when `profil.md` is out of date.
 
-New raw material (a fresh certificate, an updated LinkedIn export) goes into `rohdaten/`; then
-run `job-application-profile-capture` to bring it in and re-derive `profil.md`.
+New raw material (a fresh certificate, an updated LinkedIn export) goes into `rohdaten/`;
+`job-application-cv-maintain` processes it first (read only, the raw files are never changed).
+Afterwards it offers to re-derive `profil.md` and hands over to
+`job-application-profile-capture`; you decide whether to accept.
 
 ## CV variants
 
@@ -31,9 +33,9 @@ Lege eine Variante "teamleitung" an: Schwerpunkt Führung und Projektverantwortu
 
 Each variant has a folder (for example `lebenslauf-teamleitung/`) with its `lebenslauf.md`,
 its `pruefbericht.md`, the frozen versions in `versionen/` and their exports in `export/`.
-A Vorgang that needs a changed Lebenslauf gets its own variant, derived from an existing
-version; it never edits another variant. No skill edits a frozen version or deletes one without
-your request.
+A Vorgang that needs a changed Lebenslauf takes a version of a variant as a read-only starting
+point and writes the result into its own Vorgang folder; the variant itself stays unchanged. No skill edits a frozen version or deletes one without your
+request.
 
 ## Freeze a version before you send
 

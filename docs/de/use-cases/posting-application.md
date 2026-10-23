@@ -95,6 +95,7 @@ musterfirma-senior-backend/
 ├── analyse.md          Anforderungsabgleich, Gegenpartei
 ├── lebenslauf.md
 ├── anschreiben.md
+├── anschreiben-portal.txt nur bei Portal mit Freitextfeld
 ├── email.md
 ├── email-nachfassen.md nur auf Wunsch
 ├── pruefbericht.md     Auswahl und Prüfergebnis
@@ -104,8 +105,9 @@ musterfirma-senior-backend/
 
 ## Abwandlungen
 
-- **Portal statt E-Mail:** Sag es im Plan. Es entsteht keine `email.md`; das Anschreiben erhält
-  eine Klartextfassung für das Freitextfeld.
+- **Portal statt E-Mail:** Sag es im Plan. Es entsteht keine `email.md`; hat das Portal ein
+  Freitextfeld für das Anschreiben, schreibt der Anschreiben-Skill zusätzlich
+  `anschreiben-portal.txt`.
 - **Die Anzeige verlangt ein Motivationsschreiben:** Der Plan nimmt es auf, siehe
   [Initiativbewerbung und Motivationsschreiben](initiative-and-motivation.md).
 - **ATS-Portal:** Wähle das Lebenslauf-Format `ats`.

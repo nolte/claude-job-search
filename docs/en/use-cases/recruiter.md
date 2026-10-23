@@ -32,14 +32,18 @@ Before any document, the plan asks:
   employer.
 - Is a fee mentioned? Then no document is produced before you have checked the terms.
 
-Your answers are recorded with the date in `vorgang.md`.
+The plan shows the counterpart, the confidence and any disclosure still missing, and states
+the open point until you decide. After your approval the plan is written to the section `## Plan`
+of `vorgang.md`.
 
-### 3. A short profile instead of the full set
+### 3. No full set before disclosure
 
-While the employer is unknown, the plugin does not write a complete Lebenslauf and Anschreiben:
-stations cannot be selected truthfully for an unnamed posting, and a full CV may be passed on
-without your knowledge. You get a **Kurzprofil** plus your availability. The reply mail asks the
-recruiter for the Auftraggeber and the mandate.
+While the employer is unknown, no document goes to the recruiter: stations cannot be selected
+truthfully for an unnamed posting, and a full CV may be passed on without your knowledge. What
+may go out is a short profile and your availability. The e-mail skill words such a reply for a
+Vermittler whose Auftraggeber is not disclosed: it names no employer and asks for the
+Auftraggeber and the mandate. The short profile is part of that reply; no separate file is
+created for it.
 
 ### 4. The employer is named
 
@@ -53,9 +57,9 @@ If a Handelsregister server is connected, the firm's identity can be checked wit
 
 ## What remains
 
-`analyse.md` with the counterpart and the answers, the Kurzprofil, your recorded consent, and
-the history in `vorgang.md`. A refusal to name the employer is recorded too and lowers the
-confidence of the entry; it does not block you.
+`analyse.md` with the counterpart classification and its confidence, the approved plan and the
+history in `vorgang.md`, and the reply mail as `email.md`. Whether you continue without the
+employer's name is your decision; the plan keeps the point open until you decide.
 
 ## When the employer writes to you directly
 

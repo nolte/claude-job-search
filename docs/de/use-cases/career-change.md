@@ -40,8 +40,10 @@ Ohne JobSpy überspringst du den Schritt und fügst eine selbst gefundene Anzeig
 
 Füge eine Anzeige ein oder nenne ein Unternehmen. Das Ergebnis in `passung.md` lautet *Veto*,
 *Klärungsbedarf* oder *Passt überwiegend*. Vetos stehen zuerst, und jeder Wert nennt seine Quelle.
-Ein Veto stoppt den Plan im nächsten Schritt und erspart dir Unterlagen für eine Stelle, die du
-nicht annehmen würdest.
+Du kannst den Check vorab einzeln laufen lassen. Mit bestätigtem Wunschprofil führt ihn auch
+`job-application-solution` in der Analyse aus, und ein Veto stoppt das Plan-Gate, bis du
+entschieden hast. So schreibst du keine Unterlagen für eine Stelle, die du nicht annehmen
+würdest.
 
 ### 4. Mit Quereinstiegsprofil bewerben
 
@@ -53,7 +55,9 @@ typischerweise vor:
   stehen, nur in diesem Format.
 - Anschreiben-Variante `quereinstieg`: Sie ordnet die Anforderungen der Anzeige Belegen aus deinen
   Logistikjahren zu (etwa Prognosen in Excel und SQL) und benennt offen, wo Erfahrung noch
-  fehlt. Die Wünsche aus dem Interview erscheinen nicht im Brief.
+  fehlt. Sie fragt dich nach dem Grund des Wechsels in einem Satz, in deinen Worten; sonst
+  enthält der Brief `[ERGÄNZEN: Grund des Wechsels]`. Die Wünsche aus dem Interview erscheinen
+  nicht im Brief.
 
 ## Was bleibt
 

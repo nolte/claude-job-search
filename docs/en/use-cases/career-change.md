@@ -39,8 +39,10 @@ Without JobSpy, skip this step and paste a posting you found yourself.
 ```
 
 Paste a posting or name a company. The result in `passung.md` is one of *Veto*, *Klärungsbedarf*
-or *Passt überwiegend*. Vetoes are listed first and every value names its source. A veto stops
-the plan in the next step, which saves you from writing for a job you would not take.
+or *Passt überwiegend*. Vetoes are listed first and every value names its source. You can run
+the check on its own before investing time. With a confirmed Wunschprofil,
+`job-application-solution` also runs it in the analysis, and a veto stops the plan gate until
+you decide, so you do not write for a job you would not take.
 
 ### 4. Apply with a career-change profile
 
@@ -51,7 +53,9 @@ proposes:
   stations. Relevant older evidence can sit in a short *Relevante* block, only in this format.
 - Anschreiben variant `quereinstieg`: it maps the posting's requirements to proofs from your
   logistics years (for example, building forecasts in Excel and SQL) and says openly where
-  experience is still missing. The wishes from the interview do not appear in the letter.
+  experience is still missing. It asks you for the reason for the change in one sentence, in
+  your words; otherwise the letter carries `[ERGÄNZEN: Grund des Wechsels]`. The wishes from
+  the interview do not appear in the letter.
 
 ## What remains
 
