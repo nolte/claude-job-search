@@ -9,7 +9,8 @@ reliability of information. This specification keeps them apart.
 Related rules: `spec/job-application/lokale-struktur/en.md` LS-4 (storage of `firmen/` and
 `analyse.md`), LS-6 (Vorgang lifecycle), `spec/job-application/kontaktklassifikation/en.md`
 (who the counterpart is), `spec/job-application/konventionen/en.md` R-1 (facts), R-6 (data
-protection), `spec/job-application/cv-generierung/en.md` CG-4 (evidence for requirements).
+protection), `spec/job-application/cv-generierung/en.md` CG-4 (evidence for requirements),
+`spec/job-application/recherche/en.md` (how the facts are researched: levels, channels, signals).
 
 ## UA-1 Terms and firm roles
 

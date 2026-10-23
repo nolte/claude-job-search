@@ -9,7 +9,8 @@ counterpart's time or exposes the candidate.
 Related rules: `spec/job-application/konventionen/en.md` R-1 (facts), R-3 (Anschreiben
 and Anrede), R-4 (E-Mail), R-6 (data protection). The record of a classification is written to
 `analyse.md` (`Kontakt` in Stammdaten, see KK-6). Facts about the posting are in
-`spec/job-application/cv-generierung/en.md` CG-4.
+`spec/job-application/cv-generierung/en.md` CG-4. The research that supports the verification
+and the warning signals for recruiters is in `spec/job-application/recherche/en.md`.
 
 ## KK-1 Scope and terms
 
