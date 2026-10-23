@@ -6,6 +6,11 @@ obtained, how reliable it is, how it is assessed, and where the result is record
 sourced, proportionate picture that lets the candidate decide whether to apply, address the right
 counterpart safely, and avoid being misled.
 
+**Status:** this is the target specification. The skills do not implement levels 1 and 2, the
+`## Recherche` record or the quality-gate checks yet (RC-11, RC-13). The LinkedIn, register,
+web-search and job-board channels depend on optional MCP servers (docs page *LinkedIn access*; the
+other servers are tracked as feature requests).
+
 This specification is the procedure. It does not repeat the rules it builds on:
 `spec/job-application/unternehmensanalyse/en.md` (UA) defines the firm roles, the source ranking, the
 dimensions and the record of company facts; `spec/job-application/kontaktklassifikation/en.md` (KK)
@@ -21,8 +26,9 @@ LS-4 (firm files), LS-6 (lifecycle).
 2. **Sourced.** Every finding records its source, the channel and the date it was read (UA-3). A
    finding without a source is not a finding.
 3. **Reading only.** Research reads. It never sends a message, a connection request or an
-   application, and it never logs in on the candidate's behalf anywhere but where the candidate
-   has already done so.
+   application. It has no login of its own and uses no paid access. The only authenticated access
+   is the user's own LinkedIn session that the LinkedIn server uses (RC-5.4); a register lookup that
+   incurs a fee needs the user's decision first (RC-5.3).
 4. **The candidate's data stays home.** A query, a search term or a page request carries no
    candidate data, no Grundlage text, no application text and no Wunschprofil content (UA-3.2,
    WJ-8.2, R-6).
@@ -41,15 +47,17 @@ LS-4 (firm files), LS-6 (lifecycle).
 | Level | Name | When | Network | Covers |
 |---|---|---|---|---|
 | **0** | `Anzeige` | always, first | no | What the posting, the messages and the user's own documents give: signals of KK-3.1, the roles of UA-1, the questions that are open |
-| **1** | `Basis` | before the first document goes to a counterpart | yes | Identity, plausibility and current state of the employer (E-1, E-3 to E-5), identity and legitimacy of a recruiter (V-1 to V-3, V-5) |
-| **2** | `Vertieft` | on request, or when the status reaches `gespräch` or `angebot` | yes | Everything of level 1, refreshed, plus E-2, E-6 to E-9 and V-4 |
+| **1** | `Basis` | before the first document goes to a counterpart | yes | Identity, plausibility and current state of the employer (E-1, E-3 to E-5, E-9), identity, legitimacy and employment form of a recruiter (V-1 to V-3, V-5, V-6) |
+| **2** | `Vertieft` | on request; offered when the status reaches `gespräch` or `angebot` | yes | Everything of level 1, refreshed, plus E-2, E-6 to E-8 and V-4 |
 
 1. Level 0 is part of every posting analysis. Levels 1 and 2 are chosen by the user. The plan of
-   `job-application-solution` names the level and what it will read.
+   `job-application-solution` names the level and what it will read. The status change only makes
+   the skill offer level 2; the run starts after the user's yes (RC-1.8).
 2. A research run ends when the items of its level are covered or marked `nicht ermittelt`. It
    does not continue until something is found.
-3. **Refresh.** A finding older than 30 days is read again when the status reaches `gespräch` or
-   `angebot`. The insolvency check (E-3) is repeated before the candidate signs (`zusage`).
+3. **Refresh.** A finding older than 30 days is offered for a new reading when the status reaches
+   `gespräch` or `angebot`, and read again after the user's yes. The insolvency check (E-3) is
+   offered again before the candidate signs (`zusage`).
 
 ## RC-3 Information about a possible employer
 
@@ -69,8 +77,8 @@ UA-3.
 | **E-8** | Perception: employer ratings, press tone | Questions for the interview, the candidate's own decision. **Opinion only** (UA-2.1) | Rating portals, press | 5 | 2 |
 | **E-9** | Contact person's role: name, function, channel as given by the posting | Anrede and channel (KK-5); never a private profile (UA-2.2) | Posting, signature | 2 | 1 |
 
-1. **Identity first.** No other item is researched for a firm until E-1 is established with two
-   matching attributes, for example name and Sitz, or name and website domain (RC-6.4).
+1. **Identity first.** No other item is researched for a firm until E-1 has passed the identity
+   gate (RC-6.4).
 2. E-8 is read for questions, not for facts. It is not stored in a firm file (UA-2.1). A recurring
    complaint may be kept as a Hinweis in `notizen.md` by the user.
 
@@ -203,8 +211,9 @@ the following list. It contains nothing else (UA-3.2).
    and the page is read, not the snippet.
 2. **Name collisions.** Several firms can share a name. The result is attached to the firm only
    after RC-6.4.
-3. The sender of a message is searched by name and firm only, to find their firm page or profile
-   (V-4). Nothing the sender wrote is placed into the query.
+3. **No person search.** A person is not searched for on the web. The sender's role is read from the
+   signature, from a team page of the firm that is reached by a known URL (RC-5.2), or through the
+   LinkedIn server (RC-5.4). A search query contains no personal name.
 
 ### RC-5.6 Press and public statements
 
@@ -234,9 +243,14 @@ The candidate shares nothing with a Vermittler that the employer would not also 
 2. **Local first.** Read the posting and the messages. Record the signals of KK-3.1 and the
    open questions.
 3. **Roles.** Determine the roles of UA-1 and the Kontaktart (KK-3).
-4. **Identity gate.** For each firm, establish E-1 or V-1 and V-2 with two matching attributes from
-   different sources. A firm that fails the gate gets the signal `Identität nicht bestätigt`
-   (RC-7) and no further research until the candidate decides.
+4. **Identity gate.** For each firm, E-1 (or V-1 and V-2 for a recruiter's firm) must be
+   established by two attributes, each confirmed by at least two independent sources. The
+   attributes are the legal name plus the Sitz, the register number or the website domain. The
+   sources are the imprint, the register, the posting and the signature; one imprint alone is one
+   source. The steps that decide the gate (reading the imprint, the register lookup, comparing the
+   domains) are part of the gate and always run. A firm that fails the gate gets the result
+   `Identität nicht bestätigt` (RC-7, RC-8). No other item of that firm is researched until the
+   candidate decides.
 5. **Items of the level.** Work through the items of RC-3 and RC-4 for the level, in the order of
    the tables. Stop at the cap of the level (RC-2.2) and mark the rest `nicht ermittelt`.
 6. **Conflicts.** Two sources that disagree are recorded with both values (UA-3.1). They are not
@@ -265,7 +279,7 @@ A signal is an observation, not a verdict. It points at a question to ask or a s
 
 | Signal | Reading | Reaction |
 |---|---|---|
-| Free-mail address, or an e-mail domain that is not the domain of the firm named in the signature | Identity unverified, possible phishing | `Identität nicht bestätigt`. Contact the firm only via the number in its imprint |
+| Free-mail address, or an e-mail domain that is not the domain of the firm named in the signature | Identity unverified, possible phishing | One signal. Run the identity gate (RC-6.4); only a failed gate gives `Identität nicht bestätigt`. Contact the firm only via the number in its imprint |
 | Message arrives in a chat app only, and the firm has no imprint | Possible fraud | Do not reply with documents. Record the signal |
 | Request for ID copy, bank details, tax number or social insurance number before an interview | Fraud or over-collection | Do not give them. Real contracts and onboarding come after an offer (KK-4.3) |
 | The candidate is to pay a fee or buy something | Contradicts KK-4.5 | Stop. Check the arrangement before any step |
@@ -291,7 +305,7 @@ The result per firm (employer and, separately, recruiter, UA-1.3) is one value a
 |---|---|---|
 | **unauffällig** | The items of the level are covered, no signal of RC-7 applies | Proceed as planned |
 | **Rückfragen offen** | At least one signal or one `nicht ermittelt` item that matters for the decision | Ask (RC-5.7); documents with personal data wait for the answer where KK-4 requires it |
-| **Warnzeichen** | Two independent signals, or `Identität nicht bestätigt` | No document and no personal data to this counterpart until the candidate decides, with the reasons in front of them |
+| **Warnzeichen** | Two independent signals, or a failed identity gate (`Identität nicht bestätigt`, RC-6.4) | No document and no personal data to this counterpart until the candidate decides, with the reasons in front of them |
 
 1. The assessment lists the signals with their sources and the items that were not covered. It
    gives no number and no ranking (WJ-6.3 rule 4).
@@ -314,7 +328,7 @@ Stufe: 1 (Basis) · Stand: 2026-10-23 · Kanäle: Anzeige, Impressum, Unternehme
 
 | ID | Befund | Quelle | Stand | Status |
 |---|---|---|---|---|
-| E-1 | Musterfirma GmbH, Berlin, HRB 000000 B | Impressum; Handelsregister | 2026-10-23 | ermittelt |
+| E-1 | siehe `## Unternehmen` (Identität bestätigt: Name und Sitz in Impressum und Handelsregister) | Impressum; Handelsregister | 2026-10-23 | ermittelt |
 | E-3 | Kein Insolvenzeintrag, Jahresabschluss 2024 hinterlegt | insolvenzbekanntmachungen.de; Unternehmensregister | 2026-10-23 | ermittelt |
 | E-5 | Stelle auch auf der Karriereseite, Ref.-Nr. gleich | Karriereseite | 2026-10-23 | ermittelt |
 | V-3 | Auftraggeber nicht genannt | Nachricht vom 2026-10-22 | 2026-10-23 | offen |
@@ -326,15 +340,21 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
 ```
 
 1. The section `## Recherche` is written by the skill that runs the research (RC-11) into
-   `analyse.md`. A re-run replaces the section and adds one line with the old `Stand` to *Verlauf* of
-   `vorgang.md` (UA-5.1 rule 3).
-2. `Status` is one of `ermittelt`, `nicht ermittelt`, `Konflikt`, `offen`. A conflict lists both
-   values.
-3. The details of E-1 to E-4 that are stable across postings go to the firm file as in UA-5.2. The
+   `analyse.md`, next to `## Unternehmen`. A re-run replaces the section; the old `Stand` goes into
+   *Verlauf* of `vorgang.md` once per run, together with the re-run of `## Unternehmen`
+   (UA-5.1 rule 3), not once per section.
+2. **One master for identity.** The values of E-1 (legal name, Rechtsform, Sitz, register number)
+   and of the recruiter firm's identity (V-1, V-2) are written only to `## Unternehmen`, the master
+   of UA-5.1. `## Recherche` records for these items the status, the sources checked and the date,
+   and refers to `## Unternehmen` for the values. A conflict of identity values is recorded in
+   `## Unternehmen` with both values (UA-3.1); `## Recherche` shows the status `Konflikt`.
+3. `Status` is one of `ermittelt`, `nicht ermittelt`, `Konflikt`, `offen`.
+4. The details of E-1 to E-4 that are stable across postings go to the firm file as in UA-5.2. The
    key `recherche_stand` (date of the last research, `JJJJ-MM-TT`) is added to its frontmatter.
-4. The classification keys of KK-6 stay as they are. `kontakt_signale` may reference signal texts
+   `unternehmensanalyse` UA-5 lists the section `## Recherche` and the key in its ownership table.
+5. The classification keys of KK-6 stay as they are. `kontakt_signale` may reference signal texts
    of RC-7.
-5. Pages read are not copied into the Vorgang. The record holds the finding, the source and the
+6. Pages read are not copied into the Vorgang. The record holds the finding, the source and the
    date, not the page text. A quote is allowed where a document later needs it (UA-4.5).
 
 ## RC-10 Data protection
@@ -345,6 +365,10 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
    provider like any other text of the session. The user is told this once per research run.
 3. **Third-party personal data** is limited to the contact person: name, function, firm, tenure
    (RC-1.5). It is stored only in `analyse.md` of the Vorgang and follows its retention (S10).
+   `get_person_profile` is called with the narrowest section selection that yields the current
+   position. The record keeps only function, firm and tenure; the rest of the returned text is not
+   copied to any file. It does enter the session (rule 2), which is why the user is told before the
+   call (RC-5.4 rule 4).
 4. **No covert contact.** Research does not message, follow, connect or visit more than the items
    require (RC-5.4).
 5. **Private repository.** If the Wurzel is tracked in a private repository, `## Recherche` is
@@ -371,13 +395,13 @@ This table states the target. The skills do not implement it yet (RC-13).
 | RS-C | Zeitarbeit, client named | Anstellungsgeber is the agency, Bedarfsträger the client. V-6 asked in writing. The CV does not show the client as an employer |
 | RS-D | Message with free-mail address and a request for an ID copy | Two independent signals. Assessment `Warnzeichen`. No data given |
 | RS-E | LinkedIn MCP server not installed, or the user declines | The other channels run. The record states that LinkedIn was not read. Missing items are `nicht ermittelt`. The user may paste the text. No error, and no attempt to read LinkedIn by web search or page fetch |
-| RS-K | Recruiter writes from an e-mail domain that differs from the website named in the signature | The imprint of the website is read and compared with the register. The mismatch is a signal; the identity gate decides. The candidate does not reply with documents (RC-7.2) |
-| RS-L | Employer's imprint and the register disagree on the Sitz | Both values are recorded with their sources and dates (UA-3.1). The gate is not passed until the user decides |
-| RS-J | LinkedIn MCP server connected, posting found on LinkedIn | The posting is read with `get_job_details` after the consent of RC-5.4 rule 2. It is not fetched as a web page |
-| RS-F | Two firms with the same name | The identity gate separates them by Sitz or domain. Without two matching attributes, `Identität nicht bestätigt` |
-| RS-G | Offer received, research from 40 days ago | Findings older than 30 days are read again. The insolvency check is repeated before signing |
+| RS-F | Two firms with the same name | The identity gate separates them by Sitz or domain. Without two attributes, each confirmed by two sources, `Identität nicht bestätigt` |
+| RS-G | Offer received, research from 40 days ago | The skill offers a new reading of findings older than 30 days and of the insolvency check; the run starts after the user's yes |
 | RS-H | Rating portal shows poor reviews | Recorded only as a Hinweis for interview questions. Not used in any document |
-| RS-I | Recruiter's LinkedIn profile is requested | The user is told about the risk and the visibility. Only role, firm and tenure are read |
+| RS-I | Recruiter's LinkedIn profile is requested | The user is told about the risk and the visibility. The tool is called with the narrowest section selection; only function, firm and tenure are recorded, the rest is not copied to any file (RC-10 rule 3) |
+| RS-J | LinkedIn MCP server connected, posting found on LinkedIn | The posting is read with `get_job_details` after the consent of RC-5.4 rule 2. It is not fetched as a web page |
+| RS-K | Recruiter writes from an e-mail domain that differs from the website named in the signature | One signal. The gate steps run: the imprint of the website is read and compared with the register. If the gate passes, the assessment is `Rückfragen offen`; if it fails, `Warnzeichen`. The candidate does not reply with documents meanwhile (RC-7.2) |
+| RS-L | Employer's imprint and the register disagree on the Sitz | Both values are recorded in `## Unternehmen` with their sources and dates (UA-3.1), status `Konflikt`. The gate is not passed until the user decides |
 
 The scenarios are verified by reviewing a generated research record, not by a script.
 
