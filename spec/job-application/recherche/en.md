@@ -127,12 +127,13 @@ number and add only what is specific to the channel: tools, budget numbers, term
    yes. A channel section may ask for the yes at a finer grain, for example for every lookup (RC-5.3
    rule 3). A no leaves the other channels; the items the channel was meant to serve stay
    `nicht ermittelt`. **Exception: web search and page fetches** (RC-5.2 rules 8 and 9, RC-5.5) need
-   no separate yes per server. Only a company name and one generic term leave the machine (RC-5.5),
-   and the user has confirmed the use of the network in RC-6 step 1. The other rules still apply.
+   no separate yes per server. A search sends only a company name and one generic term (RC-5.5), a
+   fetch only requests a known public page from a trusted place (RC-5.2 rule 1), and the user has
+   confirmed the use of the network in RC-6 step 1. The other rules still apply.
 2. **One route per source.** LinkedIn only through the LinkedIn server; the registers through the
    Handelsregister server where it applies; web search and page fetches through the connected
    open-webSearch server first, with the built-in tools under the same rules as the fallback; job boards
-   through the job-board server, excluding LinkedIn. A source with a server of its own is not read by web
+   through the job-board server, excluding LinkedIn, once the plugin documents one (issue #17). A source with a server of its own is not read by web
    search or by a direct page fetch, because that bypasses the consent of rule 1 and the budget of rule 4. A
    link to such a source that a search returns is opened through its server or not at all. When the
    server of such a source is not connected, the research says so, and the user may paste the text.

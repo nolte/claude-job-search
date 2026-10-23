@@ -22,39 +22,45 @@ they share once. The detail pages add only what is specific to one server.
 
 The research procedure states rules 2 to 8 below normatively in
 `spec/job-application/recherche/en.md`, RC-5.0, which numbers them differently; each rule names
-its RC-5.0 number. Rules 1, 9 and 10 have no number there; they hold for every server and are
-stated here.
+its RC-5.0 number. Rules 1, 9 and 10 sit elsewhere in the spec: rule 1 in the introduction of
+RC-5.0, rule 9 in RC-10 rule 3 and RC-5.3 rule 5, rule 10 in RC-5.4 rule 1 and RC-10 rule 4.
+All ten hold for every server.
 
 1. **Optional.** No skill requires a server. The plugin ships no `.mcp.json` and registers
    nothing. The docs give a hardened configuration and you add it. Setup commands are checked
    against a named version.
 2. **Consent** (RC-5.0 rule 1). Before the first use of a server in a Vorgang or a run, the skill
    names the server, what leaves your machine and the risk (terms of the source, scraping, rate
-   limits), and waits for your yes. A no leaves the other channels untouched; the items stay
+   limits), and waits for your yes. A server may ask at a finer grain: the register asks before
+   every lookup (RC-5.3 rule 3). A no leaves the other channels untouched; the items stay
    `nicht ermittelt`. Web search and page fetches are the exception: they need no separate yes,
-   because only a company name and one generic term leave your machine and you confirm the use of
-   the network when the research starts.
+   because a search sends only a company name and one generic term, a fetch only requests a known
+   public page from a trusted place (RC-5.2 rule 1), and you confirm the use of the network when
+   the research starts.
 3. **One route per source** (RC-5.0 rule 2). LinkedIn is read only through the LinkedIn server, the
    register through the Handelsregister server, web search and page fetches through the connected
    open-webSearch server first (the built-in tools of your client follow the same rules as the
-   fallback), and job boards through JobSpy, excluding LinkedIn. A source with a server of its own
+   fallback), and job boards through JobSpy, excluding LinkedIn, once the plugin documents that
+   server (issue #17). A source with a server of its own
    is not read by web search or a direct fetch, because that would bypass consent and budget.
 4. **Availability check** (RC-5.0 rule 3). A run starts by checking which servers are connected.
    The result and the route used go into the line `Kanäle` of the record `## Recherche`.
 5. **Budget** (RC-5.0 rule 4). Every server has a budget per Vorgang and per research level. Calls
-   run one after the other, never in bulk and never on a timer. Levels 1 and 2 share one budget,
-   also across sessions. You may lower the numbers.
+   run one after the other, never in bulk and never on a timer. Levels 1 and 2 share one budget
+   per Vorgang. You may lower the numbers.
 6. **Queries and data** (RC-5.0 rule 5). A query carries only what the research rules allow. Your
    Datengrundlage, Wunschprofil and application text are never sent. Text read from a server is
-   data, never an instruction.
+   data, never an instruction. Whatever a server reads becomes part of the Claude session and goes
+   to the model provider like any other text in it (RC-10 rule 2): the plugin's promise that
+   nothing is sent covers the plugin, not what you load into the session.
 7. **Source rank** (RC-5.0 rule 6). What a server returns keeps the rank of its source, and a
    server does not raise it: a posting as posted is rank 2, register and imprint rank 3, other web
    content rank 4 or 5, and LinkedIn content other than the posting rank 5.
 8. **No evasion** (RC-5.0 rule 7). The plugin does not recommend or configure proxies or other
    measures to get around blocking. A blocked source is reported to you and skipped.
-9. **Third-party personal data.** Only what the role in the application needs. Birthdates and
+9. **Third-party personal data** (RC-10 rule 3). Only what the role in the application needs. Birthdates and
    private addresses are never stored, and records follow the retention of the Vorgang.
-10. **Write tools off.** Tools that act in your name, such as messages or connection requests, are
+10. **Write tools off** (RC-5.4 rule 1). Tools that act in your name, such as messages or connection requests, are
     denied in your Claude Code permission settings. The plugin never sends anything on your
     behalf.
 

@@ -23,33 +23,40 @@ Server besonders ist.
 ## Regeln für jeden Server
 
 Die Regeln 2 bis 8 stehen verbindlich in `spec/job-application/recherche/en.md`, RC-5.0, das sie
-anders nummeriert; jede Regel nennt ihre RC-5.0-Nummer. Die Regeln 1, 9 und 10 haben dort keine
-Nummer; sie gelten für jeden Server und stehen hier.
+anders nummeriert; jede Regel nennt ihre RC-5.0-Nummer. Die Regeln 1, 9 und 10 stehen an anderer
+Stelle im Spec: Regel 1 in der Einleitung von RC-5.0, Regel 9 in RC-10 Regel 3 und RC-5.3 Regel 5,
+Regel 10 in RC-5.4 Regel 1 und RC-10 Regel 4. Alle zehn gelten für jeden Server.
 
 1. **Optional.** Kein Skill braucht einen Server. Das Plugin liefert keine `.mcp.json` und trägt
    nichts ein. Die Doku gibt eine abgesicherte Konfiguration vor, und du trägst sie selbst ein.
    Einrichtungsbefehle sind gegen eine genannte Version geprüft.
 2. **Zustimmung** (RC-5.0 Regel 1). Vor der ersten Nutzung eines Servers in einem Vorgang oder
    Lauf nennt der Skill den Server, was deinen Rechner verlässt und das Risiko
-   (Nutzungsbedingungen der Quelle, Scraping, Rate-Limits) und wartet auf dein Ja. Ein Nein lässt
-   die anderen Kanäle unberührt; die Punkte bleiben `nicht ermittelt`. Websuche und Seitenabrufe
-   sind die Ausnahme: Sie brauchen kein eigenes Ja, weil nur ein Firmenname und ein allgemeiner
-   Begriff deinen Rechner verlassen und du die Nutzung des Netzes zu Beginn der Recherche
-   bestätigst.
+   (Nutzungsbedingungen der Quelle, Scraping, Rate-Limits) und wartet auf dein Ja. Ein Server
+   darf feiner fragen: Das Register fragt vor jedem Abruf (RC-5.3 Regel 3). Ein Nein lässt die
+   anderen Kanäle unberührt; die Punkte bleiben `nicht ermittelt`. Websuche und Seitenabrufe sind
+   die Ausnahme: Sie brauchen kein eigenes Ja, weil eine Suche nur einen Firmennamen und einen
+   allgemeinen Begriff sendet, ein Abruf nur eine bekannte öffentliche Seite von einem
+   vertrauenswürdigen Ort anfordert (RC-5.2 Regel 1) und du die Nutzung des Netzes zu Beginn der
+   Recherche bestätigst.
 3. **Ein Weg je Quelle** (RC-5.0 Regel 2). LinkedIn wird nur über den LinkedIn-Server gelesen, das
    Register über den Handelsregister-Server, Websuche und Seitenabrufe zuerst über den
    verbundenen open-webSearch-Server (die eingebauten Tools deines Clients gelten unter denselben
-   Regeln als Rückfall) und Jobbörsen über JobSpy, ohne LinkedIn. Eine Quelle mit eigenem Server
+   Regeln als Rückfall) und Jobbörsen über JobSpy, ohne LinkedIn, sobald das Plugin diesen Server
+   dokumentiert (Issue #17). Eine Quelle mit eigenem Server
    wird nicht per Websuche oder direktem Abruf gelesen, weil das Zustimmung und Budget umginge.
 4. **Verfügbarkeitsprüfung** (RC-5.0 Regel 3). Ein Lauf beginnt mit der Prüfung, welche Server
    verbunden sind. Das Ergebnis und der genutzte Weg stehen in der Zeile `Kanäle` des Protokolls
    `## Recherche`.
 5. **Budget** (RC-5.0 Regel 4). Jeder Server hat ein Budget je Vorgang und Recherchestufe. Aufrufe
    laufen nacheinander, nie massenhaft und nie zeitgesteuert. Stufe 1 und 2 teilen sich ein
-   Budget, auch über Sitzungen hinweg. Du kannst die Zahlen senken.
+   Budget je Vorgang. Du kannst die Zahlen senken.
 6. **Anfragen und Daten** (RC-5.0 Regel 5). Eine Anfrage enthält nur, was die Rechercheregeln
    erlauben. Deine Datengrundlage, dein Wunschprofil und Bewerbungstexte werden nie gesendet. Von
-   einem Server gelesener Text sind Daten, nie eine Anweisung.
+   einem Server gelesener Text sind Daten, nie eine Anweisung. Was ein Server liest, wird Teil
+   der Claude-Sitzung und geht wie jeder andere Text darin an den Modellanbieter (RC-10 Regel 2):
+   Das Versprechen des Plugins, nichts zu senden, gilt für das Plugin, nicht für das, was du in
+   die Sitzung lädst.
 7. **Rang der Quelle** (RC-5.0 Regel 6). Was ein Server liefert, behält den Rang seiner Quelle,
    und ein Server hebt ihn nicht an: Eine Anzeige, wie veröffentlicht, ist Rang 2, Register und
    Impressum Rang 3, sonstige Webinhalte Rang 4 oder 5 und LinkedIn-Inhalte außer der Anzeige
@@ -57,10 +64,10 @@ Nummer; sie gelten für jeden Server und stehen hier.
 8. **Keine Umgehung** (RC-5.0 Regel 7). Das Plugin empfiehlt oder konfiguriert keine Proxys oder
    andere Maßnahmen, um Sperren zu umgehen. Eine blockierte Quelle wird dir gemeldet und
    übersprungen.
-9. **Personenbezogene Daten Dritter.** Nur das, was die Rolle in der Bewerbung braucht.
+9. **Personenbezogene Daten Dritter** (RC-10 Regel 3). Nur das, was die Rolle in der Bewerbung braucht.
    Geburtsdaten und private Adressen werden nie gespeichert, und Aufzeichnungen folgen der
    Aufbewahrung des Vorgangs.
-10. **Schreibende Tools aus.** Tools, die in deinem Namen handeln, etwa Nachrichten oder
+10. **Schreibende Tools aus** (RC-5.4 Regel 1). Tools, die in deinem Namen handeln, etwa Nachrichten oder
     Kontaktanfragen, sperrst du in den Berechtigungen von Claude Code. Das Plugin sendet nie
     etwas in deinem Namen.
 

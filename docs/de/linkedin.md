@@ -83,11 +83,12 @@ Die allgemeinen Regeln stehen auf [Optionale MCP-Server](mcp-servers.md). Für L
    können, ohne Garantie. Der Einsatz ist deine Entscheidung und dein Risiko. Lies einzelne
    Seiten und nur wenige, und lass keinen Agenten Seiten massenhaft abrufen.
 2. **Budget.** Höchstens 6 Seitenabrufe je Vorgang in Recherchestufe 1 und höchstens 15 in
-   Stufe 2. Beide Stufen teilen sich ein Budget je Vorgang, auch über Sitzungen hinweg.
+   Stufe 2. Beide Stufen teilen sich ein Budget je Vorgang.
 3. **Sichtbarkeit.** Das Lesen eines Profils kann für dessen Inhaber sichtbar sein, je nach den
    Einstellungen beider Konten. Claude sagt dir Bescheid, bevor das Profil einer Person gelesen
    wird.
-4. **Was du behältst.** Halte personenbezogene Daten Dritter aus der Datengrundlage heraus. Speichere keine Profile von Mitarbeitenden oder Personalvermittlern in
+4. **Was du behältst.** Halte personenbezogene Daten Dritter aus der Datengrundlage
+   heraus. Speichere keine Profile von Mitarbeitenden oder Personalvermittlern in
    `rohdaten/` oder `notizen.md`: Die Löschregel für Eindrücke zu Dritten (`lokale-struktur`
    LS-9.3, Stufe S10) erfasst nur Notizen, keine Dateien, die du ablegst. Halte fest, was du
    nutzt: den Link der Anzeige als `stellenquelle` in `vorgang.md`, Firmenfakten mit Quelle und

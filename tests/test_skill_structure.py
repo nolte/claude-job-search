@@ -310,6 +310,14 @@ class SkillStructureTests(unittest.TestCase):
             for page in ("linkedin.md", "handelsregister.md", "websearch.md"):
                 self.assertIn("mcp-servers.md", read("docs", lang, page), f"{lang} {page}")
         self.assertIn("/mcp-servers/", read("README.md"))
+        # the overview carries the same RC-5.0 citations and the same budget numbers in both languages, and the
+        # LinkedIn page names its own budget (6 and 15), which the spec states in RC-5.4 rule 3
+        cites = {lang: sorted(set(re.findall(r"RC-5\.0 (?:rule|Regel) (\d)", read("docs", lang, "mcp-servers.md"))))
+                 for lang in ("en", "de")}
+        self.assertEqual(cites["en"], cites["de"])
+        self.assertEqual(cites["en"], [str(n) for n in range(1, 9)])
+        for lang, word in (("en", "At most 6 page reads"), ("de", "Höchstens 6 Seitenabrufe")):
+            self.assertIn(word, read("docs", lang, "linkedin.md"), lang)
 
     def test_common_channel_rules_are_stated_once_in_the_research_spec(self):
         # issue #19: RC-5.0 carries the rules of all optional network channels; RC-5.2 to RC-5.5 refer to them
@@ -317,7 +325,7 @@ class SkillStructureTests(unittest.TestCase):
             spec = handle.read()
         self.assertIn("### RC-5.0 Rules for optional network channels", spec)
         block = spec.split("### RC-5.0", 1)[1].split("### RC-5.1", 1)[0]
-        self.assertEqual(len(re.findall(r"^\d+\. \*\*", block, re.MULTILINE)), 8)
+        self.assertEqual(re.findall(r"^(\d+)\. \*\*", block, re.MULTILINE), [str(n) for n in range(1, 9)])
         for number in ("5.2", "5.3", "5.4", "5.5"):
             section = spec.split(f"### RC-{number} ", 1)[1].split("\n### ", 1)[0]
             self.assertIn("RC-5.0 rule", section, f"RC-{number}")

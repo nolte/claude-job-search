@@ -79,11 +79,11 @@ The general rules are on [Optional MCP servers](mcp-servers.md). For LinkedIn th
    your decision and your risk. Read single pages, in small numbers, and do not let an agent
    crawl.
 2. **Budget.** At most 6 page reads per Vorgang at research level 1 and at most 15 at level 2.
-   Both levels share one budget per Vorgang, also across sessions.
+   Both levels share one budget per Vorgang.
 3. **Visibility.** Reading a profile can be visible to its owner, depending on the settings of
    both accounts. Claude tells you before a person's profile is read.
-4. **What you keep.** Keep personal data of third parties out of the Datengrundlage. Do not save profiles of employees or recruiters to `rohdaten/` or
-   `notizen.md`: the deletion rule for impressions of third parties (`lokale-struktur` LS-9.3,
+4. **What you keep.** Keep personal data of third parties out of the Datengrundlage. Do not save
+   profiles of employees or recruiters to `rohdaten/` or `notizen.md`: the deletion rule for impressions of third parties (`lokale-struktur` LS-9.3,
    stage S10) covers only notes, not files you add. Record what you use: the posting link as
    `stellenquelle` in `vorgang.md`, company facts with source and reading date. The text of a
    posting, as posted, is the posting (rank 2); everything else on LinkedIn ranks 5, and company
