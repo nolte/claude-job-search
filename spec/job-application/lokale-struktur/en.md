@@ -423,8 +423,8 @@ another file, and the user adds more in `notizen.md` and `firmen/`.
    the Vorgang.
 7. `suche/` holds postings and firm names, no contact e-mail addresses and no application state
    (`stellensuche/en.md` ST-8 rule 2 and ST-9). It is covered by R-6 and `lebenslauf-versionen` LV-4: a private,
-   unpublished repository only. A search record is deleted 90 days after its date, unless the user keeps
-   it. The rule names the place and the period; no skill deletes in Phase 1, as for S10. The skill lists
+   unpublished repository only. A search record is deleted 90 days after its date, unless the user keeps it by adding the line
+   `Behalten: ja`. The rule names the place and the period; no skill deletes in Phase 1, as for S10. The skill lists
    the records past their date (`stellensuche/en.md` ST-8 rule 5). A rejected entry is not suggested again
    while its record exists.
 

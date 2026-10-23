@@ -87,7 +87,8 @@ Vorgang, Wurzel, Ausschluss and Veto are used as defined in `lokale-struktur/en.
    application URL (`job_url_direct`) where present.
 2. **Pre-filter with the Ausschlüsse.** The skill compares the Ausschlüsse of the Wunschprofil with the
    structured fields only (location, remote, job type, title words). A hit is shown as **Veto** with its reason
-   and is not dropped silently (WJ-6.3).
+   and is not dropped silently (WJ-6.3). When the Wunschprofil is not confirmed, the pre-filter is skipped and
+   the shortlist states in one line that no Veto check was done.
 3. **Fit check after the hand-off.** The fit check (WJ-6.1) needs the `analyse.md` of a Vorgang, so a
    shortlist entry has none before the hand-off. The shortlist itself carries only the Veto pre-filter of
    rule 2, on structured fields. The fit check for a chosen entry runs after the hand-off, through
@@ -117,6 +118,11 @@ way). A board does not raise a rank (RC-5.0 rule 6).
 4. The skill writes no application document. `job-application-solution` stays the front door for one
    posting and does not call the search.
 5. After the hand-off the entry has the decision `übernommen` with the Vorgang slug (ST-8).
+6. **An `offen` entry of an earlier session.** The Suchprotokoll stores no search id, so `get_job_details` cannot
+   fetch such an entry. It is handed off either by re-running the search with the stored brief, which needs a
+   new yes for the brief in the new session and counts toward the session limit of ST-3 rule 3, and then
+   picking the entry from the fresh result; or by the user pasting the posting text, which goes to
+   `job-application-solution` with `stellenquelle` set to the URL stored in the record.
 
 ## ST-8 Suchprotokoll and retention
 
@@ -136,7 +142,9 @@ way). A board does not raise a rank (RC-5.0 rule 6).
 4. **Rejected entries.** An entry marked `abgelehnt` is not suggested again while its record exists.
 5. **Retention.** A Suchprotokoll is deleted 90 days after its date, unless the user keeps it. No skill
    deletes in Phase 1, as for S10; the rule names place and period. The skill lists the records that are past
-   their date and leaves the deletion to the user.
+   their date and leaves the deletion to the user. The age of a record is taken from the date in its file name.
+   A record that contains the line `Behalten: ja` is kept by the user: it is never listed as past its date and
+   never deleted by a skill. The skill writes no `Behalten` line; the user adds it.
 6. **Privacy.** The folder is covered by R-6 and `lebenslauf-versionen` LV-4 (a private repository only,
    `lokale-struktur` LS-9).
 
@@ -175,8 +183,9 @@ done by reviewing a run, not by a script.
 | SS-P | The JobSpy server is not connected | The skill says so, points to the docs page *JobSpy*, installs nothing and stops; the user may paste a posting into `job-application-solution` |
 | SS-Q | The Wunschprofil is not confirmed | The user states the terms; the skill invents none; the pre-filter of ST-5 rule 2 is skipped and the shortlist says so |
 | SS-R | The user asks for a proxy because Indeed blocks | The skill sets none and recommends none; the blocked board is reported and skipped (RC-5.0 rule 7) |
-| SS-S | A Suchprotokoll is 89 days old, or is 91 days old and the user keeps it | The 89-day record is not listed; the 91-day record the user keeps is left alone and nothing is deleted |
+| SS-S | A Suchprotokoll is 89 days old, or is 91 days old and contains the line `Behalten: ja` | Neither is listed as past its date; nothing is deleted |
 | SS-T | An entry was `abgelehnt` in an earlier session's record | Not suggested again while that record exists (ST-4 rule 3) |
+| SS-U | The user returns the next day and picks an `offen` entry of yesterday's record | No search id exists; the skill offers a new search with the stored brief (new yes, counts toward the limit) or the pasted posting text; `stellenquelle` is the stored URL |
 
 ## ST-11 Open points
 
@@ -187,6 +196,7 @@ done by reviewing a run, not by a script.
 | Further sources | StepStone, XING and the Bundesagentur's Jobbörse are not covered | separate issues |
 | Retention | The 90 days are a default; no skill deletes in Phase 1 | decided, deletion open |
 | Fit check before taking an entry | A fit check runs only after the hand-off, which marks the entry `übernommen` (ST-5 rule 3, ST-7 rule 5); a state 'checked, not taken' does not exist | open |
+| Session limit | The limit of five searches per session is kept by the conversation only and can be bypassed by starting a new session (ST-3 rule 3) | decided |
 | Write confirmation | That the skill asks the user once per session before it writes a Suchprotokoll is a precaution of the skill, not required by this spec | open, deliberate |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
 

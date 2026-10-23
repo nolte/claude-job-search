@@ -336,6 +336,9 @@ class SkillStructureTests(unittest.TestCase):
         self.assertTrue(cited_rules and cited_scenarios)
         self.assertEqual(sorted(cited_rules - rules), [])
         self.assertEqual(sorted(cited_scenarios - scenarios), [])
+        # the scenarios that need behaviour of their own in the skill are cited by it, not only defined in the spec
+        for scenario in ("SS-B", "SS-D", "SS-E", "SS-J", "SS-N", "SS-P", "SS-Q", "SS-R", "SS-S", "SS-U"):
+            self.assertIn(scenario, cited_scenarios, scenario)
         for needle in ("No query before the yes", "Never `linkedin` through JobSpy", "Set no proxy", "Ausschluss reason",
                        "RC-5.8", "WJ-8.2", "Never delete"):
             self.assertIn(needle, flat, needle)
