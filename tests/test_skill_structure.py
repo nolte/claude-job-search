@@ -195,9 +195,9 @@ class SkillStructureTests(unittest.TestCase):
             with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
                 return handle.read()
 
-        analysis = read("skills", "job-application-posting-analysis", "SKILL.md")
+        analysis = " ".join(read("skills", "job-application-posting-analysis", "SKILL.md").split())
         for needle in ("**Web route", "renderMode: request", "fetchWebContent", "RC-5.2", "RC-5.5",
-                       "Weiterleitung auf unzulässiges Ziel", "`### Suchen`", "Websuche über open-webSearch"):
+                       "Weiterleitung auf unzulässiges Ziel", "Abruf ohne Weiterleitungsprüfung nicht möglich", "`### Suchen`", "Websuche über open-webSearch"):
             self.assertIn(needle, analysis, needle)
         fit_check = read("skills", "job-application-fit-check", "SKILL.md")
         for needle in ("RC-5.2", "RC-5.5", "Stay local"):

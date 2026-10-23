@@ -73,7 +73,7 @@ diesen Eintrag im Abschnitt `mcpServers` deiner MCP-Konfiguration ein:
 | `ALLOWED_SEARCH_ENGINES=duckduckgo,startpage,brave` | Der Standard ist leer und erlaubt jede Engine, darunter einige, die hier irrelevant oder chinesischsprachig sind. Die Recherche nutzt nur diese drei |
 | `SEARCH_MODE=request` | Der Standard ist `auto`. Laut README wirkt die Einstellung derzeit nur auf Bing. Sie hält deine Absicht fest: kein Browser |
 | `USE_PROXY=false` | Das ist der Standard. Das Plugin empfiehlt keinen Proxy, um Sperren zu umgehen |
-| `MCP_TOOL_FETCH_…_NAME=<disabled>` | Laut README schaltet `<disabled>` ein Tool ab. Das betrifft die Abruf-Tools für CSDN, Linux.do und Juejin, damit die Tool-Liste kurz und eindeutig bleibt. Listet `/mcp` sie weiterhin auf, hat die Einstellung nicht gewirkt |
+| `MCP_TOOL_FETCH_…_NAME=<disabled>` | Laut README schaltet `<disabled>` ein Tool ab. Das betrifft die Abruf-Tools für CSDN, Linux.do und Juejin, damit die Tool-Liste kurz und eindeutig bleibt. Trage den Wert `<disabled>` wörtlich ein, mit den spitzen Klammern. Listet `/mcp` die Tools weiterhin auf, hat die Einstellung nicht gewirkt: Prüfe die Schreibweise und die festgelegte Version |
 
 **Engines.** Der Server unterstützt weitere Engines, darunter `bing`, `baidu`, `hackernews` und
 `exa`. Nimm `bing` nur auf, wenn du es verlangst, etwa weil die Abdeckung einer deutschen Firma zu
@@ -134,9 +134,10 @@ Datum (RC-9). So kannst du hinterher prüfen, was deinen Rechner verlassen hat.
    `fetchWebContent` weiter Sicherheitsprüfungen für öffentliche Netze. Das Plugin übergibt nur
    URLs aus vertrauenswürdigen Quellen und nie eine interne Adresse. Die Prüfung einer
    Weiterleitung kommt nach der Anfrage: Eine Weiterleitung auf `linkedin.com` fällt erst danach
-   auf, der Text wird dann nicht verwendet. Ein eingebautes Tool, das die endgültige URL nicht
-   meldet, wird nur für Seiten der Domain einer vertrauenswürdigen Quelle genutzt, und Claude
-   sagt dir, dass Weiterleitungen nicht geprüft werden konnten.
+   auf, der Text wird dann nicht verwendet. Die Anfrage an das Weiterleitungsziel ist
+   dann schon von deinem Rechner gesendet worden. Ein eingebautes Abruf-Tool, das die endgültige
+   URL nicht meldet, wird für Seiten gar nicht genutzt: Das Item bleibt offen, und du kannst den
+   Text einfügen. Seine Suche bleibt erlaubt.
 8. **Alles Gelesene gelangt in die Sitzung.** Abgerufene Seiten werden Teil der Claude-Sitzung und
    gehen wie jeder andere Text darin an den Modellanbieter (RC-10).
 9. **Lieferkette.** `npx` lädt Code aus der npm-Registry und führt ihn aus. Eine festgelegte
