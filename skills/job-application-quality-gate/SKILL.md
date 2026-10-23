@@ -66,7 +66,7 @@ Run the deterministic checks first. They produce the same output for the same in
 
 ```bash
 python3 <plugin-root>/scripts/cv_checks.py <wurzel>/<slug>/lebenslauf.md \
-  --grundlage <Grundlage> --analyse <wurzel>/<slug>/analyse.md [--ats]
+  --grundlage <Grundlage> --analyse <wurzel>/<slug>/analyse.md [--firma <wurzel>/firmen/<firma>.md] [--ats]
 ```
 
 In directory mode pass `--grundlage <Verzeichnis> --grundlage <grundlage_index>` (the option is repeatable).
@@ -94,6 +94,7 @@ a Blocker exists. Its rule IDs:
 | CV-15 | Station title or employer not in the Grundlage (note `titel` and `arbeitgeber`, or an R-2.1 header) | Blocker (Warnung if the Grundlage has no station records) |
 | CV-16 | Personnel-leadership wording (`Teamleitung`, `Personalverantwortung`, `disziplinarisch`, `geleitet` with Team, Mitarbeiter or Abteilung) without `fuehrung: ja` | Blocker with `fuehrung: nein`; Warnung when `ungeklärt` or missing (CG-13.4) |
 | CV-17 | Sub-bullets below a bullet (R-2.1) | Hinweis |
+| CV-18 | Birthdate of a person (`Geburtsdatum`, `geb.`, `geboren` or `*` with a date) in `analyse.md` or a firm file passed with `--firma` (RC-5.3 rule 5, RC-11 rule 4) | Warnung |
 
 Checks that need judgement stay in the review: ownership, leadership, expertise and proficiency
 wording (CG-7.2), relevance of selection (CG-5), seniority and role positioning, language and
@@ -168,6 +169,8 @@ country conventions, employer instructions, and the requested format.
 | A query in the block `### Suchen` of `## Recherche` keeps a token outside the list of RC-5.5, or contains a token of the contact person's name recorded in `analyse.md`, in what is left after removing the whole phrases of the firm name and of the Sitz as recorded in `## Unternehmen` or the firm file (match ignoring case, hyphens, spaces and the legal form GmbH, gGmbH, mbH, AG, SE, KG, UG, e.V., Co.; a firm name that contains a person's name is removed as a phrase, that name alone is left over; tokens are split at spaces and slashes, quotation marks are dropped; a list term of several words such as `Engineering Blog` matches as a whole phrase; a search operator such as `site:` is a token outside the list). A leftover token is a Warnung even if it might be an unrecorded Sitz; a firm name that is not recorded makes the query unverifiable and is a Warnung (review of the record, no script) (RC-5.5 rule 3, UA-3.2, RC-9, UA-5) | Warnung |
 | A search in `### Suchen` uses an engine outside the allowlist `duckduckgo`, `startpage`, `brave` without the user's wish for `bing` (RC-5.5 rule 5) | Warnung |
 | The counts in `Kanäle` (summed over all web entries) exceed the budget of the level (10 searches and 15 page fetches at level 1, 20 and 30 in total at level 2, shared by both levels; the numbers of RC-5.5 rule 6), or `Kanäle` names a web route while `### Suchen` is missing or its rows differ from the count (RC-5.5 rule 6, RC-9 rule 7) | Warnung |
+| `analyse.md` or a firm file in `<wurzel>/firmen/` contains a birthdate of a managing director or another person taken from the register: `Geburtsdatum`, `geb.`, or a `*` date next to a name (RC-5.3 rule 5). Personal data of a third party that E-1 does not need; it stays local and is not sent, so it is a Warnung (as a contact person's name in a query, RC-11 rule 3), removed with the user's agreement through the owning skill. Deterministic: `scripts/cv_checks.py` rule CV-18, with `--analyse` and `--firma` (RC-11 rule 4) | Warnung |
+| The count in `Kanäle` of `Handelsregister über handelsregister-mcp (1 Abruf)` or `(n Abrufe)` exceeds the budget of the level (4 at level 1, 8 at level 2, shared by both levels; RC-5.3 rule 4), falls below the count of an earlier record of the same Vorgang (`## Verlauf` or an earlier `Kanäle`), or the register entry of `Kanäle` is none of the four forms of RC-9 rule 8 (review of the record, no script) (RC-11 rule 5) | Warnung |
 | A document names a firm with `Warnzeichen` (RC-7, RC-8) | Blocker; a Warnung when the user decided against the assessment and the decision stands in `## Verlauf` of `vorgang.md` (RC-8.4) |
 
 ## Output

@@ -452,6 +452,6 @@ example, not by a script.
 | Year-only periods | No `[ERGÄNZEN: Monat]` placeholder, no completion of the station note required (CG-2.4, CG-9) | done (decision) |
 | Gap wording | Neutral wording chosen by the user from the list in CG-9; `Auszeit` is not a default | done (decision) |
 | DOCX metadata | The DOCX export clears the author fields (`dc:creator`, `cp:lastModifiedBy`) in `export_document.py` (CG-11.5); a fresh pandoc DOCX carries no revisions or comments | done (export, 0.2.0) |
-| CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-17 are the whole automated set (R-7, CG-13.4.5) | done (script) |
+| CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-18 are the whole automated set (R-7, CG-13.4.5) | done (script) |
 | Page limit | Exit code 4 of `export_document.py` (R-10.10); the gate sets the severity (CG-12.4, CG-13.5) | done (export) |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

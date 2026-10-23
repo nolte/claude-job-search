@@ -25,6 +25,8 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
   CV-16 personnel-leadership wording: Blocker with `fuehrung: nein`,
         Warnung when the station note does not record leadership (`ungeklärt`, missing)
   CV-17 sub-bullets below a bullet (not part of R-2.1)            Hinweis
+  CV-18 birthdate of a person in analyse.md or a firm file (RC-5.3 rule 5,
+        RC-11 rule 4)                                             Warnung
 
 A station header that is not in the strict form `MM/JJJJ – MM/JJJJ | Position | Arbeitgeber, Ort`
 (for example years only) gets CV-02. Its bullets and its period are still checked: the station is
@@ -432,9 +434,44 @@ def leadership_wording(bullet):
     return bool(LEADERSHIP_VERB.search(bullet) and LEADERSHIP_OBJECT.search(bullet))
 
 
+MONTHS = r"(?:Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)"
+DATE_FORMS = (
+    r"(?:\d{1,2}\.\d{1,2}\.(?:\d{4}|\d{2})(?![\d.-]*\d)"
+    r"|\d{4}-\d{2}-\d{2}(?![\d.-]*\d)"
+    r"|\d{1,2}/\d{1,2}/(?:\d{4}|\d{2})(?![\d/]*\d)"
+    r"|\d{1,2}\.?\s*" + MONTHS + r"\s+(?:\d{4}|\d{2})(?!\d))"
+)
+# Only punctuation, `am` and whitespace may stand between the keyword and the date.
+BIRTH_GAP = r"(?:[\s:,;()\u2013-]|\bam\b)*"
+BIRTHDATE_KEYWORD = re.compile(
+    r"(?:\bGeburtsdatum|\bgeb\.|\bgeboren\b)" + BIRTH_GAP + r"(?<![\d.\-/])" + DATE_FORMS
+    # `geborene Beispiel, 03.05.1971`: one maiden-name word may stand between
+    + r"|\bgeboren(?:e[rn]?)\b[\s:,;]*(?:[A-ZÄÖÜ][\wäöüß-]*[\s:,;]*)?(?<![\d.\-/])" + DATE_FORMS
+    # a date before the keyword: `03.05.1971 geboren`
+    + r"|(?<![\d.\-/])" + DATE_FORMS + r"[\s,;()]*(?:\bgeboren\b|\bgeb\.)",
+    re.I,
+)
+# A bare year counts only directly after `Geburtsdatum` or `geb.`
+BIRTHDATE_YEAR = re.compile(r"(?:\bGeburtsdatum|\bgeb\.)" + BIRTH_GAP + r"(?<![\d.\-/])(?:19|20)\d{2}(?![\d.\-/])", re.I)
+# `Mustermann (* 03.05.1971)` / `Mustermann *03.05.1971`: a capitalised name token directly before `*` or `(*`, the
+# date not followed by a closing emphasis star anywhere on the line (`Frist *31.12.2026 bis*` is emphasis).
+BIRTHDATE_STAR = re.compile(r"(?<![*\w])[A-ZÄÖÜ][\wäöüß-]*[,]?\s+\(?\*\s?(?<![\d.\-/])" + DATE_FORMS + r"(?![^\n]*\*)")
+
+
+def birthdate_findings(text, file):
+    """CV-18 (RC-11 rule 4): a birthdate in analyse.md or a firm file. `Geburtsdatum`, `geb.` or `geboren` with a date
+    on the same line, or a word followed by `*` and a date. Plain dates (`Stand: 2026-10-23`, a Frist) and a `*` that
+    opens a list item or emphasis do not match."""
+    findings = []
+    for number, line in enumerate(text.splitlines(), 1):
+        if BIRTHDATE_KEYWORD.search(line) or BIRTHDATE_YEAR.search(line) or BIRTHDATE_STAR.search(line):
+            findings.append(finding("CV-18", "Warnung", file, number, "Geburtsdatum einer Person (RC-5.3 Regel 5, RC-11 Regel 4): nicht erfassen, mit Zustimmung entfernen"))
+    return findings
+
+
 def check_analysis(text, file):
     """Run the rules for analyse.md (CG-4): Muss evidence and status vocabulary."""
-    findings = []
+    findings = birthdate_findings(text, file)
     columns = None
     for number, line in enumerate(text.splitlines(), 1):
         if not line.lstrip().startswith("|"):
@@ -468,6 +505,16 @@ def check_analysis(text, file):
     return findings
 
 
+def read_optional(path, rule, label, findings):
+    """Read an optional input file. A missing or unreadable file is a Warnung in `findings`, no crash; returns None then."""
+    try:
+        with open(path, encoding="utf-8") as handle:
+            return handle.read()
+    except (OSError, UnicodeDecodeError) as error:
+        findings.append(finding(rule, "Warnung", path, 0, f"{label} nicht lesbar ({error.__class__.__name__}), Prüfung nicht möglich"))
+        return None
+
+
 def load_records(paths):
     records = []
     for path in paths:
@@ -480,6 +527,7 @@ def main(argv=None):
     parser.add_argument("lebenslauf", help="path to lebenslauf.md")
     parser.add_argument("--grundlage", action="append", default=[], help="Grundlage file or directory (repeatable: directory and index note)")
     parser.add_argument("--analyse", help="path to analyse.md")
+    parser.add_argument("--firma", action="append", default=[], help="firm file in <wurzel>/firmen/ (repeatable): birthdate check CV-18")
     parser.add_argument("--ats", action="store_true", help="treat tables as Blocker (posting requires ATS)")
     args = parser.parse_args(argv)
 
@@ -490,8 +538,14 @@ def main(argv=None):
 
     findings = check_cv(text, args.lebenslauf, source_text, sources, ats=args.ats)
     if args.analyse:
-        with open(args.analyse, encoding="utf-8") as handle:
-            findings += check_analysis(handle.read(), args.analyse)
+        analysis_text = read_optional(args.analyse, "CV-14", "Analyse", findings)
+        if analysis_text is not None:
+            findings += check_analysis(analysis_text, args.analyse)
+
+    for firm_path in args.firma:
+        firm_text = read_optional(firm_path, "CV-18", "Firmendatei", findings)
+        if firm_text is not None:
+            findings += birthdate_findings(firm_text, firm_path)
 
     summary = {level: sum(1 for f in findings if f["schweregrad"] == level) for level in ("Blocker", "Warnung", "Hinweis")}
     report = {

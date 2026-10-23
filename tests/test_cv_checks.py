@@ -423,5 +423,98 @@ class StationNoteTests(unittest.TestCase):
         self.assertEqual(records, [])
 
 
+class BirthdateTests(unittest.TestCase):
+    """CV-18 (RC-11 rule 4): a birthdate of a person in analyse.md or a firm file is a Warnung."""
+
+    POSITIVE = (
+        "Geschäftsführerin Erika Mustermann, Geburtsdatum: 03.05.1971",
+        "Erika Mustermann, geb. 3.5.71",
+        "Erika Mustermann, Geb. 1971-05-03",
+        "Erika Mustermann, geboren am 03.05.1971",
+        "Erika Mustermann (* 03.05.1971)",
+        "Erika Mustermann *03.05.1971",
+        "Erika Mustermann (* 1971-05-03), Geschäftsführerin",
+        "Erika Mustermann, geborene Beispiel, 03.05.1971",
+        "Erika Mustermann, Geburtsdatum: 03. Mai 1971",
+        "Erika Mustermann, geboren am 3. Mai 1971",
+        "Erika Mustermann, geb. 03/05/1971",
+        "Erika Mustermann, 03.05.1971 geboren",
+        "Erika Mustermann (03.05.1971 geb.)",
+        "Erika Mustermann, Geburtsdatum: 1971",
+        "Erika Mustermann, geb. 1971",
+        "Musterfirma GmbH: Erika Mustermann *03. Mai 1971",
+    )
+    NEGATIVE = (
+        "Stand: 2026-10-23",
+        "Bewerbungsfrist: 15.11.2026",
+        "Gegründet 03.05.1971 als Musterfirma GmbH",
+        "Geburtsdatum nicht erfasst (RC-5.3 Regel 5)",
+        "Erika Mustermann, Geschäftsführerin seit 2019",
+        "*2026-10-23*",
+        "* 2026-10-23 Frist des Postings",
+        "*Stand: 2026-10-23*",
+        "Zeitraum 03.2019 – 05.2021 bei der Beispiel AG",
+        "Frist *31.12.2026 bis*",
+        "Stand *2026-10-23 (Impressum)*",
+        "**Stand:** *2026-10-23",
+        "Beispiel AG, geb. Zeitarbeit 01.01.2020",
+        "Gegründet 1971 als Musterfirma GmbH",
+        "Musterfirma GmbH, gegründet am 3. Mai 1971",
+        "Geburtsdatum nicht erfasst, Gründung 1971",
+        "Frist 15/11/2026",
+    )
+
+    def test_birthdate_forms_are_warnings(self):
+        for line in self.POSITIVE:
+            findings = cv_checks.check_analysis("## Unternehmen\n" + line + "\n", "analyse.md")
+            self.assertEqual(rules(findings), ["CV-18"], line)
+            self.assertEqual(findings[0]["schweregrad"], "Warnung", line)
+            self.assertEqual(findings[0]["zeile"], 2, line)
+
+    def test_plain_dates_and_notes_are_not_findings(self):
+        for line in self.NEGATIVE:
+            self.assertEqual(cv_checks.check_analysis(line + "\n", "analyse.md"), [], line)
+
+    def test_firm_file_option_runs_the_check(self):
+        base = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, base, True)
+        paths = {}
+        for name, content in (("lebenslauf.md", CLEAN_CV), ("musterfirma.md", "# Musterfirma GmbH\nErika Mustermann, geb. 03.05.1971\n"),
+                              ("sauber.md", "# Beispiel AG\nStand: 2026-10-23\n")):
+            paths[name] = os.path.join(base, name)
+            with open(paths[name], "w", encoding="utf-8") as handle:
+                handle.write(content)
+        import contextlib
+        import io
+        import json
+        for firm, expected in (("musterfirma.md", ["CV-18"]), ("sauber.md", [])):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                cv_checks.main([paths["lebenslauf.md"], "--firma", paths[firm]])
+            self.assertEqual(rules(json.loads(out.getvalue())["befunde"]), expected, firm)
+
+    def test_missing_optional_paths_are_findings_not_crashes(self):
+        import contextlib
+        import io
+        import json
+        base = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, base, True)
+        cv = os.path.join(base, "lebenslauf.md")
+        with open(cv, "w", encoding="utf-8") as handle:
+            handle.write(CLEAN_CV)
+        firm = os.path.join(base, "musterfirma.md")
+        with open(firm, "w", encoding="utf-8") as handle:
+            handle.write("# Musterfirma GmbH\nErika Mustermann, geb. 03.05.1971\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            cv_checks.main([cv, "--firma", os.path.join(base, "fehlt.md"), "--firma", firm, "--analyse", os.path.join(base, "fehlt-analyse.md")])
+        report = json.loads(out.getvalue())
+        missing = [f for f in report["befunde"] if "nicht lesbar" in f["befund"]]
+        self.assertEqual(sorted(f["regel"] for f in missing), ["CV-14", "CV-18"])
+        self.assertTrue(all(f["schweregrad"] == "Warnung" for f in missing))
+        # the other firm file is still checked
+        self.assertEqual(sum(1 for f in report["befunde"] if f["regel"] == "CV-18" and "Geburtsdatum einer Person" in f["befund"]), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

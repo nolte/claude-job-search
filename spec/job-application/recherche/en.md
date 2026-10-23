@@ -9,7 +9,8 @@ counterpart safely, and avoid being misled.
 **Status:** the skills implement levels 0 to 2, the `## Recherche` record and the quality-gate checks
 (RC-11, RC-13). The LinkedIn, register, web-search and job-board channels depend on optional MCP
 servers (docs page *LinkedIn access*; the other servers are tracked as feature requests). The
-open-webSearch server as preferred web route (RC-5.2 rules 7 to 9, RC-5.5 rules 4 to 11) is specified,
+open-webSearch server as preferred web route (RC-5.2 rules 7 to 9, RC-5.5 rules 4 to 11) and the Handelsregister MCP server as register route
+(RC-5.3 rules 1 to 9) are specified,
 and `job-application-posting-analysis`, `job-application-fit-check` and the quality gate follow it (RC-13).
 
 **Citation form.** A numbered rule of a section is cited as `RC-n rule m` or `RC-n.m`; a step of the
@@ -31,8 +32,8 @@ LS-4 (firm files), LS-6 (lifecycle).
    finding without a source is not a finding.
 3. **Reading only.** Research reads. It never sends a message, a connection request or an
    application. It has no login of its own and uses no paid access. The only authenticated access
-   is the user's own LinkedIn session that the LinkedIn server uses (RC-5.4); a register lookup that
-   incurs a fee needs the user's decision first (RC-5.3).
+   is the user's own LinkedIn session that the LinkedIn server uses (RC-5.4); a register lookup needs
+   the user's yes first (RC-5.3 rule 2).
 4. **The candidate's data stays home.** A query, a search term or a page request carries no
    candidate data, no Grundlage text, no application text and no Wunschprofil content (UA-3.2,
    WJ-8.2, R-6).
@@ -180,10 +181,59 @@ The pages are read in the following order, because each one confirms or question
 
 | Portal | Use | Note |
 |---|---|---|
-| Handelsregister (`handelsregister.de`) | E-1, V-2: register number, Rechtsform, Sitz, managing directors | The user decides whether a lookup is made and whether fees are accepted (UA-9) |
+| Handelsregister (`handelsregister.de`) | E-1, V-2: register number, Rechtsform, Sitz, managing directors | Through the Handelsregister MCP server when it is connected, otherwise by hand (rules below); every lookup needs the user's yes (rule 2) |
 | Unternehmensregister (`unternehmensregister.de`) and Bundesanzeiger (`bundesanzeiger.de`) | E-2, E-3: published annual accounts, notices | Small firms often publish little; `nicht ermittelt` is a legitimate result |
 | Official insolvency notices (`insolvenzbekanntmachungen.de`) | E-3: current and recent proceedings | Search by the exact legal name and Sitz, to avoid look-alikes |
 | Federal Employment Agency | V-6: permit for Arbeitnehmerüberlassung of an agency that lends people | Whether and how a public lookup is possible is to be verified (RC-13) |
+
+The open-source Handelsregister MCP server (<https://github.com/lexdoudkin/handelsregister-mcp>) reads
+the register portal for the research. **It is the preferred route to Handelsregister content.** When
+the server is connected and the user said yes (rule 2), the register is read through it and through
+no other route. When it is not connected, the research says so, and the user may enter or paste the
+register data; the items stay `nicht ermittelt` until then (RC-2.2). The server stays optional for
+the plugin as a whole: no skill depends on it. The extra `[ocr]` of the server is not needed.
+
+| Need | Tool | Item |
+|---|---|---|
+| Find the firm by name, Sitz or register number | `search_company` | E-1, V-2 |
+| Register entry: name, Rechtsform, Sitz, register number, managing directors | `get_company` | E-1, V-2 |
+| Current excerpt (document type `AD` only) | `fetch_document` | E-1, E-2, V-2 |
+| Whether and when annual accounts were filed (existence and date only) | `list_filed_documents` | E-3 |
+| Remaining hourly allowance | `rate_limit_status` | none, used before a run |
+
+1. **Reading tools only.** The tools above are the only ones used. `get_shareholders`,
+   `fetch_filed_document`, `fetch_document` with a type other than `AD` (`HD`, `CD`, `SI`, `UT`,
+   `VÖ`), and bulk or neighbour queries are not used: they serve shareholder research and profiling
+   and not one of the items above.
+2. **Consent.** The portal's terms limit automated retrievals, and the server's README names a limit
+   of 60 retrievals per hour and warns that exceeding it can be a criminal offence. These are
+   statements of the README, not settled law and not confirmed by this specification. Before the
+   first register lookup of a Vorgang, the skill names this and waits for the user's yes. A no
+   leaves the other channels; the items stay `nicht ermittelt`.
+3. **Offer.** The lookup is offered at level 1 or 2 only, for every Vorgang whose counterpart is a
+   Vermittler (KK-2: Personalberatung, Personalvermittlung / Zeitarbeit) and for the recruiter's
+   firm itself (V-2). For a direct employer it is made only when the user asks. Every lookup needs
+   the yes of rule 2.
+4. **Budget.** At most 4 retrievals (tool calls except `rate_limit_status`) per Vorgang at level 1
+   and at most 8 at level 2. Calls run one after the other. Levels 1 and 2 share the budget of one
+   Vorgang: a run starts from the count in the line `Kanäle` of the existing record (RC-9 rule 8),
+   also in a new session. `rate_limit_status` is called before a run; the server's variable
+   `HANDELSREGISTER_MAX_PER_HOUR` is never raised. The user may lower the numbers.
+5. **Data minimisation.** Birthdates and private addresses of managing directors are not copied into
+   `analyse.md` or any firm file. Names and functions are recorded only as far as E-1 needs them
+   (UA-2.2, RC-1.5).
+6. **Not an authority alone.** A register hit confirms E-1 only together with the imprint
+   (RC-5.2 rule 4). A hit alone leaves the status `offen`.
+7. **One route.** Web search and direct page fetches are not used to read `handelsregister.de`: they
+   bypass the consent of rule 2 and the budget of rule 4. A link to the portal that a search
+   returns is opened through the server or not at all.
+8. **Failure is not an abort.** A failed lookup, an empty result or an unresolved ambiguity leaves
+   the item `nicht ermittelt` with the reason (RC-2.2), and the run continues. Several hits with the
+   same name are separated by Sitz and register number (RC-6.4); without that the
+   status is `Identität nicht bestätigt`.
+9. **Availability check.** At the start of a run (RC-6 step 1) the research checks whether the
+   server's tools are connected, together with the checks of RC-5.4 rule 7. The result is stated
+   in the record (RC-9, line `Kanäle`).
 
 ### RC-5.4 LinkedIn through the MCP server
 
@@ -295,8 +345,8 @@ The candidate shares nothing with a Vermittler that the employer would not also 
 ## RC-6 Procedure
 
 1. **Level and consent.** Fix the level (RC-2). For levels 1 and 2 confirm with the user that the
-   network is used and which channels, and check whether the LinkedIn MCP server is connected
-   (RC-5.4 rules 2 and 7).
+   network is used and which channels, and check whether the LinkedIn MCP server and, where a register lookup is offered, the Handelsregister
+   server are connected (RC-5.4 rules 2 and 7, RC-5.3 rules 3 and 9).
 2. **Local first.** Read the posting and the messages. Record the signals of KK-3.1 and the
    open questions.
 3. **Roles.** Determine the roles of UA-1 and the Kontaktart (KK-3).
@@ -381,7 +431,7 @@ one application to `analyse.md`.
 ```markdown
 ## Recherche
 
-Stufe: 1 (Basis) · Stand: 2026-10-23 · Kanäle: Anzeige, Impressum, Unternehmensregister, LinkedIn (4 Seiten), Websuche über open-webSearch (3 Suchen, 5 Seitenabrufe)
+Stufe: 1 (Basis) · Stand: 2026-10-23 · Kanäle: Anzeige, Impressum, Handelsregister über handelsregister-mcp (2 Abrufe), Unternehmensregister, LinkedIn (4 Seiten), Websuche über open-webSearch (3 Suchen, 5 Seitenabrufe)
 
 | ID | Befund | Quelle | Stand | Status |
 |---|---|---|---|---|
@@ -429,6 +479,12 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
    such entry per route, and the budget counts the sum of all web entries. The block
    `### Suchen` lists each search with `Engine`, `Query` and `Datum`; it is omitted when no web
    search ran. A blocked engine or a failed search is noted there with the reason.
+8. **Register route.** The line `Kanäle` names the register route and the count of retrievals
+   (RC-5.3 rule 4) in the fixed form `Handelsregister über handelsregister-mcp (n Abruf|Abrufe)`: `1 Abruf`,
+   otherwise `n Abrufe` (`0 Abrufe`, `2 Abrufe`), so that the count can be read back and compared. When no lookup ran, the line says `Handelsregister
+   nicht abgefragt (abgelehnt)`, `Handelsregister nicht abgefragt (Server nicht verbunden)` or
+   `Handelsregister nicht abgefragt`, as the case was. Without a register entry in `Kanäle` the
+   budget counts from 0.
 
 ## RC-10 Data protection
 
@@ -486,7 +542,25 @@ Rules for the quality-gate checks:
    recorded makes the query unverifiable and is a Warnung as well (record incomplete, UA-5). The gate also
    reports counts in `Kanäle` above the budget of RC-5.5 rule 6, and a `Kanäle` line
    that names a web route while `### Suchen` is missing or the counts differ (RC-9 rule 7).
-4. The gate reads the record. It runs no research of its own.
+4. **Birthdate from the register.** A birthdate of a managing director or another person in
+   `analyse.md` or in a firm file is a Warnung (RC-5.3 rule 5). It is recognised by the word
+   `Geburtsdatum`, `geb.` or `geboren` followed on the same line by a date (only whitespace, punctuation and `am` between
+   them), by a date directly before `geboren` or `geb.` (`03.05.1971 geboren`), or by a `*` or `(*`
+   and a date after a capitalised name token (`Erika Mustermann (* 03.05.1971)`), provided no
+   closing emphasis star follows on the line. The date forms are `TT.MM.JJJJ`, `T.M.JJ`,
+   `TT/MM/JJJJ`, `JJJJ-MM-TT` and with a spelled-out month (`3. Mai 1971`); a bare year counts only
+   directly after `Geburtsdatum` or `geb.`. A plain date such as `Stand: 2026-10-23` or a
+   Frist, a note that no birthdate was recorded, a founding date, and a `*` that opens a list item
+   or emphasis (`Frist *31.12.2026 bis*`) are not findings. The check is deterministic: `scripts/cv_checks.py` runs it as rule CV-18 on
+   `analyse.md` (`--analyse`) and on each firm file (`--firma`). The owning skill removes the date
+   with the user's agreement.
+5. **Register entry in `Kanäle`.** The gate reports as a Warnung a count of `Handelsregister über
+   handelsregister-mcp (n Abruf|Abrufe)` above the budget of RC-5.3 rule 4 (4 at level 1, 8 at level 2,
+   shared by both levels), a count that falls below the count of an earlier record of the same
+   Vorgang (`## Verlauf` or an earlier `Kanäle`), and a register entry that is none of the four forms
+   of RC-9 rule 8. This
+   is a review of the record, no script.
+6. The gate reads the record. It runs no research of its own.
 
 ## RC-12 Acceptance scenarios
 
@@ -509,6 +583,11 @@ Rules for the quality-gate checks:
 | RS-O | One engine blocks or returns an error | The block is reported to the user and the engine is skipped. No proxy. Items that depended on the search are `nicht ermittelt` (RC-2.2); the run continues |
 | RS-P | A public page is readable only with JavaScript | No browser mode. The item is `nicht ermittelt` with the reason `nur mit JavaScript lesbar`; the user may paste the text |
 | RS-Q | A `linkedin.com` URL is to be fetched or comes up as a hit | It is not passed to `fetchWebContent` or `fetchGithubReadme`. It is read through the LinkedIn server after the consent of RC-5.4 rule 2, or not at all (RC-5.2 rule 9) |
+| RS-R | Handelsregister server connected, Personalberatung as counterpart, level 1 | The lookup is offered; after the yes of RC-5.3 rule 2 `rate_limit_status`, `search_company` and `get_company` run. E-1 and V-2 are confirmed only together with the imprint (rule 6). No birthdate is recorded. `Kanäle` names `Handelsregister über handelsregister-mcp (2 Abrufe)` |
+| RS-S | Handelsregister server not connected | The research says so; the user may enter the register data. E-1 and V-2 stay `nicht ermittelt` with the reason `Handelsregister-Server nicht verbunden`. `handelsregister.de` is not fetched or searched (rule 7). `Kanäle` names `Handelsregister nicht abgefragt (Server nicht verbunden)`. No error, no abort |
+| RS-T | `search_company` returns two firms named Beispiel AG | They are separated by Sitz and register number. If the posting or imprint does not settle which one, the status is `Identität nicht bestätigt` and the user decides (RC-5.3 rule 8) |
+| RS-U | The user declines the register lookup | No register tool is called. The other channels run; items that depended on the register are `nicht ermittelt`. `Kanäle` names `Handelsregister nicht abgefragt (abgelehnt)` |
+| RS-V | The count in `Kanäle` has reached the budget, or `rate_limit_status` reports no allowance | No further retrieval; the variable `HANDELSREGISTER_MAX_PER_HOUR` is not raised. The open items are `nicht ermittelt` with the reason `Abrufgrenze erreicht`; the user may continue later or enter the data |
 
 The scenarios are verified by reviewing a generated research record, not by a script.
 
@@ -520,7 +599,7 @@ The scenarios are verified by reviewing a generated research record, not by a sc
 | Quality gate | The checks of RC-11 for `## Recherche` are in `job-application-quality-gate` | done |
 | Web route | The open-webSearch server as preferred route for search and page fetch (RC-5.2 rules 8 and 9, RC-5.5 rules 4 to 11, RC-9 rule 7, scenarios RS-M to RS-Q): specification | Spec: done. Skills: done (`posting-analysis`, `fit-check`, quality gate) |
 | Script check | Validate the table and the `Status` values of RC-9 deterministically | open |
-| Register access | Whether a register lookup is made, by which provider and under which fees | open, decision for the user (UA-9) |
+| Register access | The Handelsregister MCP server as preferred route, with consent, budget and data minimisation (RC-5.3 rules 1 to 9, RC-9 rule 8, scenarios RS-R to RS-V): specification | Decided. Spec: done. Skills, docs page: follow the spec |
 | Permit lookup | How an agency's permit for Arbeitnehmerüberlassung can be checked publicly | open, to be verified |
 | Legal references | Rules on fees for candidates, lending of employees and the handling of applicant data are not stated as settled law here | open, to be verified (KK-9) |
 | Budgets and periods | The page limits (RC-5.4), the search and fetch budget (RC-5.5 rule 6), the 30 days (RC-2.3) and the two years (RC-7.1) are defaults | open, to be tuned by practice |

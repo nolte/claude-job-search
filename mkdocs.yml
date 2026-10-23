@@ -64,6 +64,7 @@ plugins:
             Glossary: Glossar
             Export: Export
             LinkedIn: LinkedIn
+            Handelsregister: Handelsregister
             Web search: Websuche
 
 markdown_extensions:
@@ -91,4 +92,5 @@ nav:
   - Glossary: en/glossary.md
   - Export: en/export.md
   - LinkedIn: en/linkedin.md
+  - Handelsregister: en/handelsregister.md
   - Web search: en/websearch.md

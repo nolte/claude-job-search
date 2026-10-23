@@ -189,5 +189,5 @@ frontmatter keys is an open point.
 |---|---|---|
 | Skill integration | `job-application-posting-analysis` writes the `## Unternehmen` section and the firm files; `cover-letter-create`, `email-create`, `solution` and `quality-gate` apply UA-6 | done in the skills; deterministic check open |
 | Script check | Validate the UA-5.1 table and UA-5.2 keys deterministically | open |
-| Registry access | Whether a commercial-register lookup is used at all; if so, which provider and under which terms | open, decision for the user |
+| Registry access | Decided: the Handelsregister MCP server is the preferred route, used only with the user's yes, within a budget and without birthdates or private addresses (`recherche` RC-5.3) | decided; skills and docs follow |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
