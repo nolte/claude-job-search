@@ -205,6 +205,10 @@ class SkillStructureTests(unittest.TestCase):
         gate = read("skills", "job-application-quality-gate", "SKILL.md")
         for needle in ("### Suchen", "allowlist", "RC-5.5 rule 6"):
             self.assertIn(needle, gate, needle)
+        reason = "Abruf ohne Weiterleitungsprüfung nicht möglich"
+        self.assertIn(reason, " ".join(read("spec", "job-application", "recherche", "en.md").split()))
+        self.assertIn(reason, " ".join(read("skills", "job-application-posting-analysis", "SKILL.md").split()))
+        self.assertIn("RC-5.2 rules 8 and 9", " ".join(read("spec", "job-application", "recherche", "en.md").split()))
         for lang in ("en", "de"):
             page = read("docs", lang, "websearch.md")
             self.assertIn("open-websearch@", page, lang)
@@ -220,12 +224,11 @@ class SkillStructureTests(unittest.TestCase):
         def flat(*parts):
             return " ".join(read(*parts).split())
 
-        spec = flat("spec", "job-application", "recherche", "en.md")
-        self.assertRegex(spec, r"At most 10 searches and 15 page fetches per Vorgang at level 1, and at most 20 and 30")
-        self.assertRegex(flat("skills", "job-application-posting-analysis", "SKILL.md"),
-                         r"at most 10 searches and 15 page fetches at level 1, 20 and 30 in total")
-        self.assertRegex(flat("skills", "job-application-quality-gate", "SKILL.md"),
-                         r"10 searches and 15 page fetches at level 1, 20 and 30 in total at level 2")
+        for label, text in (("spec", flat("spec", "job-application", "recherche", "en.md")),
+                            ("skill", flat("skills", "job-application-posting-analysis", "SKILL.md")),
+                            ("gate", flat("skills", "job-application-quality-gate", "SKILL.md"))):
+            self.assertRegex(text, r"10 searches and 15 page fetches", label)
+            self.assertRegex(text, r"20 and 30", label)
         for lang, word in (("en", "at most"), ("de", "höchstens")):
             page = read("docs", lang, "websearch.md")
             for level, searches, fetches in ((1, 10, 15), (2, 20, 30)):

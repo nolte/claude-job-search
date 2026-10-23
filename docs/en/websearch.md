@@ -75,7 +75,7 @@ entry to the `mcpServers` section of your MCP configuration:
 | `USE_PROXY=false` | This is the default. The plugin does not recommend a proxy to get around blocking |
 | `MCP_TOOL_FETCH_…_NAME=<disabled>` | According to the README, `<disabled>` switches a tool off. This disables the CSDN, Linux.do and Juejin fetch tools, so the tool list stays short and unambiguous |
 
-Type the value `<disabled>` literally, with the angle brackets. If `/mcp` still lists the three tools, check the spelling and the pinned version before you rely on the setting.
+Type the value `<disabled>` literally, with the angle brackets. The README of version 2.2.0 documents this; an older release may not support it, which is one more reason to keep the pinned version. If `/mcp` still lists the three tools, check the spelling and the pinned version before you rely on the setting.
 
 **Engines.** The server supports more engines, among them `bing`, `baidu`, `hackernews` and
 `exa`. Add `bing` only when you ask for it, for example because coverage of a German firm is too
@@ -135,8 +135,9 @@ The record in `## Recherche` lists the route used and every search with engine, 
    never an internal address. The check of a redirect comes after the request: a redirect to
    `linkedin.com` is noticed only afterwards, and the text is then not used. The request to the
    redirect target has already been sent from your machine at that point. A built-in fetch tool that
-   does not report the final URL is not used for pages at all: the item stays open and you can
-   paste the text. Its search stays allowed.
+   does not report the final URL is not used for pages at all. Most client fetch tools do not say
+   so, so in practice only their search is available: the pages wait for the server or for text
+   you paste, and the items stay open. Its search stays allowed.
 8. **Everything read enters the session.** Fetched pages become part of the Claude session and go
    to the model provider like any other text in it (RC-10).
 9. **Supply chain.** `npx` downloads and runs code from the npm registry. A pinned version limits
