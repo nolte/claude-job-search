@@ -22,6 +22,7 @@ Bewerbung. Den Ablauf zeigt dir [Erste Schritte](getting-started.md), die Begrif
 ## Einstieg
 
 - Neu hier? Lies [Erste Schritte](getting-started.md): installieren, konfigurieren, Daten erfassen, erste Bewerbung.
+- Du willst das Plugin in einer Situation wie deiner sehen? Die [Anwendungsfälle](use-cases/index.md): Anzeige, Recruiter, Berufswechsel, Initiativbewerbung, Daten aktuell halten.
 - `/claude-job-search:job-application-profile-capture`, wenn noch keine Datengrundlage existiert.
 - Du willst erst wissen, was du suchst? Führe einmal `/claude-job-search:job-application-traumjob-interview` aus und danach `/claude-job-search:job-application-fit-check` für jede Stelle oder Firma.
 - Hast du noch keine Anzeige? Führe `/claude-job-search:job-application-job-search` aus, um Jobbörsen mit einem Brief zu durchsuchen, den du zuerst freigibst; dafür brauchst du den optionalen Server [JobSpy](jobspy.md), mit eigenen Risiken.
