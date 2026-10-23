@@ -364,7 +364,8 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
 2. **What is read from the network ends up in the session** and is processed by the model
    provider like any other text of the session. The user is told this once per research run.
 3. **Third-party personal data** is limited to the contact person: name, function, firm, tenure
-   (RC-1.5). It is stored only in `analyse.md` of the Vorgang and follows its retention (S10).
+   (RC-1.5). It is stored only in `analyse.md` of the Vorgang. At any final status, including `zusage`, the
+   person data is removed (`lokale-struktur` LS-6 rule 8, LS-9 rule 6).
    `get_person_profile` is called with the narrowest section selection that yields the current
    position. The record keeps only function, firm and tenure; the rest of the returned text is not
    copied to any file. It does enter the session (rule 2), which is why the user is told before the
