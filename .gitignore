@@ -25,10 +25,13 @@ env/
 # Task runner cache
 .task/
 
-# Audits — local-only, except the license-check record that the release
-# workflow reads from develop (release-publish.yml, job license-verdict)
+# Audits — local-only, except the license-check records that the release
+# workflow reads from develop (release-publish.yml, job license-verdict);
+# SBOMs and scratch files next to them stay local
 .audits/*
 !.audits/license-check/
+.audits/license-check/*
+!.audits/license-check/license-*.md
 
 # Environment
 .env
