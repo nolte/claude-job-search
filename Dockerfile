@@ -17,7 +17,8 @@ LABEL org.opencontainers.image.title="claude-job-search LaTeX export" \
       org.opencontainers.image.base.digest="sha256:7ff6ba31527b9e336162fa061746c366c4b2032f4d2cff2078bea43f78efe3f8"
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    LANG=C.UTF-8
+    LANG=C.UTF-8 \
+    PLUGIN_REVISION=$REVISION
 
 # pandoc and LuaLaTeX for PDF and tex; poppler-utils for the page and text checks; python-docx for DOCX.
 RUN apt-get update \

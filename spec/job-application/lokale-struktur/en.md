@@ -24,7 +24,8 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
 ## LS-2 Wurzel, Konfiguration and Obsidian
 
 1. **Default Wurzel.** `job-application/` in the working directory of the user. The folder is
-   git-ignored (R-6).
+   git-ignored by default; tracking it in a private, unpublished repository is the user's decision
+   (R-6, `lebenslauf-versionen` LV-4).
 2. **Override.** `job-application/konfiguration.md` may set the frontmatter key `wurzel: <Pfad>`.
    The path may point to any directory on the local disk, including a folder inside an Obsidian
    vault. Without the key, the default applies.

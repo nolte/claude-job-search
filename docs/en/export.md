@@ -22,10 +22,21 @@ For the LaTeX source alone (`--format tex`), only pandoc is needed. LuaLaTeX is 
 
 ## Layout
 
-The PDF uses one column, one accent colour (dark blue), thin rules under the section headings and
-coloured bullets. There are no tables, icons, photos or text in the header and footer, so a parser reads the
-same text as before (spec R-8.3). The same template is used for the Lebenslauf and the Anschreiben. The
-design is in `skills/job-application-export/templates/document.tex`.
+The PDF is one column with one accent colour (dark blue), thin rules under the section headings and coloured
+bullets. There are no tables, icons, photos or text in the header and footer apart from a quiet page number, so a
+parser reads the same text as before (spec R-8.3).
+
+- **Header:** the name stands first and large, the personal data below it.
+- **Stations:** the period stands in a left column, the position in bold, the employer and place below it in grey.
+  Education and certificates use the same column for their periods.
+- **Typography:** Lato at 10.5 pt on 14.3 pt leading, ragged right, little hyphenation, product names such as
+  `VMware Tanzu` do not break. The size is not reduced to fit two pages.
+- **Print and screen:** the colours keep their contrast on white (text 15.8:1, accent 8.7:1, grey 6.1:1) and the
+  hierarchy stays visible in grayscale.
+- **Letter:** the Anschreiben uses the same template with its own margins (25 mm left).
+
+The design is in `skills/job-application-export/templates/` (`document.tex` and `cv.lua`); the rules are in
+`spec/job-application/lebenslauf/en.md` (LB-11).
 
 ## Input
 
@@ -66,7 +77,25 @@ In the output folder the export writes:
 - the PDF (`<name>.pdf`) and, for `--format pdf`, the LaTeX source (`<name>.tex`); the auxiliary files
   of LuaLaTeX are removed,
 - the page count and the result of the content check on the console. A content check that fails is
-  reported, and the export is not presented as ready.
+  reported, and the export is not presented as ready,
+- a manifest (`<name>.<ext>.manifest.json`): hash of the source, of the template and of the output, tool
+  versions and the date used.
+
+### Reproducible PDFs
+
+A source with the frontmatter key `version_datum` (`YYYY-MM-DD`) is a frozen version. The export then derives
+the PDF dates and the PDF ID from the source, so the same source, template and container image give a
+byte-identical PDF. Without `version_datum` the PDF carries the day of the export and the exporter prints a
+notice.
+
+```bash
+python3 skills/job-application-export/scripts/export_document.py --reproduce lebenslauf.pdf.manifest.json
+```
+
+The command rebuilds the file in a temporary folder and compares the hash. Exit code `0` means identical,
+`3` means different or a changed source, and it lists differing tool versions. Keep the container image of a
+sent PDF (`docker save`), because the Debian packages inside it float over time. Variants, versions and the
+folder layout are specified in `spec/job-application/lebenslauf-versionen/en.md`.
 
 ## Run in a container, in another repository
 

@@ -53,6 +53,7 @@ tasks:
       Usage: task export -- <input.md> --format <pdf|docx|html|md> --doc-type <cv|letter|email> [--out-dir DIR] [--name NAME]
         task export -- job-application/acme/lebenslauf.md --format pdf --doc-type cv
         task export -- job-application/acme/anschreiben.md --format docx --doc-type letter --name Max_Mustermann_Anschreiben
+      Rebuild an export from its manifest and compare it: task export -- --reproduce <datei>.manifest.json
     cmds:
       - python3 skills/job-application-export/scripts/export_document.py {{.CLI_ARGS}}
 

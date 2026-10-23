@@ -23,9 +23,20 @@ Für die LaTeX-Quelle allein (`--format tex`) reicht pandoc. LuaLaTeX ist dafür
 ## Layout
 
 Die PDF ist einspaltig und nutzt eine Akzentfarbe (dunkles Blau), dünne Linien unter den Abschnittsüberschriften
-und farbige Aufzählungspunkte. Es gibt keine Tabellen, Symbole, Fotos oder Text in Kopf- und Fußzeile, ein
-Parser liest also denselben Text wie zuvor (Spec R-8.3). Dasselbe Template gilt für Lebenslauf und Anschreiben.
-Das Design steht in `skills/job-application-export/templates/document.tex`.
+und farbige Aufzählungspunkte. Es gibt keine Tabellen, Symbole, Fotos oder Text in Kopf- und Fußzeile außer einer
+dezenten Seitenzahl, ein Parser liest also denselben Text wie zuvor (Spec R-8.3).
+
+- **Kopfbereich:** Der Name steht zuerst und groß, darunter die persönlichen Angaben.
+- **Stationen:** Der Zeitraum steht in einer linken Spalte, die Position fett, Arbeitgeber und Ort darunter in Grau.
+  Ausbildung und Zertifikate nutzen dieselbe Spalte für ihre Zeiträume.
+- **Typografie:** Lato in 10,5 pt auf 14,3 pt Zeilenabstand, Flattersatz, wenig Silbentrennung, Produktnamen wie
+  `VMware Tanzu` brechen nicht um. Die Schrift wird nicht verkleinert, um zwei Seiten zu erreichen.
+- **Druck und Bildschirm:** Die Farben behalten ihren Kontrast auf Weiß (Text 15,8:1, Akzent 8,7:1, Grau 6,1:1),
+  und die Hierarchie bleibt in Graustufen sichtbar.
+- **Brief:** Das Anschreiben nutzt dasselbe Template mit eigenen Rändern (25 mm links).
+
+Das Design steht in `skills/job-application-export/templates/` (`document.tex` und `cv.lua`), die Regeln in
+`spec/job-application/lebenslauf/en.md` (LB-11).
 
 ## Eingabe
 
@@ -67,6 +78,24 @@ Im Ausgabeordner entstehen:
   von LuaLaTeX werden gelöscht.
 - Seitenzahl und Ergebnis der Inhaltsprüfung auf der Konsole. Eine fehlgeschlagene Inhaltsprüfung wird
   gemeldet, und der Export gilt dann nicht als fertig.
+- ein Manifest (`<name>.<ext>.manifest.json`): Hash von Quelle, Vorlage und Ausgabe, Werkzeugversionen und das
+  verwendete Datum.
+
+### Reproduzierbare PDFs
+
+Eine Quelle mit dem Frontmatter-Schlüssel `version_datum` (`JJJJ-MM-TT`) ist eine festgeschriebene Version. Der
+Export leitet dann Datum und PDF-ID der PDF aus der Quelle ab. Gleiche Quelle, gleiche Vorlage und gleiches
+Container-Image ergeben eine byte-identische PDF. Ohne `version_datum` trägt die PDF den Tag des Exports, und der
+Export gibt einen Hinweis aus.
+
+```bash
+python3 skills/job-application-export/scripts/export_document.py --reproduce lebenslauf.pdf.manifest.json
+```
+
+Der Befehl baut die Datei in einem temporären Ordner neu und vergleicht den Hash. Exit-Code `0` heißt identisch,
+`3` heißt abweichend oder geänderte Quelle; abweichende Werkzeugversionen werden aufgelistet. Das Container-Image
+einer versendeten PDF aufbewahren (`docker save`), weil die Debian-Pakete darin sich mit der Zeit ändern.
+Ausprägungen, Versionen und Ordneraufbau stehen in `spec/job-application/lebenslauf-versionen/en.md`.
 
 ## Im Container ausführen, in einem anderen Repository
 

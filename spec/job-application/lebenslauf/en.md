@@ -191,20 +191,43 @@ The list sections use one bullet per entry.
 ## LB-11 Layout and file
 
 1. **Layout.** One column, one accent colour, thin rules under the section headings, coloured bullets, no
-   tables, no icons, no photos by default, no text in header or footer. The design is in
-   `skills/job-application-export/templates/document.tex` and is described in the export page of the docs.
-2. **Same look as the Anschreiben.** Both use one template (`anschreiben/en.md` AS-3.7).
+   tables, no icons, no photos by default, no text in header or footer except a quiet page number. The design is
+   in `skills/job-application-export/templates/document.tex` and `templates/cv.lua`.
+2. **Same look as the Anschreiben.** Both use one template (`anschreiben/en.md` AS-3.7). The letter page has its
+   own margins (AS-3.3) and does not use the Lebenslauf macros.
 3. **Heading placement.** A heading is never the last element of a page (template rule).
-4. **Frontmatter of the Markdown source.**
+4. **Header block.** The name stands first and large, above the personal data. The Markdown form `Name · Anschrift
+   · Telefon · E-Mail` (LB-4.1) is rendered as the name, then the label `Persönliche Daten` and the remaining
+   items, which wrap only between items. All words of the source stay in the PDF.
+5. **Grid.** A left column of 33 mm holds periods and labels; the content stands to its right. It applies to the
+   stations (LB-5.1: period, position in bold, employer and place below in the muted colour) and to the list
+   sections with a period (LB-6.1). Bullets under a station use the full width. The grid is made with boxes,
+   not with a table.
+6. **Skill groups.** In `IT- und Fachkenntnisse` and `Sprachkenntnisse` the label before the colon is bold.
+7. **Sizes.** Name 25 pt, section heading 13 pt, position 11 pt, body 10.5 pt on 14.3 pt leading, periods,
+   employers and labels 9.5 pt, page number 9 pt. The size is not reduced to fit a page limit.
+8. **Margins.** 20 mm left, 18 mm right, 17 mm top, 19 mm bottom.
+9. **Text flow.** Ragged right with a bounded stretch, no justification. Hyphenation is rare and is switched
+   off in station headings. The last two words of a bullet are bound with a no-break space, and the names in
+   `KEEP_TOGETHER` of `cv.lua` (for example `VMware Tanzu`, `Argo Workflows`) never break. Widows and orphans
+   are suppressed.
+10. **Colours.** Ink `#1E2328` (15.8:1 on white), accent `#1F4E79` (8.7:1), muted `#5A6270` (6.1:1). All pass
+    WCAG AA for body text (4.5:1), and the hierarchy stays visible in grayscale through weight and position.
+11. **Page break.** The export moves a section heading to the next page when fewer than six lines remain, and a
+    station when fewer than three and a half lines remain.
+12. **Frontmatter of the Markdown source.**
 
-   | Key | Required | Meaning |
-   |---|---|---|
-   | `grundlage_hash` | yes | Hash of the Grundlage at creation (R-9.5) |
-   | `format` | yes | `chronologisch`, `einseitig`, `kombiniert`, or `ats` |
-   | `situation` | recommended | The situation chosen for the format (R-8.1) |
+    | Key | Required | Meaning |
+    |---|---|---|
+    | `grundlage_hash` | yes | Hash of the Grundlage at creation (R-9.5) |
+    | `format` | yes | `chronologisch`, `einseitig`, `kombiniert`, or `ats` |
+    | `situation` | recommended | The situation chosen for the format (R-8.1) |
+    | `auspraegung` | recommended | The variant (folder name), `lebenslauf-versionen` LV-3 |
+    | `version` | recommended | Integer of the Version, LV-3 |
+    | `version_datum` | for a frozen Version | `YYYY-MM-DD`; fixes the PDF dates so the PDF is reproducible (LV-6) |
 
-5. **File name.** `Vorname_Nachname_Lebenslauf.<ext>` (R-4, R-10.4).
-6. **Plain text.** The text extracted from the PDF equals the Markdown text apart from the page number
+13. **File name.** `Vorname_Nachname_Lebenslauf.<ext>` (R-4, R-10.4).
+14. **Plain text.** The text extracted from the PDF equals the Markdown text apart from the page number
    (R-10.8, CG-12).
 
 ## LB-12 Overrides by the posting

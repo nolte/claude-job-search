@@ -113,8 +113,10 @@ in force and are the short form.
 
 ## R-6 Datenschutz and handling
 
-- Application documents contain personal data. They stay local, are never published
-  and are not committed to git. The `job-application/` working folder is git-ignored.
+- Application documents contain personal data. They stay local and are never published.
+  The `job-application/` working folder is git-ignored by default. The user may decide to track it in a
+  private repository that is never published; then the rules of `lebenslauf-versionen` LV-4 apply. The
+  plugin repository and any public repository never hold these files.
 - Documents are generated as Markdown sources; PDF or DOCX export is a separate step
   and is never done automatically without the user's request.
 
