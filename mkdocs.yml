@@ -59,6 +59,13 @@ plugins:
           nav_translations:
             Home: Startseite
             Getting started: Erste Schritte
+            Use cases: Anwendungsfälle
+            Overview: Übersicht
+            Apply to a posting: Auf eine Anzeige bewerben
+            Via a recruiter or an agency: Über Recruiter oder Agentur
+            Career change and job search: Berufswechsel und Stellensuche
+            Initiative application and Motivationsschreiben: Initiativbewerbung und Motivationsschreiben
+            Keep your data and CVs current: Daten und Lebensläufe aktuell halten
             Skills: Skills
             Counterparts: Gegenpartei
             Glossary: Glossar
@@ -89,6 +96,13 @@ markdown_extensions:
 nav:
   - Home: en/index.md
   - Getting started: en/getting-started.md
+  - Use cases:
+      - Overview: en/use-cases/index.md
+      - Apply to a posting: en/use-cases/posting-application.md
+      - Via a recruiter or an agency: en/use-cases/recruiter.md
+      - Career change and job search: en/use-cases/career-change.md
+      - Initiative application and Motivationsschreiben: en/use-cases/initiative-and-motivation.md
+      - Keep your data and CVs current: en/use-cases/maintain-and-variants.md
   - Skills: en/skills.md
   - Counterparts: en/counterparts.md
   - Glossary: en/glossary.md
