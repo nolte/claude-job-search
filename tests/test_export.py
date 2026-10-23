@@ -104,6 +104,99 @@ class ExportTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_email_doc_type_only_exports_markdown(self):
+        # R-10.2: the e-mail text exists only as Markdown
+        for fmt in ("pdf", "docx", "html", "tex"):
+            result = subprocess.run(
+                [sys.executable, EXPORTER, self.source, "--format", fmt, "--doc-type", "email", "--out-dir", self.out, "--name", "Test_Email"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, fmt)
+            self.assertIn("nur als Markdown", result.stderr)
+        result = subprocess.run(
+            [sys.executable, EXPORTER, self.source, "--format", "md", "--doc-type", "email", "--out-dir", self.out, "--name", "Test_Email"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def run_main_with_pages(self, doc_type, pages, source_text=None):
+        # the PDF step is replaced, so the page-limit path runs without LuaLaTeX
+        from unittest import mock
+        import contextlib
+        import io
+
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        if source_text is not None:
+            with open(self.source, "w", encoding="utf-8") as handle:
+                handle.write(source_text)
+
+        def fake_pdf(pandoc, source, out_dir, name, grundlage_hash, doc_type="cv", epoch=None):
+            (out_dir / f"{name}.pdf").write_bytes(b"%PDF-fake")
+            text = export_document.read_document(source)[1]
+            return text, pages
+
+        err = io.StringIO()
+        with mock.patch.object(export_document, "export_pdf", fake_pdf), contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(err):
+            code = export_document.main([self.source, "--format", "pdf", "--doc-type", doc_type, "--out-dir", self.out, "--name", "Test_Doc"])
+        return code, err.getvalue()
+
+    def test_page_limit_overrun_has_its_own_exit_code_and_keeps_file_and_manifest(self):
+        # LB-2.3, AS-7.1: 4 = over the page limit; file and manifest stay
+        code, err = self.run_main_with_pages("letter", 2)
+        self.assertEqual(code, 4)
+        self.assertIn("Seitenlimit überschritten", err)
+        self.assertTrue(os.path.exists(os.path.join(self.out, "Test_Doc.pdf")))
+        with open(os.path.join(self.out, "Test_Doc.pdf.manifest.json"), encoding="utf-8") as handle:
+            self.assertEqual(json.load(handle)["ausgabe"]["seiten"], 2)
+
+    def test_page_limits_differ_by_document_type(self):
+        self.assertEqual(self.run_main_with_pages("cv", 2)[0], 0)
+        self.assertEqual(self.run_main_with_pages("cv", 3)[0], 4)
+        self.assertEqual(self.run_main_with_pages("letter", 1)[0], 0)
+        self.assertEqual(self.run_main_with_pages("motivation", 2)[0], 0)
+        self.assertEqual(self.run_main_with_pages("motivation", 3)[0], 4)
+
+    def test_einseitig_cv_is_limited_to_one_page(self):
+        # LB-2.3: the format einseitig is one page
+        einseitig = SOURCE.replace("format: chronologisch", "format: einseitig")
+        self.assertEqual(self.run_main_with_pages("cv", 1, einseitig)[0], 0)
+        self.assertEqual(self.run_main_with_pages("cv", 2, einseitig)[0], 4)
+
+    def test_out_dir_inside_the_plugin_repository_is_refused(self):
+        # LS-5.7, LS-2.4: nothing is written into the plugin repository
+        result = subprocess.run(
+            [sys.executable, EXPORTER, self.source, "--format", "md", "--doc-type", "cv", "--out-dir", os.path.join(ROOT, "export-test"), "--name", "X"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Plugin-Repository", result.stderr)
+        self.assertFalse(os.path.exists(os.path.join(ROOT, "export-test")))
+
+    def test_missing_grundlage_hash_is_reported_on_stdout(self):
+        # R-10.3: the report names the missing hash
+        with open(self.source, "w", encoding="utf-8") as handle:
+            handle.write(SOURCE.replace("grundlage_hash: " + "0" * 64 + "\n", ""))
+        result = self.export("md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("grundlage_hash: fehlt", result.stdout)
+
+    def test_manifest_records_environment_variables(self):
+        # LV-6.3, LV-7.1: PLUGIN_REVISION and EXPORT_IMAGE_ID land in the manifest
+        env = dict(os.environ, PLUGIN_REVISION="abc123", EXPORT_IMAGE_ID="sha256:img")
+        subprocess.run(
+            [sys.executable, EXPORTER, self.source, "--format", "md", "--doc-type", "cv", "--out-dir", self.out, "--name", "Test_Lebenslauf"],
+            capture_output=True, text=True, env=env,
+        )
+        with open(os.path.join(self.out, "Test_Lebenslauf.md.manifest.json"), encoding="utf-8") as handle:
+            umgebung = json.load(handle)["umgebung"]
+        self.assertEqual(umgebung, {"plugin_revision": "abc123", "image_id": "sha256:img"})
+
     def test_tex_export_writes_source_without_lualatex(self):
         # tex is the LaTeX source of the PDF; it needs pandoc only and passes the content check
         result = self.export("tex")

@@ -18,7 +18,7 @@ The conventions are in `spec/job-application/konventionen/en.md`.
 - `skills/<name>/SKILL.md` — reusable skills; each folder is one skill
 - `scripts/` — helper scripts shared by skills, for example `grundlage_hash.py` (Datengrundlage hash and `stand`, spec R-9.5)
 - `agents/<name>.md` — reusable sub-agents
-- `spec/` — specifications (EN canonical; DE translation pending). Ten specs under `spec/job-application/`: `konventionen`, `cv-generierung`, `lebenslauf`, `lebenslauf-versionen`, `anschreiben`, `motivationsschreiben`, `kontaktklassifikation`, `unternehmensanalyse`, `traumjob-interview`, `lokale-struktur`. Index with one line per spec: `spec/README.md`
+- `spec/` — specifications (EN canonical; DE translation pending). Eleven specs under `spec/job-application/`: `konventionen`, `cv-generierung`, `lebenslauf`, `lebenslauf-versionen`, `anschreiben`, `motivationsschreiben`, `kontaktklassifikation`, `unternehmensanalyse`, `recherche`, `traumjob-interview`, `lokale-struktur`. Index with one line per spec: `spec/README.md`
 - `docs/` — MkDocs source (EN and DE)
 - `project/` — mission, roadmap, requirements
 - `tests/` — stdlib unittest suite: CV checks, export, skill structure, spec index (`task test`)
@@ -30,7 +30,7 @@ Plugin skills are namespaced by plugin name — for example `/claude-job-search:
 - `task lint` — pre-commit checks
 - `task test` — test suite (stdlib unittest: CV checks, export, skill structure, spec index)
 - `task docs` — build the MkDocs site
-- `task export -- <datei.md> --format <pdf|docx|html|md> --doc-type <cv|letter|motivation|email>` — export a Bewerbungsdokument (skill `job-application-export`); `task export -- --reproduce <datei>.manifest.json` rebuilds an export from its manifest and compares it
+- `task export -- <datei.md> --format <pdf|docx|html|md|tex> --doc-type <cv|letter|motivation|email>` (`email` only with `md`; exit code 4 = page limit exceeded) — export a Bewerbungsdokument (skill `job-application-export`); `task export -- --reproduce <datei>.manifest.json` rebuilds an export from its manifest and compares it
 - `task plugin:reload` — launch Claude Code with this repo loaded as a plugin (dogfooding)
 
 ## Dogfooding

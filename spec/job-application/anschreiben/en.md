@@ -179,7 +179,8 @@ variant of this document.
 3. **Length.** The field limit of the portal, when known, replaces the page limit of AS-7.1. The analysis
    records the limit; the cut order of AS-7.4 applies. Without a known limit the text of a one-page letter
    is used.
-4. **File.** The plain text is written to `anschreiben-portal.txt` next to `anschreiben.md` on request.
+4. **File.** The plain text is written to `anschreiben-portal.txt` next to `anschreiben.md` whenever the
+   portal route has a free-text field (item 1). Otherwise it is written only on the user's request.
    `anschreiben.md` stays the source (R-10.1); both carry the same facts (AS-6.5).
 5. **Motivation fields.** A portal field that asks for motivation follows the same reduction with the
    content rules of `motivationsschreiben/en.md` (MS-2.3).
@@ -229,8 +230,8 @@ not met is a Warnung.
 | Addressee, Betreff, reference number and contact name equal across the documents | AS-4.4 | review | Blocker |
 | A claim not traceable to the Grundlage | R-1, AS-6.5 | review | Blocker |
 | Number, date, or employer differs from the Lebenslauf | AS-6.5 | review | Blocker |
-| Letter longer than one page | AS-7.1 | export page check (`doc-type letter`) | Blocker |
-| Letter outside 250 to 400 words | AS-7.2 | review | Hinweis |
+| Letter longer than one page | AS-7.1 | export page check (`doc-type letter`, exit code 4); no exception | Blocker |
+| Letter outside 250 to 400 words (also when no PDF exists) | AS-7.2 | review | Hinweis, never a Blocker |
 | A *Muss* requirement of the analysis is not addressed | AS-6.3 | review | Warnung |
 | A *Muss* gap is presented as fulfilled | CG-4.5 | review | Blocker |
 | Stock phrase | AS-9.3 | review | Warnung |
@@ -241,8 +242,17 @@ not met is a Warnung.
 | Employer or Auftraggeber named without disclosure | AS-5.5 | review | Blocker |
 | Portal text carries letter head, Betreff or Markdown | AS-8.1 | review | Warnung |
 | `grundlage_hash` stale (R-9.5) | R-9.5 | automated | Warnung |
+| Anlagen line names a file that does not exist in the folder | AS-10.4 | review | Blocker |
+| Export manifest missing for an exported file | R-10.3 | review | Warnung |
+| Export file changed after its manifest was written | CG-12.5 | review | Warnung |
+| Manifest source hash differs from the current `anschreiben.md` (stale export) | CG-12.2 | review | Blocker |
+| PDF without extractable text | CG-12.4 | export check | Blocker |
+| `## Auswahl Anschreiben` missing in `pruefbericht.md` | CG-2.3, R-9.11.5 | review | Warnung |
+| Keyword stuffing: a posting term without evidence, or padding with supported terms | R-1.4, CG-4.6 | review | Blocker (without evidence), Warnung (padding) |
 
-The page limit of one page is the only automated length check today (`export_document.py`, `PAGE_LIMITS`).
+The page limit of one page is the only automated length check today (`export_document.py`, `PAGE_LIMITS`;
+the export reports exit code 4, R-10.10, and the quality gate sets the Blocker). The page-limit exception of
+the Lebenslauf (LB-2.3) does not apply to the Anschreiben.
 Word count, stock phrases, and consistency between the documents are judged in review (AS-13).
 
 ## AS-13 Open points
@@ -252,8 +262,8 @@ Word count, stock phrases, and consistency between the documents are judged in r
 | DIN 5008 | Form A or Form B, the exact position of the address field, and fold marks are not verified. A primary source (the standard text or DIN Media) is needed before the template claims a form | open |
 | Margins | The letter has its own geometry (25 mm left, 20 mm right). It follows the recommendation of the sources, which differ on the minimum of the right margin | done |
 | Automation | Deterministic checks for word count, stock phrases, and salutation, in `scripts/` | open |
-| Skill | `job-application-cover-letter-create` implements AS-6 to AS-9 only as far as its `SKILL.md` states them; the skill must be aligned with this document | in Arbeit (skill) |
-| Page limit | The export check reports a second page; the severity Blocker (AS-12) is to be set in `export_document.py` and the quality gate | open (export) |
+| Skill | `job-application-cover-letter-create` implements AS-6 to AS-9 only as far as its `SKILL.md` states them; the skill must be aligned with this document | done (skill) |
+| Page limit | The export reports a second page with exit code 4 (R-10.10); the quality gate sets the severity Blocker (AS-12) | done (Exit 4) |
 | Portal fields | AS-8.1 defines the plain-text reduction; `job-application-cover-letter-create` writes `anschreiben-portal.txt` for `bewerbungsweg: portal` | done (skill, 0.2.0) |
 | Versioning | Anschreiben and Motivationsschreiben are not versioned like the Lebenslauf (`lebenslauf-versionen` LV-9) | open |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

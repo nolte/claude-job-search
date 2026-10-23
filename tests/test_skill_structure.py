@@ -97,6 +97,56 @@ class SkillStructureTests(unittest.TestCase):
                     unknown.append(f"{os.path.relpath(path, ROOT)} -> {ref}")
         self.assertEqual(unknown, [])
 
+    def test_no_dangling_decision_ids(self):
+        # audit finding: short decision IDs (D3, D14, ...) were defined in no spec; skills cite rule IDs instead
+        pattern = re.compile(r"\bD[0-9]{1,2}\b")
+        offending = []
+        for path in SKILLS + AGENTS:
+            with open(path, encoding="utf-8") as handle:
+                for number, line in enumerate(handle, 1):
+                    if pattern.search(line):
+                        offending.append(f"{os.path.relpath(path, ROOT)}:{number}")
+        self.assertEqual(offending, [])
+
+    def test_cited_rule_families_exist_in_the_specs(self):
+        # every cited rule ID (AS-7, CG-13.2, ...) names a top-level section `## <PREFIX>-<n>` of its spec
+        families = {
+            "R": "konventionen", "CG": "cv-generierung", "LB": "lebenslauf", "LV": "lebenslauf-versionen",
+            "LS": "lokale-struktur", "AS": "anschreiben", "MS": "motivationsschreiben",
+            "KK": "kontaktklassifikation", "UA": "unternehmensanalyse", "WJ": "traumjob-interview",
+            "RC": "recherche",
+        }
+        sections = {}
+        for prefix, folder in families.items():
+            spec = os.path.join(ROOT, "spec", "job-application", folder, "en.md")
+            with open(spec, encoding="utf-8") as handle:
+                sections[prefix] = set(re.findall(rf"^#{{2,3}} {prefix}-(\d+)\b", handle.read(), re.M))
+        pattern = re.compile(r"\b(R|CG|LB|LV|LS|AS|MS|KK|UA|WJ|RC)-(\d+)(?:\.\d+)*")
+        missing = []
+        for path in SKILLS + AGENTS:
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            for prefix, number in set(pattern.findall(text)):
+                if number not in sections[prefix]:
+                    missing.append(f"{os.path.relpath(path, ROOT)} -> {prefix}-{number}")
+        self.assertEqual(missing, [])
+
+    def test_skills_touching_the_wurzel_state_the_repository_boundary(self):
+        # LS-2.4 / R-9.9: a skill that reads or writes the Wurzel refuses a Wurzel inside the plugin repository
+        names = [
+            "cover-letter-create", "cv-create", "cv-maintain", "email-create", "export", "fit-check",
+            "motivation-letter-create", "posting-analysis", "profile-capture", "quality-gate", "solution",
+            "traumjob-interview",
+        ]
+        missing = []
+        for name in names:
+            path = os.path.join(ROOT, "skills", f"job-application-{name}", "SKILL.md")
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            if "LS-2.4" not in text:
+                missing.append(name)
+        self.assertEqual(missing, [])
+
 
 if __name__ == "__main__":
     unittest.main()

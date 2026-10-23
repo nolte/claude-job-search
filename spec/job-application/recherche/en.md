@@ -6,10 +6,12 @@ obtained, how reliable it is, how it is assessed, and where the result is record
 sourced, proportionate picture that lets the candidate decide whether to apply, address the right
 counterpart safely, and avoid being misled.
 
-**Status:** this is the target specification. The skills do not implement levels 1 and 2, the
-`## Recherche` record or the quality-gate checks yet (RC-11, RC-13). The LinkedIn, register,
-web-search and job-board channels depend on optional MCP servers (docs page *LinkedIn access*; the
-other servers are tracked as feature requests).
+**Status:** the skills implement levels 0 to 2, the `## Recherche` record and the quality-gate checks
+(RC-11, RC-13). The LinkedIn, register, web-search and job-board channels depend on optional MCP
+servers (docs page *LinkedIn access*; the other servers are tracked as feature requests).
+
+**Citation form.** A numbered rule of a section is cited as `RC-n rule m` or `RC-n.m`; a step of the
+procedure in RC-6 is cited as `RC-6.n` or `RC-6 step n`. Both forms point to the same item.
 
 This specification is the procedure. It does not repeat the rules it builds on:
 `spec/job-application/unternehmensanalyse/en.md` (UA) defines the firm roles, the source ranking, the
@@ -350,7 +352,8 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
    `## Unternehmen` with both values (UA-3.1); `## Recherche` shows the status `Konflikt`.
 3. `Status` is one of `ermittelt`, `nicht ermittelt`, `Konflikt`, `offen`.
 4. The details of E-1 to E-4 that are stable across postings go to the firm file as in UA-5.2. The
-   key `recherche_stand` (date of the last research, `JJJJ-MM-TT`) is added to its frontmatter.
+   key `recherche_stand` (date of the last research, `JJJJ-MM-TT`) is added to its frontmatter. The
+   skill sets it after a run of level 1 or 2, without asking the user; level 0 never sets it.
    `unternehmensanalyse` UA-5 lists the section `## Recherche` and the key in its ownership table.
 5. The classification keys of KK-6 stay as they are. `kontakt_signale` may reference signal texts
    of RC-7.
@@ -382,10 +385,19 @@ Einschätzung (Vermittler): Rückfragen offen. Signal: Auftraggeber nicht genann
 | `job-application-posting-analysis` | Runs level 0 on every posting. Runs levels 1 and 2 when the user asks. Writes `## Recherche` and the firm file |
 | `job-application-solution` | Asks for the level in the plan. Passes the result to the documents |
 | `job-application-fit-check` | Uses the findings of E-5 and E-7 against the Wunschprofil. Does not run its own research |
-| `job-application-quality-gate` | Reports a missing `## Recherche` for a Vorgang with a Vermittler as a Warnung, and a document that names a firm with `Warnzeichen` or without E-1 as a Blocker |
+| `job-application-quality-gate` | Checks `## Recherche` as stated in the rules below |
 | `job-application-reviewer` | Reviews whether disclosure, sources and signals were handled (KK-4, UA-6, RC-7) |
 
-This table states the target. The skills do not implement it yet (RC-13).
+Rules for the quality-gate checks:
+
+1. **Missing E-1.** A document that names a firm is a Blocker only if `## Recherche` exists (level 1
+   or 2) and E-1 of that firm is not `ermittelt`. Level 0 alone never blocks: the identity gate needs
+   sources outside the posting (RC-6.4). For a Vorgang with a Vermittler and no `## Recherche`, the gate
+   reports a Warnung.
+2. **Warnzeichen.** A document that names a firm with the assessment `Warnzeichen` is a Blocker. It
+   becomes a Warnung if the user has decided against the assessment (RC-8 rule 4) and the decision
+   stands in `## Verlauf` of `vorgang.md`.
+3. The gate reads the record. It runs no research of its own.
 
 ## RC-12 Acceptance scenarios
 
@@ -410,8 +422,8 @@ The scenarios are verified by reviewing a generated research record, not by a sc
 
 | Area | Point | Status |
 |---|---|---|
-| Skill integration | The skills of RC-11 do not yet run levels 1 and 2 or write `## Recherche`; today they apply UA and KK only | open (skill) |
-| Quality gate | The checks of RC-11 for `## Recherche` are not in `job-application-quality-gate` | open (skill) |
+| Skill integration | `job-application-posting-analysis` runs levels 0 to 2 (RC-1 to RC-10) and writes `## Recherche`; `job-application-fit-check` uses E-5 and E-7 (RC-11); `job-application-solution` chooses the level in the plan (RC-2.1) | done |
+| Quality gate | The checks of RC-11 for `## Recherche` are in `job-application-quality-gate` | done |
 | Script check | Validate the table and the `Status` values of RC-9 deterministically | open |
 | Register access | Whether a register lookup is made, by which provider and under which fees | open, decision for the user (UA-9) |
 | Permit lookup | How an agency's permit for Arbeitnehmerüberlassung can be checked publicly | open, to be verified |

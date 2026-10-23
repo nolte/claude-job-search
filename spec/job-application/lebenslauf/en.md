@@ -40,7 +40,7 @@ The format follows the situation (R-8.1). This document adds what each format co
 | Format | Situation | Sections | Length |
 |---|---|---|---|
 | `chronologisch` | Standard, experience in Germany | LB-3 in full order | 2 pages at most |
-| `einseitig` | Entry level, student, internship | Education and internships first, then skills | 1 page |
+| `einseitig` | Entry level, student, internship | Education and internships first, then skills | 1 page (a second page breaches the limit, item 3) |
 | `kombiniert` | Career change, many stations | Kurzprofil, then LB-3; stations may be grouped | 2 pages at most |
 | `ats` | ATS hint or online portal | Same as `chronologisch`, with the rules of R-8.3 | as the posting asks |
 
@@ -50,24 +50,32 @@ The format follows the situation (R-8.1). This document adds what each format co
    depending on experience. The plugin sets 1 page and 2 pages as above (CG-6.1).
 2. **Not produced.** Europass, the academic CV, and the functional CV are not produced (R-8.4, R-8.1). A
    Deckblatt (cover sheet) is not generated either.
-3. **Limit.** A Lebenslauf longer than two pages is a Blocker (R-2, R-7). The only exception is the user's
-   explicit decision in the session; the quality gate records it in `pruefbericht.md`, section `## Prüfung`
-   (LS-7.4), and reports a Warnung instead. The font size is never reduced to meet the limit (LB-11.7).
+3. **Limit.** A Lebenslauf longer than two pages, or longer than one page in the format `einseitig`, is a
+   Blocker (R-2, R-7). The export reports the breach with exit code 4 (R-10.10); the file and the manifest
+   stay. The only exception is the user's explicit decision in the session; the quality gate records it in
+   `pruefbericht.md`, section `## Prüfung` (LS-7.4), and reports a Warnung instead. The decision is not
+   limited to one run: it holds in every later run until the user withdraws it. The exception exists only
+   for the Lebenslauf; the Anschreiben has none (AS-7.1) and the Motivationsschreiben has no exception rule.
+   The font size is never reduced to meet the limit (LB-11.7).
 
 ## LB-3 Sections and their order
 
-The order is fixed. A section that has no content is omitted, except those marked as required.
+The order is fixed. A section that has no content is omitted. *Required* means: the section is written when
+the Grundlage has content for it, and it is omitted when the Grundlage has none. A missing section never
+produces an `[ERGÄNZEN]` placeholder or a Blocker; only the required items inside a written section do
+(for example a Sprache without a level, LB-7.1). `Persönliche Daten` and the closing line are required
+unconditionally.
 
 | # | Section (heading) | Required | Content | Entry shape |
 |---|---|---|---|---|
 | 1 | `Persönliche Daten` | yes | Name, address, phone, e-mail; LinkedIn, GitHub or portfolio link optional | one line (LB-4.1) |
 | 2 | `Kurzprofil` | in `kombiniert`; otherwise only on the user's opt-in | at most 3 sentences of facts | prose (LB-4.2) |
-| 3 | `Berufserfahrung` | yes, unless entry level | Stations in reverse order | station block (LB-5) |
+| 3 | `Berufserfahrung` | yes if the Grundlage has stations, unless entry level | Stations in reverse order | station block (LB-5) |
 | 4 | `Praktika` | entry level | Internships | station block (LB-5) |
 | 5 | `Relevante Projekte` | optional | Projects that carry a *Muss* requirement (CG-5.2) | list (LB-6) |
-| 6 | `Ausbildung und Studium` | yes | Vocational training, degrees | list (LB-6) |
-| 7 | `Schulbildung` | yes | School degrees | list (LB-6) |
-| 8 | `Sprachkenntnisse (GER-Niveau)` | yes | Languages with a CEFR level | list (LB-7) |
+| 6 | `Ausbildung und Studium` | yes, if the Grundlage has content | Vocational training, degrees | list (LB-6) |
+| 7 | `Schulbildung` | yes, if the Grundlage has content | School degrees | list (LB-6) |
+| 8 | `Sprachkenntnisse (GER-Niveau)` | yes, if the Grundlage has content | Languages with a CEFR level | list (LB-7) |
 | 9 | `IT- und Fachkenntnisse` | recommended | Skills with level or duration | list (LB-7) |
 | 10 | `Weiterbildung und Zertifikate` | optional | Courses and certificates with issuer and year | list (LB-6) |
 | 11 | `Ehrenamt` | optional | Voluntary work | list (LB-6) |
@@ -94,7 +102,9 @@ The order is fixed. A section that has no content is omitted, except those marke
    birth date and place as usual, and a photo as still common in practice
    ([Uni Gießen](https://www.uni-giessen.de/de/fbz/zentren/zfbk/career/international/bewerbung/lebenslauf)).
    The plugin includes them only when the user asks for them or the country requires it (R-2, R-8.2). The
-   photo default is none.
+   photo default is none. The photo is the image file `rohdaten/foto.jpg`; it is inserted as a Markdown image
+   link with a relative path at the start of `Persönliche Daten`, before the data line of item 3. The skill
+   only reads the file. Whether the export places the image is open (LB-14).
 3. **Form.** One line: `Name · Anschrift · Telefon · E-Mail`. The separator is the middle dot with spaces.
    A link to LinkedIn, GitHub or a portfolio may follow as a further item. It is optional, recommended for
    IT roles, and written only when the profile holds it (R-2).
@@ -189,12 +199,14 @@ The list sections use one bullet per entry.
 1. **Ort, Datum, Unterschrift.** The document ends with the place, the current date, and the signature line
    (sources: [Uni Münster](https://www.wiwi.uni-muenster.de/fakultaet/sites/fakultaet/files/broschuere_lebenslauf_final_neu.pdf),
    [Uni Gießen](https://www.uni-giessen.de/de/fbz/zentren/zfbk/career/international/bewerbung/lebenslauf)).
-2. **Form.** `Ort, TT.MM.JJJJ`, same as in the Anschreiben.
+2. **Form.** `Ort, TT.MM.JJJJ`, same as in the Anschreiben. The Ort is the city of the candidate's address
+   (the Anschrift in `Persönliche Daten`).
 3. **Signature.** A handwritten signature for paper. For digital applications the line is optional; a scanned
    signature is common in practice, and the plugin does not require it (R-2). A signature image in the
-   document is not supported in Phase 1: the export allows no images apart from the optional photo
+   document is not supported in Phase 1: the document allows no images apart from the optional photo
    (CG-11.3), so the user signs the printed page or leaves the line empty.
-4. **Date.** The date of generation, in the same format as the Anschreiben. An old date is a Warnung.
+4. **Date.** The date of generation, in the same format as the Anschreiben. A date more than 30 days before
+   the check date of the quality gate is *old* and is a Warnung.
 
 ## LB-10 Dates and periods
 
@@ -261,7 +273,7 @@ mandatory instruction that is not met is a Blocker.
 
 ## LB-13 Quality checks
 
-The automated rules of `scripts/cv_checks.py` (CV-01 to CV-16) apply to this document. This table adds the
+The automated rules of `scripts/cv_checks.py` (CV-01 to CV-17) apply to this document. This table adds the
 document-level checks and shows which are automated.
 
 | Check | Rule | Kind | Severity |
@@ -279,12 +291,13 @@ document-level checks and shows which are automated.
 | A table in the document | LB-11.1 | automated (CV-08) | Warnung, Blocker with ATS |
 | More than five bullets, or a bullet longer than two lines | CG-6 | automated (CV-03, CV-12) | Warnung, Hinweis |
 | A generic or evaluative phrase | CG-8.2 | automated (CV-11) | Warnung |
+| A sub-bullet below a bullet | R-2.1 | automated (CV-17) | Hinweis |
 | The Kurzprofil without the user's opt-in outside `kombiniert`, with more than three sentences, or with unsourced content | LB-4.2 | review | Warnung |
 | A skill with a graphic rating | LB-7.4 | review | Warnung |
 | A list entry not in the form of LB-6.1 | LB-6.1 | review | Hinweis |
 | Optional personal data without the user's request | LB-4.1.2, LB-4.1.6 | review | Hinweis |
-| More than two pages (`cv`) | LB-2.3 | export page check | Blocker; Warnung with the user's recorded decision |
-| The date of the closing line is old | LB-9.4 | review | Warnung |
+| More than two pages (`cv`), or more than one page with the format `einseitig` | LB-2.3 | export page check (exit code 4, R-10.10); the gate sets the severity | Blocker; Warnung with the user's recorded decision, in every later run |
+| The date of the closing line is more than 30 days before the check date | LB-9.4 | review | Warnung |
 
 ## LB-14 Open points
 
@@ -294,6 +307,7 @@ document-level checks and shows which are automated.
 | Photo | Sources call the photo still common in practice. The default of R-8.2 is none. The user's choice decides; no change proposed | open |
 | Automation | Checks for list-entry form (LB-6), skill group size (LB-7.6), and the closing date (LB-9.4) are not in `cv_checks.py` | open |
 | CV-16 severity | `cv_checks.py` distinguishes Warnung (`ungeklärt`, missing) and Blocker (`nein`) | done (script, 0.2.0) |
+| Photo in the export | The Markdown source carries the photo as an image link (LB-4.1.2). The PDF template (`cv.lua`, `document.tex`) has no photo layout, and no test covers an image in any format; the word check (CG-12.2) is not specified for the alternative text | open (export) |
 | Signature image | Not supported in Phase 1 (LB-9.3). An image-capable export is a later requirement | open, deliberate |
 | Deckblatt | Not generated (LB-2.2). No requirement known | closed |
 | English documents | Language override produces the German structure with English text; a dedicated spec is a stub (R-11) | open |

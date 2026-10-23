@@ -10,8 +10,8 @@ behind a recruiter's name, and your own profile. The open-source
     connected, LinkedIn pages should be read through it and not through web search or a page
     fetch, which are unreliable on LinkedIn and bypass the consent and the limits below. This is
     the working rule of the research procedure (`spec/job-application/recherche/en.md`, RC-5.4);
-    no skill enforces it yet, so say so in your request if it matters. No skill of this plugin
-    requires the server or calls it by itself. Without it, everything still works: you paste the
+    `job-application-posting-analysis` follows it: it never fetches a LinkedIn page and reads one through the server only after your consent. No skill of this plugin
+    requires the server. Without it, everything still works: you paste the
     posting text, as described in [Getting started](getting-started.md). You can ask Claude in
     the same session to read the page first and then run the skill on the result. The server is
     an independent project, not affiliated with this plugin or with LinkedIn.

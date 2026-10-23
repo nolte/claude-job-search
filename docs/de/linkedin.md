@@ -10,9 +10,8 @@ kopieren musst.
     Sollen LinkedIn-Inhalte genutzt werden, ist der Server der Weg: Ist er verbunden, sollen
     LinkedIn-Seiten über ihn gelesen werden und nicht über Websuche oder einen Seitenabruf. Beides
     ist auf LinkedIn unzuverlässig und umgeht die Zustimmung und die Grenzen weiter unten. Das ist
-    die Arbeitsregel des Rechercheverfahrens (`spec/job-application/recherche/en.md`, RC-5.4); kein
-    Skill erzwingt sie bisher, sag es also in deiner Anfrage, wenn es darauf ankommt. Kein Skill
-    dieses Plugins braucht den Server oder ruft ihn selbst auf. Ohne ihn funktioniert weiterhin
+    die Arbeitsregel des Rechercheverfahrens (`spec/job-application/recherche/en.md`, RC-5.4); `job-application-posting-analysis` hält sie ein: Der Skill ruft nie eine LinkedIn-Seite ab und liest eine über den Server erst nach deiner Zustimmung. Kein Skill
+    dieses Plugins braucht den Server. Ohne ihn funktioniert weiterhin
     alles: Du fügst den Anzeigentext ein, wie in [Erste Schritte](getting-started.md) beschrieben.
     Du kannst Claude in derselben Sitzung bitten, erst die Seite zu lesen und danach den Skill
     auf das Ergebnis anzuwenden. Der Server ist ein eigenständiges Projekt und steht weder mit

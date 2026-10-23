@@ -20,23 +20,34 @@ see_also:
 
 # Bewerbung prüfen
 
-Spec: `spec/job-application/konventionen/en.md` R-1 … R-7. R-7 defines what "ready to send" means.
+Spec: `spec/job-application/konventionen/en.md` R-1 … R-7 and R-10. R-7 defines what "ready to send" means.
 Content checks and severities: `spec/job-application/cv-generierung/en.md` CG-12 (export consistency),
-CG-13 (severities, criteria, reproducibility) and CG-13.4 (scope of the automated checks). Letter checks:
-`spec/job-application/anschreiben/en.md` AS-12. Paths, Vorgang and status: `spec/job-application/lokale-struktur/en.md`
-LS-2.6, LS-5.4, LS-6. Page limits: `spec/job-application/lebenslauf/en.md` LB-2.3, AS-7.1.
+CG-13 (severities, criteria, reproducibility) and CG-13.4 (scope of the automated checks). Document checks:
+`spec/job-application/lebenslauf/en.md` LB-2.3, LB-4.2, LB-6, LB-7, LB-9, LB-13; `spec/job-application/anschreiben/en.md`
+AS-4 … AS-12; `spec/job-application/motivationsschreiben/en.md` MS-3, MS-6, MS-7, MS-12. Counterpart and company:
+`spec/job-application/kontaktklassifikation/en.md` KK-3 … KK-7, `spec/job-application/unternehmensanalyse/en.md` UA-2, UA-4 … UA-6,
+`spec/job-application/recherche/en.md` RC-7, RC-8, RC-11. Paths, Vorgang and status:
+`spec/job-application/lokale-struktur/en.md` LS-2 … LS-6. Export manifest: `spec/job-application/lebenslauf-versionen/en.md`
+LV-3, LV-6.
 
 ## Paths
 
 Read `job-application/konfiguration.md` first (the Anker, LS-2.3). Take `wurzel` (default `job-application/`),
 `grundlage` and `grundlage_index` from its frontmatter. Relative paths resolve against the working directory that
-contains `job-application/konfiguration.md` (LS-2.6).
+contains `job-application/konfiguration.md` (LS-2.6). Without an Anker, ask once for the path of the Wurzel and write it
+there (keys `wurzel`, `grundlage`, `grundlage_index` only, LS-2.5).
+
+**Repository boundary (LS-2.4, R-9.9).** Before reading or writing, resolve the absolute path of the Wurzel and of the
+Grundlage. Walk up from each directory, including the directory itself. If any directory contains
+`.claude-plugin/plugin.json` with `"name": "claude-job-search"`, refuse, report that the Wurzel or Grundlage must live
+outside the plugin repository and that the path belongs in `konfiguration.md`, and write nothing.
 
 ## Inputs
 
-- The Vorgang folder `<wurzel>/<slug>/` with `analyse.md`, `vorgang.md`, `stellenanzeige.md` and the documents
-  (`lebenslauf.md`, `anschreiben.md`, `anschreiben-portal.txt`, `motivationsschreiben.md`, `email.md`), plus `export/`
-  if it exists.
+- The Vorgang folder `<wurzel>/<slug>/` with `analyse.md` (including `## Unternehmen` and `## Recherche` when present),
+  `vorgang.md`, `stellenanzeige.md` and the documents (`lebenslauf.md`, `anschreiben.md`, `anschreiben-portal.txt`,
+  `motivationsschreiben.md`, `motivationsschreiben-portal.txt`, `email.md`, `email-nachfassen.md`), plus `export/` with the
+  `*.manifest.json` files if it exists.
 - `<wurzel>/profil.md` in the Wurzel.
 - The Datengrundlage (Grundlage, key `grundlage`), the source of every claim (CG-2).
 - An Ausprägungsordner `<wurzel>/<ausprägung>/` (for example `lebenslauf-basis`) holds a Lebenslauf without a posting and
@@ -44,14 +55,10 @@ contains `job-application/konfiguration.md` (LS-2.6).
 
 ## Language of the report
 
-One language per artefact (D14): this instruction is English; the report `pruefbericht.md` is German. Severities in the
-report are `Blocker`, `Warnung`, `Hinweis`; the verdict is `Ergebnis: BLOCKIERT | BEREIT MIT WARNUNGEN | BEREIT`.
-
-| Report (quality gate) | Reviewer agent (`job-application-reviewer`) | Effect |
-|---|---|---|
-| Blocker | critical | `BLOCKIERT` |
-| Warnung | major | `BEREIT MIT WARNUNGEN` |
-| Hinweis | minor | none |
+One language per artefact: this instruction is English; the report `pruefbericht.md` is German. Severities in the report
+are `Blocker`, `Warnung`, `Hinweis` (CG-13.1); the verdict is `Ergebnis: BLOCKIERT | BEREIT MIT WARNUNGEN | BEREIT`, the
+German form of `BLOCKED | READY-WITH-WARNINGS | READY` (CG-13.1). The reviewer agent (`job-application-reviewer`) uses the same
+severities and verdict terms, so its findings carry over one to one.
 
 ## Automated checks
 
@@ -113,24 +120,24 @@ country conventions, employer instructions, and the requested format.
 | Company fact in a document that has no source in `analyse.md`, or comes from a rating portal (UA-2.1, UA-4.5) | Blocker |
 | `analyse.md` without the classification keys of KK-6, or without the section `## Unternehmen` (UA-5.1) | Warnung |
 | Counterpart is a Vermittler with confidence `unklar`, and the Auftraggeber question has not been asked (KK-3.3) | Warnung |
-| E-Mail attachment list names a file that is not in the folder | Blocker |
-| Anschreiben longer than one page (AS-7.1; page count from the PDF in `export/` when present, otherwise about 400+ words) | Blocker; an exception needs the user's decision recorded in `## Prüfung` |
-| Lebenslauf longer than two pages (LB-2.3; page count from the PDF in `export/` when present) | Blocker; an exception needs the user's decision recorded in `## Prüfung` |
-| Attachments in `export/` larger than 5 MB in total (R-4, D3) | Warnung from 5 MB, Blocker from 10 MB |
+| E-Mail attachment list, or the Anlagen line of the Anschreiben, names a file that is not in the folder (AS-10.4, KK-7.1) | Blocker |
+| Anschreiben longer than one page (AS-7.1, AS-12). Page count from `export/…manifest.json` (`ausgabe.seiten`) or `pdfinfo`; the export also exits with code 4 | Blocker; the Anschreiben has no exception |
+| Anschreiben outside 250 to 400 words (AS-7.2). Without a PDF this is the only length signal | Hinweis only, never a Blocker |
+| Lebenslauf longer than its page limit: two pages, one page for `format: einseitig` (LB-2.3, LB-13). Page count as above | Blocker; with the user's exception recorded under `### Entscheidungen des Nutzers` it stays a Warnung, for every later run |
+| Motivationsschreiben longer than the limit of its variant: one page for `stelle`, `quereinstieg` and `berufseinstieg`, two pages for `studium` and `stipendium` (MS-7, MS-12), checked against the page count in the manifest. Exit code 4 of the export for `motivation` means more than two pages | Warnung; no exception rule |
+| Attachments in `export/` larger than 5 MB in total (R-4) | Warnung from 5 MB, Blocker from 10 MB |
 | Attachment file name not ASCII (`ä→ae`, `ö→oe`, `ü→ue`, `ß→ss`, no spaces) or not `Vorname_Nachname_<Dokument>.pdf` (R-4) | Warnung |
 | Betreff of Anschreiben or E-Mail carries a gender suffix such as `(m/w/d)` (AS-4) | Warnung |
 | `vorgang.md` missing in a Vorgang folder, or its `status` not one of the LS-6 values | Warnung |
 | `status` inconsistent with the documents: `erstellt` or later without `lebenslauf.md`, `geprüft` with open Blocker, `erfasst` or `analysiert` with documents present (LS-6) | Warnung |
-| `grundlage_hash` in `vorgang.md` differs from the current hash, or a document's `grundlage_hash` differs from `vorgang.md` (LS-5.4) | Warnung: stale, re-derive |
+| `grundlage_hash` in `vorgang.md`, in a document or in an export differs from the current hash (LS-5.4, R-9.5; the hash comes from `scripts/grundlage_hash.py`), or a document's hash differs from `vorgang.md` | Warnung: stale, re-derive |
 | Mixed date formats or inconsistent Zeiträume | Warnung |
 | Spelling or grammar errors in German text | Warnung |
 | Anrede not matching the Ansprechperson, generic (`Sehr geehrte Damen und Herren`) when a name is known, or not following AS-5.6 to AS-5.8 (Sie default, du form only when the posting uses du, `Guten Tag <Vorname Nachname>` when the gender is not clear, academic title taken over) | Warnung |
 | Requirement marked *Muss* in the analysis not addressed in the Anschreiben | Warnung |
 | Stock phrase ("hiermit bewerbe ich mich") | Warnung |
-| Kurzprofil longer than three sentences, or missing in `kombiniert` (D8) | Warnung |
+| Kurzprofil longer than three sentences, or missing in `kombiniert`; a Kurzprofil outside `kombiniert` without the user's opt-in (LB-4.2) | Warnung |
 | Optional personal data present without the user's request | Hinweis |
-| Number in a bullet not in the Grundlage or a certificate (R-1, R-2.1, CV-05) | Blocker |
-| Output `grundlage_hash` differs from the current Grundlage hash (R-9.5; the hash comes from `scripts/grundlage_hash.py`) | Warnung: stale, re-derive |
 | `scripts/grundlage_hash.py` stops with a `Blocker:` line (missing `grundlage_index`, missing or invalid `stand`, Grundlage inside the plugin repository) (R-9.5, R-9.9, R-9.10) | Blocker |
 | Eintragsblock not in header-line form, or bullets outside 1–5 per station (R-2.1) | Warnung |
 | Table or multi-column layout in a CV (R-8.3) | Warnung; Blocker if the posting requires ATS |
@@ -138,10 +145,31 @@ country conventions, employer instructions, and the requested format.
 | Europass or academic CV required by the posting but not produced (R-8.4) | Blocker |
 | Lebenslauf not matching the format chosen for the situation (R-8.1) | Warnung |
 | Missing Ort, Datum, or Unterschrift line where R-2 expects them | Hinweis |
+| Date in the closing line of the Lebenslauf more than 30 days before the check date (LB-9.4) | Warnung |
+| Motivationsschreiben: a leadership claim without `fuehrung: ja` (MS-6.2, MS-12; CV-16 runs only on the Lebenslauf) | Blocker |
+| Motivationsschreiben: a wish from the Wunschprofil without the user's confirmation, or a `hypothese: ja` wish (MS-3.3) | Blocker |
+| Motivationsschreiben: counterpart fact without source in `analyse.md`, or from a rating portal (MS-3.5) | Blocker |
+| Motivationsschreiben or Anschreiben: mandatory counterpart instruction not met (MS-11, CG-11.6) | Blocker |
+| Anschreiben or Motivationsschreiben: a wish from the Wunschprofil written into the Anschreiben (AS-6.8, WJ-7.2) | Blocker |
+| Salary question to a Vermittler or before the employer is known (KK-4.4); exclusivity question not asked before documents go to a Vermittler (KK-4.6) | Warnung |
+| `anschreiben-portal.txt` or `motivationsschreiben-portal.txt` carries letter head, Betreff, Anlagen or Markdown (AS-8.1) | Warnung |
+| Invented reference number in the Betreff (AS-4.1) | Warnung |
+| Gehaltsvorstellung outside the Schluss (AS-10.1) | Hinweis |
+| Skill rating as bars, stars or percentages (LB-7.4) | Warnung |
+| List entry not in the form of LB-6.1 | Hinweis |
+| Keyword stuffing: a posting term in the Lebenslauf without a proof in the Grundlage; padding with posting terms (R-1.4, CG-4.6) | Blocker without proof; Warnung for padding |
+| Export manifest missing for a file in `export/` (LV-3) | Warnung |
+| Export file changed after its manifest, or `quelle.sha256` of the manifest differs from the current Markdown (CG-12.2, R-10.3, LV-3.4) | Blocker for the differing source; Warnung for a changed export file |
+| Manifest `frontmatter.grundlage_hash` differs from the current hash, or a frozen version in `versionen/` does not match its manifest (LV-3.4, LV-6.4) | Warnung; optionally confirm with `export_document.py --reproduce` |
+| PDF without selectable text (CG-11.5, CG-12.4); where LuaLaTeX is not installed this check is *not run* and the report says so | Blocker |
+| `## Auswahl …` section missing in `pruefbericht.md` for a generated document (R-9.11.5, CG-2.3) | Warnung |
+| Vorgang with a Vermittler and no `## Recherche` in `analyse.md` (RC-11) | Warnung |
+| A document names a firm, `## Recherche` exists, and the identity line E-1 is not `ermittelt` (RC-11, RC-6.4) | Blocker. Level 0 alone (no `## Recherche` beyond `Stufe: 0`) never blocks |
+| A document names a firm with `Warnzeichen` (RC-7, RC-8) | Blocker; a Warnung when the user decided against the assessment and the decision stands in `## Verlauf` of `vorgang.md` (RC-8.4) |
 
 ## Output
 
-The section `## Prüfung` of `<wurzel>/<slug>/pruefbericht.md` (D9). Create the file if it is missing. A run replaces
+The section `## Prüfung` of `<wurzel>/<slug>/pruefbericht.md` (LS-7.4). In an Ausprägungsordner the path is `<wurzel>/<ausprägung>/pruefbericht.md` (LS-3, LV-2). Create the file if it is missing. A run replaces
 only this section and leaves `## Auswahl Lebenslauf`, `## Auswahl Anschreiben` and `## Auswahl Motivationsschreiben`
 unchanged.
 
@@ -151,7 +179,7 @@ unchanged.
 Stand: JJJJ-MM-TT · Ergebnis: BLOCKIERT | BEREIT MIT WARNUNGEN | BEREIT
 
 ### Blocker
-- [ ] <Dokument>: <Befund> — <Vorschlag>
+- [ ] <Regel-ID> · <Datei>:<Zeile> · „<zitierte Passage>“ — <Befund> — <Vorschlag>
 
 ### Warnungen
 - [ ] …
@@ -164,17 +192,25 @@ Stand: JJJJ-MM-TT · Ergebnis: BLOCKIERT | BEREIT MIT WARNUNGEN | BEREIT
 ```
 
 `BEREIT` requires zero Blocker and zero Warnungen. `BEREIT MIT WARNUNGEN` requires zero Blocker. Any Blocker means
-`BLOCKIERT`. A user's exception (page limit) is recorded under `### Entscheidungen des Nutzers` and removes the Blocker
-for that run only.
+`BLOCKIERT`. A user's exception to the page limit of the Lebenslauf (LB-2.3) is recorded under
+`### Entscheidungen des Nutzers`; the finding then stays as a Warnung in this and every later run until the decision is
+withdrawn. Every finding names the rule ID, the file, the line and the quoted passage (CG-13.3).
+
+Criteria 2, 3, 5, 6, 8, 9 and 17 of CG-13.2 (source references, relevance, Wunsch gaps, evidence strength, selection,
+language) are judgement checks. This skill runs them from the passages it reads; the whole-set view comes from the
+`job-application-reviewer` agent.
 
 ## Workflow
 
 1. Read `vorgang.md`, the analysis and the profile first, then each document.
 2. Run the automated checks, then the checks of the table above. Quote the exact passage for every finding.
 3. Write `## Prüfung`. Show the user the Ergebnis and the Blocker in chat as well.
-4. **Status** (LS-6, S5). In a Vorgang folder set `status: geprüft` when zero Blocker remain, otherwise `in Arbeit`, and
-   append `- JJJJ-MM-TT: <alter Status> → <neuer Status>, job-application-quality-gate` to `## Verlauf`. Skip this in an
-   Ausprägungsordner.
+4. **Status** (LS-6, S5). In a Vorgang folder set `status: geprüft` when zero Blocker remain, otherwise `in Arbeit`, only
+   while the current status is `erstellt`, `geprüft` or `in Arbeit`. From `versendet` or later (S7, S8 are the user's)
+   write the report only. Append `- JJJJ-MM-TT: <alter Status> → <neuer Status>, job-application-quality-gate` to
+   `## Verlauf` only when the status actually changes. Set `grundlage_hash` in `vorgang.md` only when it is missing and
+   every document carries the current hash; otherwise keep it, so the stale-hash Warnung survives the next run. Skip all
+   of this in an Ausprägungsordner.
 5. Fix blockers only with the user's agreement, through the owning skill.
 
 ## Hard rules
@@ -185,3 +221,4 @@ for that run only.
    even if it sounds plausible.
 4. **German report, German severities.** No English severity words or verdicts in `pruefbericht.md`.
 5. **Only the Wurzel is written** (LS-5.7): `pruefbericht.md` and `vorgang.md` of this Vorgang.
+6. **Word count never blocks.** Length Blocker come from the page count only.

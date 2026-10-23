@@ -50,7 +50,8 @@ tasks:
   export:
     desc: |
       Export one Bewerbungsdokument from its Markdown source to pdf (LaTeX), docx, html, or md.
-      Usage: task export -- <input.md> --format <pdf|docx|html|md> --doc-type <cv|letter|email> [--out-dir DIR] [--name NAME]
+      Usage: task export -- <input.md> --format <pdf|docx|html|md|tex> --doc-type <cv|letter|motivation|email> [--out-dir DIR] [--name NAME]
+      The doc type email exports only as md. Exit codes: 0 ok, 1 error, 2 content differs, 3 --reproduce differs, 4 page limit exceeded.
         task export -- job-application/acme/lebenslauf.md --format pdf --doc-type cv
         task export -- job-application/acme/anschreiben.md --format docx --doc-type letter --name Max_Mustermann_Anschreiben
       Rebuild an export from its manifest and compare it: task export -- --reproduce <datei>.manifest.json

@@ -55,6 +55,8 @@ Authority runs from the top down. A level may only use facts from the levels abo
      year-only header line unchanged and CV-02 reports a Warnung. No `[ERGÄNZEN: Monat]` placeholder
      is written, and the note does not have to be completed (CG-9). Title and employer in the CV
      equal the note's `titel` and `arbeitgeber` (CV-15).
+   - Zeugnisse are not part of a station note. The Grundlage holds each Zeugnis as one entry in its
+     section *Zeugnisse* (R-9.3); the station note refers to that entry and does not copy the wording.
 
 ## CG-3 Target-specific presentation
 
@@ -144,14 +146,15 @@ counts; it holds no numbers of its own.
    - stations with at least one Muss or Wunsch entry of status `erfüllt` or `teilweise`: up to 5;
    - other stations: up to 2;
    - a station that does not support the application: header line only (no bullets).
-3. **Hard limit.** No station exceeds 5 bullets (CV-03). A bullet fits in two lines (CV-12 as
-   Hinweis).
+3. **Hard limit.** No station exceeds 5 bullets (CV-03). A bullet has at most two lines and at most
+   180 characters (CG-8.1.5; CV-12 reports a longer bullet as Hinweis).
 4. **Exception.** More than 5 bullets for one station are allowed only when the user asks for it
    in the session; the pruefbericht then records the exception.
 5. **Empty stations.** A station with no bullets and no explicit *nur Kopfzeile* decision is a
    Hinweis (CV-03), because the entry may be an accidental gap in the selection.
-6. **Length check.** The page count is checked on the exported PDF (`export_document.py`, FA-O13).
-   Markdown word counts are not a page measure.
+6. **Length check.** The page count is checked on the exported PDF (`export_document.py`, FA-O13); a
+   breach is exit code 4 (R-10.10, CG-12.4). The limit is two pages, and one page for the format
+   `einseitig`. Markdown word counts are not a page measure.
 
 ## CG-7 Controlled rewriting
 
@@ -214,7 +217,7 @@ The skill may reformulate verified content. It may not add facts.
    never uses a conjugated verb ("betreue", "habe betreut").
 4. **One form per station.** All bullets of one station use the form of item 1. A station never mixes
    the form with another opening pattern.
-5. **Length.** At most two lines and 180 characters (CV-12). The object part before the participle is at
+5. **Length.** At most two lines and at most 180 characters (CV-12). The object part before the participle is at
    most about 100 characters long, so that the reader reaches the verb within the first line; a longer
    object part is split into two bullets.
 6. **No final period.** A bullet is a phrase, not a sentence.
@@ -303,7 +306,7 @@ The skill may reformulate verified content. It may not add facts.
      `Ausbildung und Studium`) and `Kenntnisse` (for `IT- und Fachkenntnisse`) are allowed as well
      (R-8.3.2 refers here).
 3. **Forbidden elements** in the Markdown source: tables, text boxes, columns, images other than
-   the optional photo, graphical skill ratings, icons that replace text, critical content in
+   the optional photo (`rohdaten/foto.jpg`, LB-4.1.2), graphical skill ratings, icons that replace text, critical content in
    headers or footers (CV-08, CV-10).
 4. **Plain-text readability.** The document remains understandable when converted to plain
    text. The export check (CG-12) tests this.
@@ -321,12 +324,20 @@ The skill may reformulate verified content. It may not add facts.
    are generated from it by `skills/job-application-export/scripts/export_document.py`. Outputs
    are never edited by hand (R-10.1).
 2. **Content check.** The word multiset of the source equals the word multiset of the export
-   (FA-O6). A difference blocks the export. The check is run by the export and by the tests.
+   (FA-O6). A difference does not delete the output: file and manifest stay, the export exits with
+   code 2 (R-10.10) and the set is not ready to send. The quality gate reports the difference as a
+   Blocker. Equally a Blocker: an export whose manifest source hash (`quelle.sha256`) no longer matches
+   the current Markdown (stale export, LV-6.4). The check is run by the export and by the tests.
 3. **Structure check.** Export tests verify that all section headings appear in the DOCX text in
    the source order.
 4. **PDF check.** The PDF must contain extractable text and stay within the page limit of the
-   document type (FA-O11, FA-O13). Where LuaLaTeX is not installed, this check is *not run* and
-   the report says so.
+   document type (FA-O11, FA-O13). A breach of the page limit is exit code 4; file and manifest stay.
+   The export only reports. The quality gate sets the severity: Blocker for `cv` and `letter`,
+   Warnung for `motivation`. The limit for `cv` with the format `einseitig` is one page. A PDF without
+   extractable text is a Blocker. Where LuaLaTeX is not installed, this check is *not run* and the
+   report says so.
+5. **Further export findings.** A missing manifest for a file in `export/` is a Warnung. An export
+   file changed after its manifest was written is a Warnung (LV-6.4).
 
 ## CG-13 Quality gate: severities and criteria
 
@@ -337,6 +348,11 @@ The skill may reformulate verified content. It may not add facts.
 | Blocker | The document would be materially wrong, misleading, incomplete, or breaks a mandatory requirement: a fact not in the source, a placeholder, a Muss requirement presented as met, a conflicting date, a missing required document or format. | `BLOCKED` |
 | Warnung | A meaningful improvement is recommended, and the document is still usable: format deviation from a default, weak evidence for a Wunsch requirement, long bullet, generic phrase in an allowed case. | `READY-WITH-WARNINGS` |
 | Hinweis | A non-critical observation: possible redundancy, optional personal data, a note the user may ignore. | No effect |
+
+The verdict labels are `BLOCKED`, `READY-WITH-WARNINGS` and `READY`. A skill may write the German
+equivalents `BLOCKIERT`, `BEREIT MIT WARNUNGEN` and `BEREIT` in its German report; they mean the same.
+The reviewer agent (`job-application-reviewer`) uses the same severities and the same verdict labels.
+`READY` requires zero Blocker and zero Warnungen.
 
 A missing Wunsch qualification is never a Blocker (CG-4.2). The gate reports it in the analysis
 and lets the user decide.
@@ -354,7 +370,7 @@ and lets the user decide.
 | 7 | Seniority and role positioning | Titles as in the Grundlage; leadership only with `fuehrung: ja` (Warnung with `ungeklärt` or missing, Blocker with `nein`) | automated and review | CV-15, CV-16; CG-7.2 |
 | 8 | Relevance of entries | Stations and projects per CG-5 | review | CG-5 |
 | 9 | Skills ordering | Skills appear with posting relevance and evidence | review | CG-5 |
-| 10 | Conciseness and redundancy | Duplicate bullets | automated | CV-09 |
+| 10 | Conciseness and redundancy | Duplicate bullets; sub-bullets below a bullet (Hinweis) | automated | CV-09, CV-17 |
 | 11 | Chronology and dates | Order, format, conflicts | automated | CV-04, CV-06 |
 | 12 | Placeholders | Open markers | automated | CV-01 |
 | 13 | Unsupported achievements | Numbers, forbidden transformations | automated and review | CV-05, CG-7.2 |
@@ -382,6 +398,25 @@ and lets the user decide.
 3. **CV-16 severity** follows the station note: Warnung while `fuehrung` is `ungeklärt` or missing,
    Blocker with `fuehrung: nein`, no finding with `fuehrung: ja` (CG-7.3).
 4. **CV-11 severity** is Warnung for every phrase of CG-8.2.3 (CG-7.3).
+5. **CV-17** reports sub-bullets as Hinweis (R-2.1: a station block has bullets, no sub-bullets).
+
+### CG-13.5 Severities of the further gate checks
+
+These checks are made by the quality gate, not by `cv_checks.py`. The severities are fixed here so that
+the gate and the reviewer report the same level.
+
+| Check | Severity |
+|---|---|
+| Keyword stuffing: a posting term in a document without evidence in the Grundlage (R-1.4, CG-4.6) | Blocker |
+| Keyword stuffing: padding with posting terms that the Grundlage does support | Warnung |
+| A Lebenslauf above its page limit (LB-2.3) | Blocker; Warnung with the user's recorded decision, for every later run |
+| An Anschreiben above one page (AS-7.1) | Blocker; no exception |
+| A Motivationsschreiben above the limit of its variant (MS-7) | Warnung; no exception rule |
+| Word count outside the aid range (AS-7.2, MS-7.2) | Hinweis only, never a Blocker; also when no PDF exists |
+| An Anlagen line or an attachment list names a file that does not exist (AS-10.4) | Blocker |
+| Export findings of CG-12 | as listed in CG-12.2, CG-12.4 and CG-12.5 |
+| A `## Auswahl …` section missing in `pruefbericht.md` for a generated document (CG-2.3, R-9.11.5) | Warnung |
+| `grundlage_hash` of a document or an export stale (R-9.5) | Warnung |
 
 ## CG-14 Acceptance scenarios
 
@@ -417,4 +452,6 @@ example, not by a script.
 | Year-only periods | No `[ERGÄNZEN: Monat]` placeholder, no completion of the station note required (CG-2.4, CG-9) | done (decision) |
 | Gap wording | Neutral wording chosen by the user from the list in CG-9; `Auszeit` is not a default | done (decision) |
 | DOCX metadata | The DOCX export clears the author fields (`dc:creator`, `cp:lastModifiedBy`) in `export_document.py` (CG-11.5); a fresh pandoc DOCX carries no revisions or comments | done (export, 0.2.0) |
+| CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-17 are the whole automated set (R-7, CG-13.4.5) | done (script) |
+| Page limit | Exit code 4 of `export_document.py` (R-10.10); the gate sets the severity (CG-12.4, CG-13.5) | done (export) |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
