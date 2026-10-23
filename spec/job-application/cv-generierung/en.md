@@ -2,8 +2,8 @@
 
 Normative rules for generating the German Lebenslauf for one Stellenanzeige. This document
 defines the *content* decisions. The form rules of `spec/job-application/konventionen/en.md`
-(R-2 layout, R-2.1 entry block, R-8 format by situation) stay in force; where this document
-sets a default for bullet counts or length, it replaces the fixed numbers in R-2.1 (see CG-6).
+(R-2 layout, R-2.1 entry block, R-8 format by situation) stay in force; R-2.1 refers to this
+document for the bullet counts and the length (CG-6).
 The data locations are defined in `spec/job-application/lokale-struktur/en.md`.
 
 Rule IDs `CV-xx` are the IDs reported by `scripts/cv_checks.py`. A rule marked *automated* is
@@ -23,7 +23,7 @@ Authority runs from the top down. A level may only use facts from the levels abo
 
 | Level | Artefact | Role |
 |---|---|---|
-| 1 | Grundlage (`grundlage` in `konfiguration.md`, file or directory) and `rohdaten/` | Authoritative factual basis, with source references. |
+| 1 | Datengrundlage (Grundlage; `grundlage` in `konfiguration.md`, file or directory) and `rohdaten/` | Authoritative factual basis, with source references. |
 | 2 | `profil.md` | Derived from level 1. Condensed, with a source reference per entry. Carries `grundlage_hash`. |
 | 3 | `analyse.md` | Job-specific analysis. Contains no new candidate facts. |
 | 4 | `lebenslauf.md` | Generated content. Only facts from levels 1 and 2. |
@@ -50,9 +50,11 @@ Authority runs from the top down. A level may only use facts from the levels abo
      source or the user's confirmation) and `## Team` (team structure: size, roles around the
      candidate, reporting line, and whether the candidate led people).
    - Rules: a number in a CV bullet must appear in the note (CV-05). Leadership wording needs
-     `fuehrung: ja` in the note (CV-16). A year-only period is accepted in the note, but the CV
-     needs `MM/JJJJ`, so the note is completed (CV-02). Title and employer in the CV equal the
-     note's `titel` and `arbeitgeber` (CV-15).
+     `fuehrung: ja` in the note (CV-16; Warnung while `fuehrung` is `ungeklärt` or missing, Blocker
+     with `fuehrung: nein`). A year-only period is accepted in the note; the CV then shows the
+     year-only header line unchanged and CV-02 reports a Warnung. No `[ERGÄNZEN: Monat]` placeholder
+     is written, and the note does not have to be completed (CG-9). Title and employer in the CV
+     equal the note's `titel` and `arbeitgeber` (CV-15).
 
 ## CG-3 Target-specific presentation
 
@@ -133,7 +135,8 @@ The selection also follows these rules:
 
 ## CG-6 Length and bullets: defaults, limits, exceptions
 
-This section replaces the fixed bullet counts in R-2.1 with defaults and hard limits.
+This section sets the defaults and hard limits for bullet counts and length. R-2.1 refers here for the
+counts; it holds no numbers of its own.
 
 1. **Default length.** Two pages for experienced candidates (*chronologisch*, *kombiniert*),
    one page for entry level, students and interns (*einseitig*). Austria: two pages (R-8.1).
@@ -177,10 +180,14 @@ The skill may reformulate verified content. It may not add facts.
 ### CG-7.3 Validation
 
 - *automated* (CV-05): every number in a bullet appears in the Grundlage text;
-- *automated* (CV-11): generic phrases (`verantwortlich für`, `zuständig für`, `involved in`,
-  `worked on`) are flagged as Hinweis, because they hide the actual task;
+- *automated* (CV-11): the generic and evaluative phrases of CG-8.2.3 (`verantwortlich für`,
+  `zuständig für`, `involved in`, `worked on`, `erfolgreich`, `innovativ`, `dynamisch`, `diverse`,
+  `vielfältig`, `Expertise in`, `sicher in`) are flagged as Warnung, because they hide the actual
+  task or claim a quality without proof;
 - *automated* (CV-16): leadership wording (`geleitet`, `Teamleitung`, `führte`, `Personalverantwortung`
-  and similar) is a Blocker unless the station note records `fuehrung: ja` (CG-7.2, leadership);
+  and similar) is a Warnung while the station note has `fuehrung: ungeklärt` or no `fuehrung`, and a
+  Blocker when the note records `fuehrung: nein`. With `fuehrung: ja` there is no finding (CG-7.2,
+  leadership);
 - *review*: the remaining semantic checks of CG-7.2 (ownership, expertise, proficiency) are made by
   the generating skill and the reviewer agent. They are not decided by the script.
 
@@ -207,10 +214,13 @@ The skill may reformulate verified content. It may not add facts.
    never uses a conjugated verb ("betreue", "habe betreut").
 4. **One form per station.** All bullets of one station use the form of item 1. A station never mixes
    the form with another opening pattern.
-5. **Length.** At most two lines and 180 characters (CV-12).
+5. **Length.** At most two lines and 180 characters (CV-12). The object part before the participle is at
+   most about 100 characters long, so that the reader reaches the verb within the first line; a longer
+   object part is split into two bullets.
 6. **No final period.** A bullet is a phrase, not a sentence.
 7. **At most two items in a list.** "und" joins at most two items. A longer list is shortened to the
-   two most relevant items. The full list stays in the Grundlage (CG-5).
+   two most relevant items. An enumeration of technologies may name three (`Python, Kafka und
+   PostgreSQL`). The full list stays in the Grundlage (CG-5).
 
 ## CG-8.2 Wording
 
@@ -219,10 +229,11 @@ The skill may reformulate verified content. It may not add facts.
    `gesteigert`, `betreut`, `begleitet`, `umgesetzt`. The verb says what the candidate did (CG-8.4).
 2. **Leadership verbs** (`geleitet`, `verantwortet`, `Teamleitung`) need `fuehrung: ja` in the station
    note (CV-16).
-3. **Forbidden phrases.** `verantwortlich für`, `zuständig für`, `involved in`, `worked on` are never
-   used. CV-11 enforces this set. The following are judged in review and are not used either:
-   `erfolgreich`, `innovativ`, `dynamisch`, `diverse`, `vielfältig`, `Expertise in`, `sicher in`.
-   `Expertise in` and `sicher in` require a source that states proficiency (CG-7.2).
+3. **Forbidden phrases.** `verantwortlich für`, `zuständig für`, `involved in`, `worked on`,
+   `erfolgreich`, `innovativ`, `dynamisch`, `diverse`, `vielfältig`, `Expertise in`, `sicher in` are not
+   used. CV-11 enforces the whole set and reports a Warnung (CG-7.3). `Expertise in` and `sicher in`
+   require a source that states proficiency (CG-7.2); with such a source the finding is dismissed in
+   review and recorded in `pruefbericht.md`.
 4. **Names.** Tool and product names are written as in the Grundlage ("Kubernetes", "Argo CD",
    "GitLab CI"). Abbreviations the Grundlage does not use are not introduced.
 5. **Participation.** When the source says the candidate took part, the bullet uses a participation
@@ -240,8 +251,10 @@ The skill may reformulate verified content. It may not add facts.
 
 | | Bullet | Reason |
 |---|---|---|
+| Good | Event-Pipeline auf Basis von Python und Kafka betreut; Latenz von 800 ms auf 120 ms gesenkt | Object first, participle closes the first clause, result after the semicolon with digits (CG-8.1.1) |
 | Good | Latenz der Event-Pipeline in Python und Kafka von 800 ms auf 120 ms gesenkt | Object first, participle last, measured values as digits |
 | Good | Code-Reviews als Pflichtschritt für ein Team von 5 Entwicklern eingeführt | Form and digits; the result is qualitative and sourced |
+| Bad | Event-Pipeline für die Verarbeitung von Bestell-, Zahlungs- und Versandereignissen aus 12 Partnersystemen in drei Regionen auf Basis von Python und Kafka betreut | Object part longer than about 100 characters; the reader reaches the verb late. Split into two bullets (CG-8.1.5) |
 | Good | Schnittstellen für 3 Partnersysteme umgesetzt | Scope as digits; no result claimed |
 | Bad | Ich habe die Event-Pipeline optimiert | Subject, finite verb, unspecific claim (CG-8.1.3, CG-8.2.1) |
 | Bad | Verantwortlich für die Plattform | Forbidden phrase, no activity, no scope (CG-8.2.3) |
@@ -256,10 +269,10 @@ The skill may reformulate verified content. It may not add facts.
 | Conflicting dates for one station (profile vs. Grundlage) | Do not generate; ask the user | Blocker (CV-06) |
 | Employment gap over two months, with a user-stated reason | Neutral entry with the stated reason | — |
 | Employment gap over two months, no reason known | `[ERGÄNZEN: Grund der Lücke]` | Blocker until resolved |
-| Gap over two months, reason not needed in the document | Neutral entry *Auszeit* or the period without text | Hinweis |
+| Gap over two months, reason not needed in the document | Neutral entry whose wording the user chooses from `Elternzeit`, `Pflege eines Angehörigen`, `Weiterbildung`, `Berufliche Neuorientierung`, `Bewerbungsphase` (R-2); `Auszeit` is not a default | Hinweis |
 | Unsupported achievement or metric in a draft | Remove from the draft | Blocker if it reaches the document (CV-05) |
 | Period end before start | Fix in the Grundlage through `cv-maintain` | Blocker |
-| Period given as year only (R-2.1 format `MM/JJJJ`) | Keep the year and mark `[ERGÄNZEN: Monat]` | Warnung |
+| Period given as year only (R-2.1 format `MM/JJJJ`) | Keep the year-only header line unchanged; no placeholder, no completion required | Warnung (CV-02) |
 
 1. **Gap reasons are never invented.** The reason comes from the user or from a source passage.
 2. **Privacy in gaps.** A gap reason is written only at the level the user chose. Health, family
@@ -272,6 +285,9 @@ The skill may reformulate verified content. It may not add facts.
 1. Name and contact are required. Birth date, marital status, nationality and photo are optional
    and included only when the user asks for them or the country requires it (R-2, R-8.2).
 2. Optional personal data is a Hinweis when present without a request (quality-gate).
+3. Schwerbehinderung or a GdB, Arbeitserlaubnis and Führerschein are written only on the user's explicit
+   request in the session (R-2, LB-4.1.6). A link to LinkedIn, GitHub or a portfolio is optional in the
+   contact line and taken from the profile only (LB-4.1.3).
 
 ## CG-11 Structure, ATS and output formats
 
@@ -283,15 +299,18 @@ The skill may reformulate verified content. It may not add facts.
      `Relevante Projekte`, `Praktika`, `Ausbildung und Studium`, `Schulbildung`,
      `Sprachkenntnisse`, `IT- und Fachkenntnisse`, `Weiterbildung und Zertifikate`,
      `Ehrenamt`, `Interessen`. A heading may add a qualifier in parentheses, for example
-     `Sprachkenntnisse (GER-Niveau)`.
+     `Sprachkenntnisse (GER-Niveau)`. For the `ats` format the short forms `Ausbildung` (for
+     `Ausbildung und Studium`) and `Kenntnisse` (for `IT- und Fachkenntnisse`) are allowed as well
+     (R-8.3.2 refers here).
 3. **Forbidden elements** in the Markdown source: tables, text boxes, columns, images other than
    the optional photo, graphical skill ratings, icons that replace text, critical content in
    headers or footers (CV-08, CV-10).
 4. **Plain-text readability.** The document remains understandable when converted to plain
    text. The export check (CG-12) tests this.
-5. **File format.** DOCX is preferred for ATS-marked postings; a PDF made from text is the second
-   choice; a scanned PDF is not acceptable (R-8.3.4, FA-O16). A format stated in the posting
-   overrides this. No format is assumed to be universally better.
+5. **File format.** A PDF made from text is the default, also for ATS-marked postings. DOCX is used
+   only when the portal requires it; the DOCX export then strips the document metadata (author,
+   revisions, comments). A scanned PDF is not acceptable (R-8.3.4, FA-O16). A format stated in the
+   posting overrides this. No format is assumed to be universally better.
 6. **Employer instructions.** A format, length, file type or content requirement in the posting
    overrides the defaults of this document. The posting-analysis records the instruction; the
    quality gate checks it.
@@ -330,9 +349,9 @@ and lets the user decide.
 | 2 | Source traceability | Entry references in `pruefbericht.md` | review | CG-2.3 |
 | 3 | Target-role relevance | Selection follows CG-5 | review | CG-5 |
 | 4 | Muss coverage | Muss rows not marked `erfüllt` without evidence | automated | CV-07 |
-| 5 | Wunsch coverage | Wunsch gaps reported | automated | CV-07 (analysis), report |
-| 6 | Evidence strength | Stärke of rows used in the CV | automated | CG-4 |
-| 7 | Seniority and role positioning | Titles as in the Grundlage; leadership only with `fuehrung: ja` | automated and review | CV-15, CV-16; CG-7.2 |
+| 5 | Wunsch coverage | Wunsch gaps reported | review | CG-4.2, report |
+| 6 | Evidence strength | Stärke of rows used in the CV | review | CG-4 |
+| 7 | Seniority and role positioning | Titles as in the Grundlage; leadership only with `fuehrung: ja` (Warnung with `ungeklärt` or missing, Blocker with `nein`) | automated and review | CV-15, CV-16; CG-7.2 |
 | 8 | Relevance of entries | Stations and projects per CG-5 | review | CG-5 |
 | 9 | Skills ordering | Skills appear with posting relevance and evidence | review | CG-5 |
 | 10 | Conciseness and redundancy | Duplicate bullets | automated | CV-09 |
@@ -353,6 +372,17 @@ and lets the user decide.
 3. A review finding names the rule and the passage. Two reviewers should reach the same verdict
    from the same passage.
 
+### CG-13.4 Scope of single rules
+
+1. **CV-02 does not stop the other checks.** A station whose header line does not match LB-5.1 (for
+   example a year-only period) is still checked for CV-05, CV-09, CV-11, CV-12 and CV-16. CV-02
+   reports the header; the bullets are checked as in any other station.
+2. **CV-13 is position-based.** A gap entry counts only when it stands between the two stations whose
+   periods leave the gap. A neutral entry elsewhere in the document does not close the gap.
+3. **CV-16 severity** follows the station note: Warnung while `fuehrung` is `ungeklärt` or missing,
+   Blocker with `fuehrung: nein`, no finding with `fuehrung: ja` (CG-7.3).
+4. **CV-11 severity** is Warnung for every phrase of CG-8.2.3 (CG-7.3).
+
 ## CG-14 Acceptance scenarios
 
 Each scenario states the expected behaviour. The column *Verification* tells how it is checked.
@@ -367,10 +397,24 @@ Each scenario states the expected behaviour. The column *Verification* tells how
 | F | Missing metrics | Bullets without numbers kept; no numbers added | `tests/test_cv_checks.py` (CV-05) |
 | G | Conflicting dates | Blocker on each conflict | `tests/test_cv_checks.py` (CV-06) |
 | H | Unsupported Muss requirement | Not `erfüllt` | `tests/test_cv_checks.py` (CV-07) |
-| I | ATS-specific posting | Standard headings, no tables, DOCX or text PDF | `tests/test_cv_checks.py` (CV-08, CV-10); `tests/test_export.py` |
+| I | ATS-specific posting | Standard headings, no tables, text PDF (DOCX only when the portal requires it) | `tests/test_cv_checks.py` (CV-08, CV-10); `tests/test_export.py` |
 | J | Output consistency | Same content in every format | `tests/test_export.py` (DOCX, HTML, Markdown) |
 | K | Unresolved placeholders | Blocker | `tests/test_cv_checks.py` (CV-01) |
 | L | Employment gap | Dates accurate; no invented reason | `tests/test_cv_checks.py` (gap placeholder rule, no invented text) |
+| M | Year-only period in a station note | Year-only header line unchanged, CV-02 Warnung, no placeholder; the bullets are still checked | `tests/test_cv_checks.py` (CV-02, CG-13.4.1) |
 
 Scenarios A, C, D and E depend on the selection step and are verified by review of a generated
 example, not by a script.
+
+## CG-15 Open points
+
+| Area | Point | Status |
+|---|---|---|
+| CV-11 severity | `cv_checks.py` reports Warnung for the whole phrase set (CG-7.3) | done (script, 0.2.0) |
+| CV-16 severity | `cv_checks.py` distinguishes Warnung (`ungeklärt`, missing) and Blocker (`nein`) (CG-13.4.3); lead verbs count only with a people object | done (script, 0.2.0) |
+| CV-13 position | The gap entry must stand between the two affected stations (CG-13.4.2); the script checks the position | done (script, 0.2.0) |
+| CV-02 scope | Stations with a non-conformant header line are still checked for CV-05, CV-09, CV-11, CV-12, CV-15, CV-16 (CG-13.4.1) | done (script, 0.2.0) |
+| Year-only periods | No `[ERGÄNZEN: Monat]` placeholder, no completion of the station note required (CG-2.4, CG-9) | done (decision) |
+| Gap wording | Neutral wording chosen by the user from the list in CG-9; `Auszeit` is not a default | done (decision) |
+| DOCX metadata | The DOCX export clears the author fields (`dc:creator`, `cp:lastModifiedBy`) in `export_document.py` (CG-11.5); a fresh pandoc DOCX carries no revisions or comments | done (export, 0.2.0) |
+| German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

@@ -1,6 +1,6 @@
 ---
 name: job-application-motivation-letter-create
-description: "Writes a German Motivationsschreiben for one posting, programme, or scholarship: the candidate's reasons and goals in their own words, plus two or three proofs from the Datengrundlage. Asks the user for the reasons and never invents them. Writes Markdown to job-application/<slug>/motivationsschreiben.md. Use on \"schreib ein Motivationsschreiben\", \"Motivationsbrief für das Stipendium\", \"Begründung meiner Motivation für diese Stelle\", or equivalent German requests. Don't use for the normal Anschreiben (job-application-cover-letter-create), for the Lebenslauf (job-application-cv-create), or when the posting does not ask for a Motivationsschreiben."
+description: "Writes a German Motivationsschreiben for one posting, programme, or scholarship: the candidate's reasons and goals in their own words, plus two or three proofs from the Datengrundlage. Asks the user for the reasons and never invents them. Writes Markdown to <wurzel>/<slug>/motivationsschreiben.md. Use on \"schreib ein Motivationsschreiben\", \"Motivationsbrief für das Stipendium\", \"Begründung meiner Motivation für diese Stelle\", or equivalent German requests. Don't use for the normal Anschreiben (job-application-cover-letter-create), for the Lebenslauf (job-application-cv-create), or when the posting does not ask for a Motivationsschreiben."
 tags: [bewerbung, motivationsschreiben, stipendium, studium, deutsch]
 phase: create
 summary: "Writes a Motivationsschreiben from the user's own stated reasons and sourced proofs, with a provenance note per statement."
@@ -25,14 +25,19 @@ see_also:
 
 Spec: `spec/job-application/motivationsschreiben/en.md` (MS-1 to MS-12). Layout and shared rules:
 `spec/job-application/anschreiben/en.md` (AS-2, AS-3, AS-5, AS-9). Facts: `spec/job-application/konventionen/en.md`
-R-1. A Motivationsschreiben is a separate document type. It explains the reasons and goals of the
-candidate. The normal Anschreiben pairs requirements with proofs.
+R-1. Paths and status: `spec/job-application/lokale-struktur/en.md` LS-2.6, LS-6. A Motivationsschreiben is a separate
+document type. It explains the reasons and goals of the candidate. The normal Anschreiben pairs requirements with proofs.
+
+## Paths
+
+Read `job-application/konfiguration.md` first (the Anker, LS-2.3). Take `wurzel` (default `job-application/`),
+`grundlage` and `grundlage_index` from its frontmatter. Relative paths resolve against the working directory that
+contains `job-application/konfiguration.md` (LS-2.6). `<wurzel>/<slug>/` is the Vorgang folder.
 
 ## Inputs
 
-- `job-application/profil.md` and the Datengrundlage (path from `job-application/konfiguration.md`). Facts come
-  from the Grundlage only (MS-3).
-- `job-application/<slug>/analyse.md`, including the section `## Unternehmen` and the counterpart keys. If it is
+- `<wurzel>/profil.md` and the Datengrundlage (Grundlage, key `grundlage`). Facts come from the Grundlage only (MS-3).
+- `<wurzel>/<slug>/analyse.md`, including the section `## Unternehmen` and the counterpart keys. If it is
   missing, run `job-application-posting-analysis` first.
 - `variante`: `stelle` (default), `studium`, `stipendium`, `quereinstieg`, `berufseinstieg` (MS-8).
 - The counterpart's own rules, if any: length, language, structure, questions (MS-11). Ask for them.
@@ -41,7 +46,7 @@ candidate. The normal Anschreiben pairs requirements with proofs.
 
 ## Output
 
-`job-application/<slug>/motivationsschreiben.md`:
+`<wurzel>/<slug>/motivationsschreiben.md`:
 
 ```markdown
 ---
@@ -80,8 +85,10 @@ Vorname Nachname
 Anlagen: <existing documents>
 ```
 
-The provenance note goes into `job-application/<slug>/pruefbericht.md` as the section `## Auswahl Motivationsschreiben`
-(Step 6).
+Everything in `<…>` is an instruction for the writer and never appears in the letter. The provenance note goes into
+`<wurzel>/<slug>/pruefbericht.md` as the section `## Auswahl Motivationsschreiben` (Step 6). Create the file if it is
+missing. A re-run replaces only this section and leaves `## Auswahl Lebenslauf`, `## Auswahl Anschreiben` and
+`## Prüfung` unchanged (D9).
 
 ## Workflow
 
@@ -109,8 +116,13 @@ The provenance note goes into `job-application/<slug>/pruefbericht.md` as the se
    `## Auswahl Motivationsschreiben` in `pruefbericht.md`: the statement, and its source: `Nutzer, <Datum>` or
    `Wunschprofil, bestätigt <Datum>`. For every proof: the Grundlage entry (file and heading, CG-2.3). For every
    counterpart fact: the source in `analyse.md` (UA-4.5).
-7. **Write the letter** in the structure of MS-5. The Betreff, the Anrede, and the Grußformel follow MS-4 and AS-5.
-   Use the tone and the forbidden phrases of MS-10 and AS-9. Keep the paragraphs short (one idea, six lines at most).
+7. **Write the letter** in the structure of MS-5. The Betreff and the Grußformel follow MS-4 and AS-5; the role title in
+   the Betreff carries no gender suffix such as `(m/w/d)` (AS-4). The Anrede follows AS-5.6 to AS-5.8: Sie by default;
+   with a known person `Sehr geehrte Frau <Nachname>,` or `Sehr geehrter Herr <Nachname>,`, academic titles taken over;
+   when the counterpart uses du `Hallo <Vorname>,` or `Guten Tag <Vorname Nachname>,`; when the gender is not clear
+   `Guten Tag <Vorname Nachname>,`; `Sehr geehrte Damen und Herren,` only when no person is known after one question to
+   the user (the quality gate reports it as a Warnung). Use the tone and the forbidden phrases of MS-10 and AS-9. Keep the
+   paragraphs short (one idea, six lines at most).
 8. **Check length** (MS-7). One page for `stelle`, `quereinstieg`, `berufseinstieg`; up to two pages for `studium`
    and `stipendium`, unless the counterpart prescribes another limit. About 300 to 600 words is the aid. Trim in this
    order: the weakest proof, then sentences of the Einstieg. Never cut a statement of motivation that the user
@@ -118,7 +130,9 @@ The provenance note goes into `job-application/<slug>/pruefbericht.md` as the se
 9. **Write the file** with the frontmatter. The hash is the `hash` value of
    `python3 <plugin-root>/scripts/grundlage_hash.py job-application/konfiguration.md` (R-9.5). `<plugin-root>` is the
    plugin directory, two levels above this skill's base directory.
-10. **Hand over.** Show the user the letter, the open markers, and the provenance note. Name the next step:
+10. **Status.** If the folder holds `vorgang.md` (LS-6.1), set `status: erstellt` and `grundlage_hash`, and append
+    `- JJJJ-MM-TT: <alter Status> → erstellt, job-application-motivation-letter-create` to `## Verlauf`.
+11. **Hand over.** Show the user the letter, the open markers, and the provenance note. Name the next step:
     `job-application-quality-gate`.
 
 ## Hard rules
@@ -135,3 +149,4 @@ The provenance note goes into `job-application/<slug>/pruefbericht.md` as the se
 8. **Overrides.** A prescribed format, length, language, or list of questions of the counterpart is followed and
    recorded (MS-11).
 9. **One document per run.** Never batch several applications into one run (`CLAUDE.md` rule 3).
+10. **Only the Wurzel is written** (LS-5.7): the Vorgang folder, `pruefbericht.md` and `vorgang.md` of this Vorgang.

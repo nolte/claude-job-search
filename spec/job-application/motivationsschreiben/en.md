@@ -43,8 +43,10 @@ a decision of this plugin.
    specific rule for internships or training positions. For those, the posting's wording decides.
 2. **The institution's own rules.** A university or a funder may prescribe length, structure, language, and
    questions. These rules override this document (MS-11). The skill asks the user for them.
-3. **Online forms.** A free-text field on a portal that asks for motivation is not a letter. Its rules are not
-   defined here (open point MS-13).
+3. **Online forms.** A free-text field on a portal that asks for motivation is not a letter. The text is
+   reduced to plain text as `anschreiben/en.md` AS-8.1 states: no letter head, no Betreff, from the Anrede to
+   the Grußformel and the name, within the field limit the analysis records. `bewerbungsweg: portal` in
+   `vorgang.md` triggers it. The content rules of MS-3 to MS-6 apply unchanged.
 
 ## MS-3 Where the content may come from
 
@@ -77,7 +79,9 @@ A Motivationsschreiben contains two kinds of statements. They follow different r
 3. **Anrede.** A named person is expected. One source calls the generic "Sehr geehrte Damen und Herren"
    unsuitable ([Karrierebibel](https://karrierebibel.de/motivationsschreiben/)); it is a single source. The
    plugin treats the generic salutation as a Warnung and allows it only when the user says that no name is
-   available (decision of this plugin).
+   available (decision of this plugin; the same severity as `anschreiben/en.md` AS-5.2). The salutation
+   forms of AS-5.1 and AS-5.6 to AS-5.8 (Sie-Form default, du-Form of the counterpart, gender not derivable,
+   academic titles) apply unchanged.
 4. **Grußformel and signature.** As in `anschreiben/en.md` AS-5.3 and AS-5.4.
 
 ## MS-5 Structure of the text
@@ -138,7 +142,7 @@ Internships and training positions use `stelle` or `berufseinstieg`, as the post
 1. **No duplicate.** If both an Anschreiben and a Motivationsschreiben are asked for, the Anschreiben carries
    the proof for the requirements and the Motivationsschreiben carries the reasons and goals. A proof used in
    both is stated with a different focus, and it is not copied.
-2. **Same facts.** Every fact equals the Lebenslauf and the Grundlage (R-1, rule 4 of `CLAUDE.md`).
+2. **Same facts.** Every fact equals the Lebenslauf and the Grundlage (R-1, R-7).
 3. **Fit check first.** If a confirmed Wunschprofil exists, the fit check runs before the letter is written. A
    veto stops the plan until the user decides (WJ-7.1). The Motivationsschreiben does not hide a veto.
 
@@ -184,7 +188,8 @@ stricter one page of the variant `stelle` is checked by hand (MS-13).
 |---|---|---|
 | Sources | The structure and the length come from ratgeber pages. Study and scholarship rules were not found in the search. The institution's own rules are the authority | open |
 | Internship and training | No source for a specific rule. The posting's wording decides | open |
-| Online forms | Rules for a motivation text field on a portal (character limit, no letter layout) are not defined | open |
+| Online forms | A motivation text field on a portal follows the plain-text reduction of `anschreiben/en.md` AS-8.1 (MS-2.3); no skill step writes the text file yet | done (rule), open (skill) |
+| Versioning | The Motivationsschreiben is not versioned like the Lebenslauf (`lebenslauf-versionen` LV-9) | open |
 | Export | The `motivation` document type with a two-page limit exists in `export_document.py`. A one-page limit for the variant `stelle` is not enforced and is checked by hand | done, variant limit open |
 | Skill | `job-application-motivation-letter-create` writes the document. `job-application-cover-letter-create` no longer lists the word in its triggers and points to the new skill | done |
 | WJ-7.2 | `traumjob-interview/en.md` WJ-7.2 forbids wishes in documents. MS-3.3 allows a confirmed wish in this document type only. WJ-7.2 refers here | done in the same change |

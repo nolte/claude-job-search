@@ -128,6 +128,33 @@ class ScenarioTests(unittest.TestCase):
         cv = CLEAN_CV.replace("09/2018 – 03/2021", "09/2018 – 06/2021")
         self.assertIn("CV-06", rules(run(cv, GRUNDLAGE), "Blocker"))
 
+    def test_same_title_and_employer_twice_is_matched_by_period(self):
+        # two stations with the same title at the same employer (another team): matched by period, no CV-06
+        grundlage = GRUNDLAGE + """
+### 01/2014 – 12/2017 | Softwareentwickler | Beispiel AG, Hamburg
+- Team Logistik: Schnittstellen für 4 Partnersysteme umgesetzt.
+
+### 03/2010 – 12/2013 | Softwareentwickler | Beispiel AG, Hamburg
+- Team Tracking: Sendungsverfolgung mit 2 Kollegen aufgebaut.
+"""
+        cv = CLEAN_CV.replace("## Sprachkenntnisse", """\
+### 01/2014 – 12/2017 | Softwareentwickler | Beispiel AG, Hamburg
+- Schnittstellen für 4 Partnersysteme umgesetzt
+
+### 03/2010 – 12/2013 | Softwareentwickler | Beispiel AG, Hamburg
+- Sendungsverfolgung mit 2 Kollegen aufgebaut
+
+## Sprachkenntnisse""")
+        findings = run(cv, grundlage)
+        self.assertNotIn("CV-06", rules(findings))
+        self.assertNotIn("CV-05", rules(findings))  # numbers checked against the matching station block
+        # years only in the CV: matched by year, CV-02 only
+        by_year = cv.replace("### 03/2010 – 12/2013", "### 2010 – 2013")
+        self.assertNotIn("CV-06", rules(run(by_year, grundlage)))
+        # a period that fits none of the candidates is still reported
+        wrong = cv.replace("### 03/2010 – 12/2013", "### 03/2005 – 12/2008")
+        self.assertIn("CV-06", rules(run(wrong, grundlage), "Blocker"))
+
     def test_station_not_in_grundlage_blocks(self):
         cv = CLEAN_CV.replace("Beispiel AG", "Erfundene GmbH")
         self.assertIn("CV-15", rules(run(cv, GRUNDLAGE), "Blocker"))
@@ -176,10 +203,28 @@ class ScenarioTests(unittest.TestCase):
         # Scenario L: no invented reason, the gap is shown or marked
         cv = CLEAN_CV.replace("### 09/2018 – 03/2021", "### 01/2019 – 06/2019")
         self.assertIn("CV-13", rules(run(cv), "Blocker"))
-        with_entry = cv.replace(
-            "## Sprachkenntnisse", "### 06/2018 – 12/2018 | Auszeit | — | Auszeit\n\n## Sprachkenntnisse"
+        # a neutral line between the two stations closes the gap (CG-9)
+        with_line = cv.replace("### 01/2019 – 06/2019", "Elternzeit 07/2019 – 03/2021\n\n### 01/2019 – 06/2019")
+        self.assertNotIn("CV-13", rules(run(with_line), "Blocker"))
+        # a gap entry in header form between the stations fills the chain and is not a station of the Grundlage
+        with_header = cv.replace("### 01/2019 – 06/2019", "### 07/2019 – 03/2021 | Elternzeit | —\n\n### 01/2019 – 06/2019")
+        findings = run(with_header, GRUNDLAGE.replace("### 09/2018 – 03/2021", "### 01/2019 – 06/2019"))
+        self.assertNotIn("CV-13", rules(findings, "Blocker"))
+        self.assertNotIn("CV-15", rules(findings, "Blocker"))
+        self.assertNotIn("CV-03", rules(findings))
+
+    def test_gap_entry_only_counts_between_the_two_stations(self):
+        # a gap entry elsewhere in the document does not cover a different gap
+        cv = CLEAN_CV.replace("### 09/2018 – 03/2021", "### 01/2019 – 06/2019")
+        elsewhere = cv.replace("## Sprachkenntnisse", "### 06/2018 – 12/2018 | Auszeit | —\n\n## Sprachkenntnisse")
+        self.assertIn("CV-13", rules(run(elsewhere), "Blocker"))
+
+    def test_gap_wording_in_a_bullet_is_not_a_gap_entry(self):
+        cv = CLEAN_CV.replace("### 09/2018 – 03/2021", "### 01/2019 – 06/2019").replace(
+            "- Einführung von Code-Reviews im Team mit fünf Entwicklern.",
+            "- Weiterbildung des Teams zu Kafka begleitet.",
         )
-        self.assertNotIn("CV-13", rules(run(with_entry), "Blocker"))
+        self.assertIn("CV-13", rules(run(cv), "Blocker"))
 
     def test_end_before_start_blocks(self):
         cv = CLEAN_CV.replace("09/2018 – 03/2021", "09/2022 – 03/2021")
@@ -202,6 +247,20 @@ class ScenarioTests(unittest.TestCase):
         cv = CLEAN_CV.replace("## Sprachkenntnisse (GER-Niveau)", "## Meine Stärken")
         self.assertIn("CV-10", rules(run(cv), "Warnung"))
 
+    def test_heading_with_suffix_is_not_a_standard_heading(self):
+        # CG-11.2a: the exact heading, optionally with a qualifier in parentheses
+        cv = CLEAN_CV.replace("## Berufserfahrung", "## Berufserfahrung bei Musterfirma")
+        self.assertIn("CV-10", rules(run(cv), "Warnung"))
+        short = CLEAN_CV.replace("## Sprachkenntnisse (GER-Niveau)", "## Kenntnisse").replace("## Berufserfahrung", "## Ausbildung")
+        self.assertNotIn("CV-10", rules(run(short)))
+
+    def test_sub_bullets_are_a_note(self):
+        cv = CLEAN_CV.replace(
+            "- Mitarbeit an einer Integrationsplattform mit REST-Schnittstellen.",
+            "- Mitarbeit an einer Integrationsplattform mit REST-Schnittstellen.\n  - REST-Schnittstellen\n  - Datenbank",
+        )
+        self.assertEqual(rules(run(cv), "Hinweis").count("CV-17"), 2)
+
     def test_bullet_limits(self):
         many = "\n".join(f"- Aufgabe {i} ohne Zahl" for i in range(6))
         cv = CLEAN_CV.replace("- Mitarbeit an einer Integrationsplattform mit REST-Schnittstellen.", many)
@@ -211,7 +270,54 @@ class ScenarioTests(unittest.TestCase):
 
     def test_year_only_header_is_warning(self):
         cv = CLEAN_CV.replace("### 09/2018 – 03/2021", "### 2018 – 2021")
-        self.assertIn("CV-02", rules(run(cv), "Warnung"))
+        findings = run(cv)
+        self.assertIn("CV-02", rules(findings, "Warnung"))
+        self.assertEqual(rules(findings, "Blocker"), [])
+        self.assertIn("MM/JJJJ – MM/JJJJ | Position | Arbeitgeber, Ort", next(f["befund"] for f in findings if f["regel"] == "CV-02"))
+
+    def test_year_only_header_still_checks_its_bullets(self):
+        # a non-conforming header must not switch off CV-05, CV-15 or CV-13 for that station
+        cv = CLEAN_CV.replace("### 09/2018 – 03/2021", "### 2018 – 2021").replace(
+            "- Mitarbeit an einer Integrationsplattform mit REST-Schnittstellen.",
+            "- Schnittstellen für 42 Partnersysteme umgesetzt",
+        )
+        findings = run(cv, GRUNDLAGE)
+        self.assertIn("CV-02", rules(findings, "Warnung"))
+        self.assertIn("CV-05", rules(findings, "Blocker"))
+        self.assertNotIn("CV-15", rules(findings, "Blocker"))
+        unknown = cv.replace("Beispiel AG", "Erfundene GmbH")
+        self.assertIn("CV-15", rules(run(unknown, GRUNDLAGE), "Blocker"))
+
+    def test_gap_wording_inside_a_job_title_is_a_station(self):
+        # `Weiterbildung` or `Elternzeit` inside a title must not turn the station into a gap entry
+        # and switch off CV-15 for it
+        cv = CLEAN_CV.replace("## Sprachkenntnisse", """\
+### 01/2016 – 12/2017 | Referent Weiterbildung | Erfundene GmbH, Köln
+- Schulungen für 40 Teilnehmende organisiert
+
+## Sprachkenntnisse""")
+        self.assertIn("CV-15", rules(run(cv, GRUNDLAGE), "Blocker"))
+        self.assertFalse(cv_checks.is_gap_entry("Referent Weiterbildung"))
+        self.assertFalse(cv_checks.is_gap_entry("Beraterin Elternzeit & Familie"))
+        self.assertTrue(cv_checks.is_gap_entry("Weiterbildung"))
+        self.assertTrue(cv_checks.is_gap_entry("Elternzeit (04/2019 – 08/2019)"))
+        self.assertTrue(cv_checks.is_gap_entry("[ERGÄNZEN: Grund der Lücke]"))
+
+    def test_gap_header_without_period_has_no_bullet_finding(self):
+        # a gap entry written as `### Elternzeit (…)` is neither a CV-02 header nor a station without bullets
+        cv = CLEAN_CV.replace("### 09/2018 – 03/2021", "### Elternzeit (04/2021 – 04/2021)\n\n### 09/2018 – 03/2021")
+        findings = run(cv)
+        self.assertNotIn("CV-03", rules(findings))
+        self.assertNotIn("CV-02", rules(findings))
+
+    def test_number_from_another_station_is_a_note_not_a_blocker(self):
+        # CV-05 checks the station record first; a number found elsewhere in the Grundlage is a Hinweis
+        cv = CLEAN_CV.replace(
+            "- Mitarbeit an einer Integrationsplattform mit REST-Schnittstellen.",
+            "- Integrationsplattform mit 800 ms Antwortzeit betreut",
+        )
+        findings = [f for f in run(cv, GRUNDLAGE) if f["regel"] == "CV-05"]
+        self.assertEqual([f["schweregrad"] for f in findings], ["Hinweis"])
 
     def test_generic_and_duplicate_bullets_are_notes(self):
         cv = CLEAN_CV.replace(
@@ -219,20 +325,20 @@ class ScenarioTests(unittest.TestCase):
             "- Verantwortlich für die Plattform.\n- Verantwortlich für die Plattform.",
         )
         findings = run(cv)
-        self.assertIn("CV-11", rules(findings, "Hinweis"))
+        self.assertIn("CV-11", rules(findings, "Warnung"))
         self.assertIn("CV-09", rules(findings, "Hinweis"))
 
     def test_output_is_reproducible(self):
         # CG-13.3
         self.assertEqual(run(CLEAN_CV, GRUNDLAGE), run(CLEAN_CV, GRUNDLAGE))
 
-    def test_new_forbidden_phrases_are_notes(self):
-        # CG-8.2.3: unsourced evaluative wording is flagged
+    def test_new_forbidden_phrases_are_warnings(self):
+        # CG-8.2.3, CG-7.3: unsourced evaluative wording is a Warnung
         cv = CLEAN_CV.replace(
             "- Mitarbeit an einer Integrationsplattform mit REST-Schnittstellen.",
             "- Erfolgreich fünf Teams unterstützt.",
         )
-        self.assertIn("CV-11", rules(run(cv), "Hinweis"))
+        self.assertIn("CV-11", rules(run(cv), "Warnung"))
 
 
 class StationNoteTests(unittest.TestCase):
@@ -264,15 +370,46 @@ class StationNoteTests(unittest.TestCase):
         findings = run(cv, {"station.md": STATION_NOTE})
         self.assertIn("CV-16", rules(findings, "Blocker"))
 
-    def test_leadership_wording_blocks_when_not_recorded(self):
+    def test_leadership_wording_is_a_warning_when_not_recorded(self):
+        # fuehrung missing or ungeklärt: the claim is open, not refuted
         note = STATION_NOTE.replace("fuehrung: nein\n", "")
         cv = "## Berufserfahrung\n\n### 09/2018 – 03/2021 | Softwareentwickler | Beispiel AG, Hamburg\n- Teamleitung übernommen.\n"
-        self.assertIn("CV-16", rules(run(cv, {"station.md": note}), "Blocker"))
+        findings = run(cv, {"station.md": note})
+        self.assertIn("CV-16", rules(findings, "Warnung"))
+        self.assertNotIn("CV-16", rules(findings, "Blocker"))
+        unresolved = STATION_NOTE.replace("fuehrung: nein", "fuehrung: ungeklärt")
+        self.assertIn("CV-16", rules(run(cv, {"station.md": unresolved}), "Warnung"))
 
     def test_leadership_wording_allowed_with_recorded_leadership(self):
         note = STATION_NOTE.replace("fuehrung: nein", "fuehrung: ja")
         cv = "## Berufserfahrung\n\n### 09/2018 – 03/2021 | Softwareentwickler | Beispiel AG, Hamburg\n- Teamleitung für sieben Entwickler.\n"
         self.assertNotIn("CV-16", rules(run(cv, {"station.md": note})))
+
+    def test_leadership_regex_targets_personnel_leadership_only(self):
+        head = "## Berufserfahrung\n\n### 09/2018 – 03/2021 | Softwareentwickler | Beispiel AG, Hamburg\n"
+        for bullet in (
+            "- Technische Führung des Themas Observability übernommen",
+            "- Gespräche mit Vorgesetzten zur Priorisierung geführt",
+            "- Migration des Clusters geleitet",
+            "- Workshops zu Kafka durchgeführt",
+        ):
+            self.assertNotIn("CV-16", rules(run(head + bullet + "\n", {"station.md": STATION_NOTE})), bullet)
+        for bullet in (
+            "- Team von 7 Entwicklern fachlich geleitet",
+            "- Disziplinarische Verantwortung für 3 Mitarbeiter",
+            "- Führungsverantwortung für die Abteilung übernommen",
+            # CG-7.3 names `führte` and the Führung family; with a people object they are personnel leadership
+            "- Team von 8 Mitarbeitern fachlich und personell geführt",
+            "- Führung eines Teams von 5 Entwicklern",
+            "- Führte die Abteilung Integration mit 3 Mitarbeitern",
+        ):
+            self.assertIn("CV-16", rules(run(head + bullet + "\n", {"station.md": STATION_NOTE}), "Blocker"), bullet)
+
+    def test_year_only_header_reports_cv02_once(self):
+        # the header-form warning of check_cv covers the missing month; check_period must not add a second CV-02
+        cv = "## Berufserfahrung\n\n### 2018 – 2021 | Softwareentwickler | Beispiel AG, Hamburg\n- Mitarbeit an einer Plattform.\n"
+        findings = run(cv, {"station.md": STATION_NOTE})
+        self.assertEqual(rules(findings).count("CV-02"), 1)
 
     def test_erfolge_numbers_are_traceable_from_note(self):
         # Erfolge and Team sections of the note are part of the source text (CV-05)

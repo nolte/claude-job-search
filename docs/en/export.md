@@ -1,8 +1,19 @@
 # Export: LaTeX PDF of the Lebenslauf
 
+!!! abstract "For advanced users (operator content)"
+    This page is for the person who runs the export: it names packages, command lines and a
+    container. If you only want a PDF of a checked document, ask the export skill
+    (`/claude-job-search:job-application-export`) and come back here when it reports a missing
+    tool.
+
 This page lists what you need to turn a finished Lebenslauf into a PDF with the LaTeX template,
 and the commands that do it. The Markdown source is the only input. The PDF and the LaTeX
 source are generated from it.
+
+!!! tip "Which format for which recipient"
+    A text PDF is the default, also for application portals (ATS): the layout is one column
+    without tables, so a parser reads the text in order. Produce DOCX only when a portal
+    explicitly demands it. HTML and Markdown are for viewing and for your own records.
 
 ## What is needed
 
@@ -24,7 +35,7 @@ For the LaTeX source alone (`--format tex`), only pandoc is needed. LuaLaTeX is 
 
 The PDF is one column with one accent colour (dark blue), thin rules under the section headings and coloured
 bullets. There are no tables, icons, photos or text in the header and footer apart from a quiet page number, so a
-parser reads the same text as before (spec R-8.3).
+parser reads the same text as the Markdown source.
 
 - **Header:** the name stands first and large, the personal data below it.
 - **Stations:** the period stands in a left column, the position in bold, the employer and place below it in grey.
@@ -35,18 +46,29 @@ parser reads the same text as before (spec R-8.3).
   hierarchy stays visible in grayscale.
 - **Letter:** the Anschreiben uses the same template with its own margins (25 mm left).
 
-The design is in `skills/job-application-export/templates/` (`document.tex` and `cv.lua`); the rules are in
-`spec/job-application/lebenslauf/en.md` (LB-11).
+The design is in `skills/job-application-export/templates/` (`document.tex` and `cv.lua`).
+
+!!! info "For developers"
+    The layout rules are `spec/job-application/lebenslauf/en.md` (LB-11), the ATS rule is
+    `spec/job-application/konventionen/en.md` (R-8.3, R-10).
 
 ## Input
 
-The source is a Markdown file of the application folder:
+The source is a Markdown file of an application folder or of a CV variant folder:
 
 ```text
-job-application/<slug>/lebenslauf.md
+job-application/<slug>/lebenslauf.md                       the Lebenslauf of one application
+job-application/lebenslauf-basis/lebenslauf.md             the working copy of a variant
+job-application/lebenslauf-basis/versionen/v001_2026-10-22.md   a frozen version of that variant
 ```
 
 The export checks the page count against the document type. A Lebenslauf may have at most two pages.
+
+**Exporting a frozen version.** The copy you send should come from a frozen version, not from the
+working copy, so it can be rebuilt later. Point the export at the file in `versionen/`; the output
+goes to `export/` of the same variant folder and is named after the version
+(`v001_2026-10-22.pdf`), not after the day of the export. Use `--name Vorname_Nachname_Lebenslauf`
+for the copy that goes to the recipient.
 
 ## Commands
 
@@ -68,7 +90,7 @@ task export -- job-application/<slug>/lebenslauf.md --format tex --doc-type cv
 | `--doc-type letter` | Anschreiben, one page |
 | `--doc-type motivation` | Motivationsschreiben, at most two pages |
 | `--name` | File name without extension, default is the source name |
-| `--out-dir` | Output folder, default `job-application/<slug>/export/` |
+| `--out-dir` | Output folder, default `export/` next to the source: `job-application/<slug>/export/` for an application, `job-application/<variant>/export/` for a variant or one of its frozen versions |
 
 ## Outputs
 
@@ -94,8 +116,11 @@ python3 skills/job-application-export/scripts/export_document.py --reproduce leb
 
 The command rebuilds the file in a temporary folder and compares the hash. Exit code `0` means identical,
 `3` means different or a changed source, and it lists differing tool versions. Keep the container image of a
-sent PDF (`docker save`), because the Debian packages inside it float over time. Variants, versions and the
-folder layout are specified in `spec/job-application/lebenslauf-versionen/en.md`.
+sent PDF (`docker save`), because the Debian packages inside it change over time.
+
+!!! info "For developers"
+    Variants, versions and the folder layout are specified in
+    `spec/job-application/lebenslauf-versionen/en.md`.
 
 ## Run in a container, in another repository
 
@@ -109,7 +134,7 @@ Build the image once. The plugin repository is the build source, you do not clon
 docker build -t claude-job-search-export https://github.com/nolte/claude-job-search.git#develop
 ```
 
-Replace `develop` with a release tag once one exists, so the image does not change under you.
+Replace `develop` with the release tag, for example `v0.2.0`, so the image does not change under you.
 
 Run it from the root of your data repository, where `job-application/` lies:
 

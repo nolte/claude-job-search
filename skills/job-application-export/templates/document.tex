@@ -18,6 +18,8 @@ $else$
 \usepackage[left=20mm,right=18mm,top=17mm,bottom=19mm,footskip=9mm]{geometry}
 $endif$
 \usepackage{hyperref}
+% longtable and booktabs are loaded only because pandoc's LaTeX writer may reference them; the Lebenslauf has
+% no tables (spec R-8.3, CV-08), so a table in the source is a finding, not a layout element.
 \usepackage{longtable,booktabs}
 \usepackage{graphicx}
 \usepackage{microtype}

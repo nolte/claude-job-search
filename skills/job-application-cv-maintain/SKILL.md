@@ -29,9 +29,13 @@ and R-9.8 (Pflegelauf). Requirement: `project/requirements/datengrundlage-pflege
 
 ## Inputs
 
-- **Pfad.** Read `job-application/konfiguration.md`, frontmatter keys `grundlage` (a file, or a directory of notes) and `grundlage_index` (required for a directory, spec R-9.1, R-9.10). If the file or key is
-  missing, use `job-application/grundlage/lebenslauf-chronologisch.md`. An argument given in the session
-  overrides both, and the user is asked whether to store it in the configuration. In directory mode the interview reads all notes; a change goes into the note of the addressed Station, the Pflegeverlauf into the index note.
+- **Pfad.** Read `job-application/konfiguration.md` first (the Anker, LS-2.3): frontmatter keys `wurzel` (default
+  `job-application/`), `grundlage` (a file, or a directory of notes) and `grundlage_index` (required for a directory,
+  spec R-9.1, R-9.10). Relative paths resolve against the working directory that contains
+  `job-application/konfiguration.md` (LS-2.6). If the key is missing, the Datengrundlage (Grundlage) is
+  `<wurzel>/grundlage/lebenslauf-chronologisch.md`. An argument given in the session overrides both, and the user is
+  asked whether to store it in the configuration. In directory mode the interview reads all notes; a change goes into
+  the note of the addressed Station, the Pflegeverlauf into the index note.
 - **Schwerpunkt** (optional): `alle` (default), `nur stationen`, `nur zertifikate`, `persönlich`.
   Optional personal fields (Geburtsdatum, Familienstand, Staatsangehörigkeit, Foto) are asked only
   for `persönlich` or when the user asks for them (FA-P9).
@@ -88,7 +92,7 @@ Each new or changed station is shown in full and confirmed by the user. Only the
    Report `hash` and `stand`. If the script stops with a `Blocker:` line, report it and do not close.
    Derived artefacts with an older `grundlage_hash` are stale and are flagged by `job-application-quality-gate`.
 3. Write the closing report: completed points, open points by level, remaining blockers.
-4. If the profile `job-application/profil.md` exists and its `grundlage_hash` differs from the new hash,
+4. If the profile `<wurzel>/profil.md` exists and its `grundlage_hash` differs from the new hash,
    say that it needs re-deriving with `job-application-profile-capture`.
 
 ## Checklist (Kernpunkte)
@@ -102,8 +106,11 @@ Each new or changed station is shown in full and confirmed by the user. Only the
 | Station | Position exakt wie im Zeugnis | Pflicht |
 | Station | Arbeitgeber mit Rechtsform und Ort | Pflicht |
 | Station | mindestens eine Aufgabe | Pflicht |
-| Station | Ergebnis, belegt durch Zahl oder qualitativ | empfohlen für relevante Stationen |
+| Station | Ergebnis, belegt durch Zahl oder qualitativ (`## Erfolge` in der Stationsnotiz, CG-2.4) | empfohlen für relevante Stationen |
+| Station | `## Team`: Teamgröße, Rollen um die Person, Berichtslinie (CG-2.4) | empfohlen |
+| Station | `fuehrung`: `ja`, `nein` oder `ungeklärt` (Personalführung, CG-2.4, CV-16) | Pflicht; `ungeklärt` ist ein Hinweis |
 | Station | Zeugnis: Datei, Datum, Aussteller, Wortlaut der Schlussbeurteilung | Pflicht, wenn ein Zeugnis existiert |
+| Lücke | Zeitraum über zwei Monate ohne Station: neutraler Grund (`Elternzeit`, `Pflege eines Angehörigen`, `Weiterbildung`, `Berufliche Neuorientierung`, `Bewerbungsphase`) | Pflicht, sonst `[ERGÄNZEN: Grund der Lücke]` |
 | Ausbildung | Abschluss, Ort, Zeitraum | Pflicht |
 | Schule | Abschluss, Schule, Jahr | Pflicht |
 | Weiterbildung | Titel, Anbieter, Jahr | empfohlen |
@@ -122,7 +129,11 @@ Each new or changed station is shown in full and confirmed by the user. Only the
 Additional rules:
 
 - Overlapping full-time stations are reported, not corrected.
-- Gaps over two months need a neutral entry (R-2.1).
+- Gaps over two months need a neutral entry (R-2.1, CG-9). The question offers the wording list of the checklist; the
+  user picks one or declines. Never write `Auszeit` as a default and never infer a reason (D19). When
+  `job-application-cv-create` stops at a gap, the answer is written here, into the Grundlage, not into the Lebenslauf.
+- `fuehrung` is asked per station when it is missing or `ungeklärt`: did the candidate lead people (disziplinarisch or
+  as Teamleitung)? Technical leadership of a topic is `nein`.
 - Bullets: the Grundlage has no bullet limit. The output limits of R-2.1 are applied per application when the Lebenslauf is selected (R-9.11). Too many bullets in a station is a Hinweis, never a Warnung.
 - Every number in a bullet must be backed by the file or a certificate. An unbacked number is a blocker (R-1).
 - Sprachniveaus are checked against GER levels (A1–C2).

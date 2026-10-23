@@ -1,7 +1,7 @@
 {
   "name": "claude-job-search",
-  "version": "0.1.0",
-  "description": "Claude Code skills and agents for German-speaking job applications (Bewerbungsunterlagen) — Lebenslauf, Anschreiben, Bewerbungs-E-Mail, Stellenanzeigen-Abgleich and Pruefung nach DACH-Konventionen.",
+  "version": "0.2.0",
+  "description": "Claude Code skills and an agent for German-speaking job applications (Bewerbungsunterlagen) — Wunschprofil und Passung, Lebenslauf, Anschreiben, Motivationsschreiben, Bewerbungs-E-Mail, Stellenanzeigen-Abgleich, Qualitätsprüfung, Export (PDF, DOCX, HTML, Markdown) und Vorgangsverwaltung nach DACH-Konventionen.",
   "author": {
     "name": "nolte",
     "url": "https://github.com/nolte"

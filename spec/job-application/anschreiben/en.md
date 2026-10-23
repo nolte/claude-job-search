@@ -31,7 +31,8 @@ a decision of this plugin. A decision of this plugin is a default that a posting
    (see `motivationsschreiben/en.md`). Source: [business-on.de](https://www.business-on.de/unterschied-anschreiben-und-motivationsschreiben.html),
    [karriere.at](https://www.karriere.at/c/a/anschreiben).
 5. **One posting per letter.** A letter is written for exactly one Stellenanzeige or one deliberate
-   unsolicited application (rule 3 of `CLAUDE.md`).
+   unsolicited application (one Vorgang per Stellenanzeige, `lokale-struktur/en.md` LS-1; consistency
+   across the set, R-7).
 
 ## AS-2 Components and order
 
@@ -64,36 +65,48 @@ Retrieved 2026-10-22.
    minimum of the right margin (10 mm and 15 mm are named). The template uses 25 mm left, 20 mm right, and
    20 mm top and bottom for the letter (document type `letter`); the Lebenslauf has its own margins.
 4. **Typeface.** DIN 5008 does not prescribe one (sources of AS-2). The template font applies (Lato with a
-   fallback, 11 pt, `skills/job-application-export/templates/document.tex`).
+   fallback, body 10.5 pt on 14.3 pt leading as `\normalsize` of
+   `skills/job-application-export/templates/document.tex`, the same as LB-11.7).
 5. **Form A and Form B.** DIN 5008 defines forms that differ in the position of the address field and the
    fold marks. The sources retrieved for this document do not state them. The plugin therefore does not
    claim to implement a specific form. Open point AS-13.
 6. **Betreff.** Written without the word "Betreff", starting two lines below the date; the salutation follows
    two blank lines below it (sources of AS-2). The plugin sets the Betreff in bold (decision of this plugin).
 7. **Consistency with the Lebenslauf.** Name, address, phone, e-mail, and the typeface and accent colour of the
-   template are the same as in the Lebenslauf, so the documents read as one set (R-1, rule 4 of `CLAUDE.md`).
+   template are the same as in the Lebenslauf, so the documents read as one set (R-1, R-7).
 
 ## AS-4 Betreff
 
-1. **Form.** `Bewerbung als <Stelle> (Ref.-Nr. <nr>)`, with the posting's exact role title and, when the
-   posting gives one, the reference number (decision of this plugin, equal to R-3).
+1. **Form.** `Bewerbung als <Stelle> (Ref.-Nr. <nr>)`, with the posting's role title and, only when the
+   posting gives one, the reference number (decision of this plugin, equal to R-3). A gender suffix of the
+   posting (`(m/w/d)`, `(w/m/x)`, `(m/w/x)` and similar) is dropped from the Betreff:
+   `Senior Backend-Entwickler (m/w/d)` becomes `Bewerbung als Senior Backend-Entwickler`. Without a reference
+   number the parentheses are omitted.
 2. **Unsolicited application.** `Initiativbewerbung als <Rolle>` or `Initiativbewerbung im Bereich <Bereich>`.
 3. **No extra claims.** The Betreff contains no adjective about the candidate.
 4. **Same wording everywhere.** The Betreff matches the subject of the e-mail (R-4) and the role in the
-   analysis (rule 4 of `CLAUDE.md`).
+   analysis (R-7).
 
 ## AS-5 Anrede and closing
 
-1. **Named contact.** The sources recommend a named contact person. The salutation is
-   `Sehr geehrte Frau <Nachname>,` or `Sehr geehrter Herr <Nachname>,` when the posting or the user's profile
-   gives the name. A name is never guessed (R-1, KK-5.1).
+1. **Named contact.** The sources recommend a named contact person. The Sie-Form is the default. The
+   salutation is `Sehr geehrte Frau <Nachname>,` or `Sehr geehrter Herr <Nachname>,` when the posting or the
+   user's profile gives the name. A name is never guessed (R-1, KK-5.1).
 2. **No name known.** The skill asks the user once whether a contact is known. If there is none,
-   `Sehr geehrte Damen und Herren,` is allowed. The quality gate reports it as a Hinweis, not as a Blocker.
+   `Sehr geehrte Damen und Herren,` is allowed. The quality gate reports it as a Warnung, not as a Blocker
+   (the same severity as MS-4.3).
 3. **Comma rules.** A comma follows the salutation. No comma follows the Grußformel (sources of AS-2).
 4. **Grußformel.** `Mit freundlichen Grüßen`. The signature line below carries the full first and last name,
    without abbreviations.
 5. **Recruiter or undisclosed employer.** The addressee follows KK-4.1 and UA-6.2: a letter to a Vermittler
    does not name an Auftraggeber the counterpart has not disclosed.
+6. **Posting in the du-Form.** When the posting clearly uses du (AS-9.1), the salutation is
+   `Hallo <Vorname>,` or `Guten Tag <Vorname Nachname>,`. The user chooses; the default is `Guten Tag`.
+7. **Gender not derivable.** When the gender cannot be derived from the name and the posting gives no
+   pronoun or title, the salutation is `Guten Tag <Vorname Nachname>,`. The gender is never guessed.
+8. **Academic titles.** A title (Dr., Prof.) that the posting or the profile states is kept in the
+   salutation: `Sehr geehrte Frau Dr. <Nachname>,`, `Sehr geehrter Herr Prof. <Nachname>,`. A title is never
+   added from another source (AS-9.7).
 
 ## AS-6 Text: structure and content
 
@@ -155,6 +168,22 @@ The variant is the `ausrichtung` input of `job-application-cover-letter-create`.
 A letter that mainly explains personal reasons and goals is written as a Motivationsschreiben, not as a
 variant of this document.
 
+### AS-8.1 Portal free-text fields
+
+1. **Trigger.** `bewerbungsweg: portal` in `vorgang.md` (LS-6.1) and a portal that offers a free-text field
+   for the cover letter instead of an upload.
+2. **Content.** The letter is written as in AS-6 and then reduced to plain text for the field: no
+   Absender, no Empfängeranschrift, no Ort und Datum, no Betreff, no Anlagen line. The text runs from the
+   Anrede (AS-5) to the Grußformel and the name (AS-5.4). Paragraphs are separated by one empty line; no
+   Markdown, no bold, no list markers.
+3. **Length.** The field limit of the portal, when known, replaces the page limit of AS-7.1. The analysis
+   records the limit; the cut order of AS-7.4 applies. Without a known limit the text of a one-page letter
+   is used.
+4. **File.** The plain text is written to `anschreiben-portal.txt` next to `anschreiben.md` on request.
+   `anschreiben.md` stays the source (R-10.1); both carry the same facts (AS-6.5).
+5. **Motivation fields.** A portal field that asks for motivation follows the same reduction with the
+   content rules of `motivationsschreiben/en.md` (MS-2.3).
+
 ## AS-9 Wording and tone
 
 1. **Address.** Sie, unless the posting clearly uses du (R-3). The tone follows the posting's tone recorded in
@@ -172,12 +201,18 @@ variant of this document.
 ## AS-10 Salary, start date, and further statements
 
 1. **Gehaltsvorstellung.** Only if the posting asks for it, and only with a value the user states (R-3).
-   A recruiter who asks before the employer is known gets no salary yet (KK-4.4).
+   Form: `<Betrag> € brutto pro Jahr` (`65.000 € brutto pro Jahr`) or a range (`60.000 bis 65.000 € brutto
+   pro Jahr`). It stands in the Schluss (AS-6, Schluss), in one sentence. Without a value from the user the
+   marker `[ERGÄNZEN: Gehaltsvorstellung]` stays (Blocker, R-1.2). A recruiter who asks before the employer
+   is known gets no salary yet (KK-4.4).
 2. **Eintrittstermin and Kündigungsfrist.** Only if the posting asks for it or the user wants it. The value
    comes from the user.
 3. **Personal data.** No birth date, marital status, or photo reference in the letter (R-2, R-8.2).
 4. **Anlagen line.** It names only documents that exist in the folder and that the counterpart may receive
-   (KK-7.1). Example: `Anlagen: Lebenslauf, Zeugnisse`.
+   (KK-7.1). Example: `Anlagen: Lebenslauf, Zeugnisse`. The Zeugnisse are one combined PDF selected and
+   ordered as R-5 states (the last two or three Arbeitszeugnisse, the highest Abschluss, relevant
+   Zertifikate; Arbeitszeugnisse, then Abschlusszeugnisse, then Zertifikate, newest first within a group).
+   The line lists the attached documents, not the single certificates.
 
 ## AS-11 Overrides by the posting
 
@@ -194,13 +229,17 @@ not met is a Warnung.
 | Addressee, Betreff, reference number and contact name equal across the documents | AS-4.4 | review | Blocker |
 | A claim not traceable to the Grundlage | R-1, AS-6.5 | review | Blocker |
 | Number, date, or employer differs from the Lebenslauf | AS-6.5 | review | Blocker |
-| Letter longer than one page | AS-7.1 | export page check (`doc-type letter`) | Warnung |
+| Letter longer than one page | AS-7.1 | export page check (`doc-type letter`) | Blocker |
 | Letter outside 250 to 400 words | AS-7.2 | review | Hinweis |
 | A *Muss* requirement of the analysis is not addressed | AS-6.3 | review | Warnung |
 | A *Muss* gap is presented as fulfilled | CG-4.5 | review | Blocker |
 | Stock phrase | AS-9.3 | review | Warnung |
-| Generic salutation although a name is known | AS-5.2 | review | Warnung |
+| Generic salutation `Sehr geehrte Damen und Herren,` | AS-5.2 | review | Warnung |
+| Salutation form does not match the case of AS-5 (du-Form, gender not derivable, title) | AS-5.6 to AS-5.8 | review | Warnung |
+| Gender suffix or an invented reference number in the Betreff | AS-4.1 | review | Warnung |
+| Gehaltsvorstellung without a user value, or outside the Schluss | AS-10.1 | review | Blocker (placeholder), Hinweis (placement) |
 | Employer or Auftraggeber named without disclosure | AS-5.5 | review | Blocker |
+| Portal text carries letter head, Betreff or Markdown | AS-8.1 | review | Warnung |
 | `grundlage_hash` stale (R-9.5) | R-9.5 | automated | Warnung |
 
 The page limit of one page is the only automated length check today (`export_document.py`, `PAGE_LIMITS`).
@@ -213,7 +252,10 @@ Word count, stock phrases, and consistency between the documents are judged in r
 | DIN 5008 | Form A or Form B, the exact position of the address field, and fold marks are not verified. A primary source (the standard text or DIN Media) is needed before the template claims a form | open |
 | Margins | The letter has its own geometry (25 mm left, 20 mm right). It follows the recommendation of the sources, which differ on the minimum of the right margin | done |
 | Automation | Deterministic checks for word count, stock phrases, and salutation, in `scripts/` | open |
-| Skill | `job-application-cover-letter-create` implements AS-6 to AS-9 only as far as its `SKILL.md` states them; the skill must be aligned with this document | open |
+| Skill | `job-application-cover-letter-create` implements AS-6 to AS-9 only as far as its `SKILL.md` states them; the skill must be aligned with this document | in Arbeit (skill) |
+| Page limit | The export check reports a second page; the severity Blocker (AS-12) is to be set in `export_document.py` and the quality gate | open (export) |
+| Portal fields | AS-8.1 defines the plain-text reduction; `job-application-cover-letter-create` writes `anschreiben-portal.txt` for `bewerbungsweg: portal` | done (skill, 0.2.0) |
+| Versioning | Anschreiben and Motivationsschreiben are not versioned like the Lebenslauf (`lebenslauf-versionen` LV-9) | open |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
 
 ## AS-14 Acceptance scenarios
@@ -221,12 +263,17 @@ Word count, stock phrases, and consistency between the documents are judged in r
 | ID | Scenario | Expected behaviour |
 |---|---|---|
 | AS-A | Posting with a named contact | Personal salutation, Betreff with reference number, one page |
-| AS-B | Posting without a contact | The skill asks once; generic salutation only if none is known, reported as Hinweis |
+| AS-B | Posting without a contact | The skill asks once; generic salutation only if none is known, reported as Warnung |
+| AS-I | Posting in the du-Form with a named contact | `Hallo <Vorname>,` or `Guten Tag <Vorname Nachname>,` (AS-5.6) |
+| AS-J | Contact name without a derivable gender | `Guten Tag <Vorname Nachname>,` (AS-5.7) |
+| AS-K | Contact with the title Dr. in the posting | `Sehr geehrte Frau Dr. <Nachname>,` (AS-5.8) |
+| AS-L | Role title `… (m/w/d)` and no reference number | `Bewerbung als <Stelle>` without suffix and without parentheses (AS-4.1) |
+| AS-M | `bewerbungsweg: portal` with a free-text field | Plain text from Anrede to name, within the field limit (AS-8.1) |
 | AS-C | Posting with five *Muss* requirements, three well evidenced | Three proof paragraphs for the three, the others in the gap sentence or not at all |
 | AS-D | A *Muss* requirement is `nicht belegt` | Never stated as fulfilled; optional gap sentence; reported in the analysis |
 | AS-E | Posting asks for the Gehaltsvorstellung | The user's value is stated; without a value the marker `[ERGÄNZEN: Gehaltsvorstellung]` stays |
 | AS-F | Recruiter forwards, employer undisclosed | No employer name, addressee per KK-4.1 |
-| AS-G | The letter exceeds one page | The cut order of AS-7.4 applies |
+| AS-G | The letter exceeds one page | Blocker (AS-12); the cut order of AS-7.4 applies before the set is ready |
 | AS-H | Unsolicited application | Variant `initiativ`; no reference number |
 
 ## AS-15 Sources

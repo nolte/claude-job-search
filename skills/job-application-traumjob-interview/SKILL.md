@@ -26,7 +26,9 @@ Grundlage (LS-5.2) and never into a document.
 
 ## Inputs
 
-- The Wurzel from `job-application/konfiguration.md` (key `wurzel`, default `job-application/`, LS-2).
+- The Wurzel from `job-application/konfiguration.md`, read first as the Anker (key `wurzel`, default `job-application/`,
+  LS-2.3). Relative paths resolve against the working directory that contains `job-application/konfiguration.md`
+  (LS-2.6).
 - An existing `wunschprofil.md` in the Wurzel, if there is one (see Resume).
 
 ## Workflow

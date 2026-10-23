@@ -23,20 +23,27 @@ Related specs:
 ## LV-2 Layout
 
 ```text
-<wurzel>/<ausprägung>/
+<wurzel>/<ausprägung>/                 for example lebenslauf-basis/ (LS-3)
   lebenslauf.md                      Arbeitsstand (edited)
+  pruefbericht.md                    Auswahl Lebenslauf and Prüfung (LS-7.4)
   versionen/v001_2026-10-22.md       frozen Versionen (never edited)
   export/
-    v001_2026-10-22.pdf              export of one Version
+    v001_2026-10-22.pdf              export of one Version (LV-2.3)
     v001_2026-10-22.pdf.manifest.json
 ```
 
 1. The Ausprägung name is the folder name. It is lowercase, with hyphens (`lebenslauf-basis`,
-   `<firma>-<stelle>` for one Vorgang).
+   `<firma>-<stelle>` for one Vorgang). An Ausprägung folder sits directly in the Wurzel next to the Vorgänge
+   and carries no `vorgang.md`; this is how a skill tells it from a Vorgang (`lokale-struktur/en.md` LS-3).
 2. A Vorgang that needs a changed Lebenslauf gets its own Ausprägung, derived from an existing Version. It
-   never edits another Ausprägung.
-3. Exports are named after the Version they were made from, not after the date of the export. The copy that is
-   sent to a recipient is additionally named `Vorname_Nachname_Lebenslauf.<ext>` (LB-11.13, R-4).
+   never edits another Ausprägung. The Vorgang folder then holds `lebenslauf.md`, `versionen/` and `export/`
+   like any Ausprägung, plus its Vorgang files.
+3. An export of a frozen Version `versionen/vNNN_<datum>.md` is written to
+   `<ausprägung>/export/vNNN_<datum>.<ext>` with its Manifest `vNNN_<datum>.<ext>.manifest.json`. Exports are
+   named after the Version they were made from, not after the date of the export. The copy that is sent to a
+   recipient is additionally named `Vorname_Nachname_Lebenslauf.<ext>` with the ASCII transliteration of R-4
+   (LB-11.13, R-10.4). An export of the Arbeitsstand (not frozen) keeps the name
+   `Vorname_Nachname_Lebenslauf.<ext>` and is not stored in git (LV-4).
 
 ## LV-3 Frontmatter and freezing a Version
 
@@ -64,6 +71,15 @@ Obsidian vault (decision of the user, 2026-10-22). The plugin repository itself 
 | The Manifest of every export | Exports that were never sent (they can be rebuilt) |
 | The PDF that was actually sent, with its Manifest | Scans in `rohdaten/` unless the user decides otherwise |
 
+1. **Only sent PDFs.** The repository stores a PDF only when it was actually sent to a recipient. Exports
+   of the Arbeitsstand and test exports are git-ignored.
+2. **Ignore rule.** `.gitignore` of the Wurzel ignores `**/export/*.pdf` and `**/export/*.docx` and
+   re-includes the sent Versionen by negation, `!**/export/v[0-9][0-9][0-9]_*.pdf`, or the user moves
+   the sent file into `export/versendet/` and ignores only `**/export/*.pdf`. Manifeste (`*.manifest.json`)
+   are never ignored.
+3. **After deletion of a Vorgang** (LS-6 S10) the sent PDF and its Manifest stay in the repository; the
+   user keeps them in the Ausprägung the Lebenslauf came from or in the `export/` folder alone.
+
 A repository that is, or may become, public stores none of these files (R-6).
 
 ## LV-5 Reproduction levels
@@ -86,8 +102,9 @@ A repository that is, or may become, public stores none of these files (R-6).
 2. The exporter sets the PDF trailer ID from a hash of the Version, `document.tex`, `cv.lua`, the epoch and
    the document type. The random ID of LuaLaTeX would otherwise differ on every run.
 3. Every export writes `<datei>.manifest.json` with: schema number, document type, format, the relative path
-   and SHA-256 of the source, the frontmatter keys `auspraegung`, `version`, `version_datum`,
-   `grundlage_hash`, `format` and `situation`, the epoch, the SHA-256 of `document.tex` and `cv.lua`, the
+   and SHA-256 of the source, the frontmatter keys `format`, `auspraegung`, `version`, `version_datum` and
+   `grundlage_hash` (not `situation`, which is a working note of the Arbeitsstand and does not describe
+   the file), the epoch, the SHA-256 of `document.tex` and `cv.lua`, the
    tool versions (pandoc, LuaLaTeX, Python), the plugin revision and image id when the environment supplies
    them (`PLUGIN_REVISION`, `EXPORT_IMAGE_ID`), and the file name, SHA-256 and page count of the output.
 4. `export_document.py --reproduce <manifest>` rebuilds the output in a temporary folder and compares the
@@ -120,6 +137,9 @@ by digest, but the Debian packages (pandoc, TeX Live, fonts) are resolved at bui
 | Floating Debian packages in the image | Mitigated by archiving the image (LV-7). A pinned snapshot repository would remove it. |
 | Mapping the same Version to several PDF layouts | Not specified. A layout change of the plugin changes `document.tex` and is visible in the Manifest. |
 | Freezing is done by a skill step, not enforced by a hook | Accepted. A changed hash is detected at reproduction (LV-6.4). |
+| Versioning of Anschreiben and Motivationsschreiben | Not specified. Both are written per Vorgang and are not frozen; whether a sent letter needs the same Version and Manifest rules is open. |
+| Manifest key `situation` | Removed from the Manifest (LV-6.3); `export_document.py` writes no `situation` (done, export, 0.2.0). |
+| Export path of a frozen Version | `<ausprägung>/export/vNNN_<datum>.<ext>` (LV-2.3); `export_document.py` resolves `versionen/` to the `export/` folder of the Ausprägung (done, export, 0.2.0). |
 
 ## LV-10 Acceptance scenarios
 

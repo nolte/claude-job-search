@@ -246,7 +246,8 @@ gesamturteil: Veto | Klärungsbedarf | Passt überwiegend
 
 ## WJ-8 Privacy
 
-1. **Local only.** The Wunschprofil and the fit check stay in the git-ignored working folder (R-6, LS-2).
+1. **Local only.** The Wunschprofil and the fit check stay in the Wurzel, which is git-ignored by
+   default; a private, unpublished repository is allowed (R-6, LS-2.1, `lebenslauf-versionen` LV-4).
 2. **Never sent.** No skill sends the Wunschprofil, a fit check or a wish to any service or counterpart.
    A web search does not include any wish or interview content (UA-3.3).
 3. **Deletion.** The candidate can delete the Wunschprofil and the fit checks at any time. The skill
@@ -275,8 +276,8 @@ check for the profile format and the veto rule is an open point.
 
 | Area | Point | Status |
 |---|---|---|
-| Skill | An interview skill runs the phases and writes `wunschprofil.md` | open |
-| Skill | The fit check runs after posting analysis and writes `passung.md` | open |
-| LS-4 | Add the Wunschprofil to the table of Stammdaten in `lokale-struktur/en.md` | open |
+| Skill | An interview skill runs the phases and writes `wunschprofil.md` | done |
+| Skill | The fit check runs after posting analysis and writes `passung.md` | done |
+| LS-4 | Add the Wunschprofil to the table of Stammdaten in `lokale-struktur/en.md` | done |
 | Script | Validate the profile format (WJ-5) and the veto rule (WJ-6.3) deterministically | open |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
