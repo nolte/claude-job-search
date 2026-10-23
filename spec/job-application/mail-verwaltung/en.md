@@ -121,6 +121,9 @@ Bewerbung/
    with the features that disagree.
 4. **The skill never creates a Vorgang.** A new Vorgang comes from the user's posting
    (LS-6 S1). A mail in the Sammel-Label waits for the user to assign it.
+   When the user asks in a Lauf, the skill also reads the Sammel-Label and checks those mails again
+   with the matching order of rule 1 (for example after the user has created the Vorgang). A mail that
+   now has a clear Vorgang is labelled as in rule 2; the others stay.
 5. **No Vault entry without a Vorgang.** Mail in `Bewerbung/_ohne Vorgang` is not recorded in the
    Wurzel (MV-7).
 6. **Contact class.** Signals in a relevant mail may be used as in `kontaktklassifikation/en.md` KK-3.1.
@@ -181,8 +184,11 @@ Adding and removing labels is reversible. It runs without a question, but the re
 
 ## MV-10 Manual changes
 
-1. **Never overwritten.** A mail the user has labelled by hand is not changed by the skill in any later
-   Lauf. The user's label wins.
+1. **Only `unsort` is the skill's.** The skill changes the labels of a mail only while it carries `unsort`
+   (and, on request, while it sits in the Sammel-Label, MV-6.4). A mail without `unsort` counts as handled
+   by the user and is never relabelled, whoever set its label. To take a mail out of the skill's reach,
+   the user removes `unsort`. The skill keeps no list of its own changes and removes no label other than
+   `unsort`.
 2. **Learning by proposal.** The skill may propose a rule from the correction (MV-4.2). The rule applies
    only after Freigabe (MV-8).
 
@@ -202,7 +208,10 @@ Adding and removing labels is reversible. It runs without a question, but the re
 2. **Abort on failure.** If the connector fails or a permission is missing, the skill stops the Lauf and
    reports the error. It starts no workaround and does not continue partly.
 3. **Changes stay.** Label changes already made are reversible and stay. The report lists them. Proposals
-   not yet approved are dropped.
+   not yet approved are dropped, but not lost: in a later Lauf the skill also reads the mails under
+   `Bewerbung/<vorgang>/…` whose Gmail message ID is missing in `## Verlauf` (MV-7.7) and proposes the
+   line, the status change and the event again. It reads the calendar `Bewerbungen` first and does not
+   propose an event that already exists with the same title and date. It changes no label in doing so.
 
 ## MV-13 Data protection
 
@@ -250,7 +259,9 @@ The check is a probe with invented mails. Each mail is fictional and carries no 
 | MV-E | Sender domain of Vorgang A, subject of Vorgang B | `Bewerbung/_ohne Vorgang`, conflict reported |
 | MV-F | Reply in a thread whose first mail is assigned, without company name | Zuordnung supported by the thread |
 | MV-G | Invitation with a date but without time zone | No event; the skill asks |
-| MV-H | Mail the user labelled by hand earlier | Unchanged; a rule proposal on request |
+| MV-H | Mail the user moved by hand and from which the user removed `unsort` | Unchanged; a rule proposal on request |
+| MV-P | The connector fails after labelling an invitation, before the user approves the Verlauf line and the event | The next Lauf proposes line, status and event again; the event is not proposed twice if it exists |
+| MV-Q | The user has created the Vorgang after a mail landed in the Sammel-Label, and asks for a re-check | The mail gets the label `Bewerbung/<vorgang>/<Mailtyp>`; without the request it stays |
 | MV-I | Mail with salary figures and an attachment | Verlauf line without the figures; attachment named only |
 | MV-J | Connector refuses a call mid-Lauf | Lauf stops, error reported, no workaround |
 | MV-K | Any Lauf | No mail is deleted, archived, sent or drafted, and the system labels (`INBOX` and others) stay as they were |
