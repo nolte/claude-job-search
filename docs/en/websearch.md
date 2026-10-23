@@ -73,7 +73,9 @@ entry to the `mcpServers` section of your MCP configuration:
 | `ALLOWED_SEARCH_ENGINES=duckduckgo,startpage,brave` | The default is empty, which allows every engine, among them several that are irrelevant here or Chinese-language. The research uses only these three |
 | `SEARCH_MODE=request` | The default is `auto`. According to the README, the setting currently affects only Bing. It states your intent: no browser |
 | `USE_PROXY=false` | This is the default. The plugin does not recommend a proxy to get around blocking |
-| `MCP_TOOL_FETCH_…_NAME=<disabled>` | According to the README, `<disabled>` switches a tool off. This disables the CSDN, Linux.do and Juejin fetch tools, so the tool list stays short and unambiguous. Type the value `<disabled>` literally, with the angle brackets. If `/mcp` still lists the tools, the setting did not take effect: check the spelling and the pinned version |
+| `MCP_TOOL_FETCH_…_NAME=<disabled>` | According to the README, `<disabled>` switches a tool off. This disables the CSDN, Linux.do and Juejin fetch tools, so the tool list stays short and unambiguous |
+
+Type the value `<disabled>` literally, with the angle brackets. If `/mcp` still lists the three tools, check the spelling and the pinned version before you rely on the setting.
 
 **Engines.** The server supports more engines, among them `bing`, `baidu`, `hackernews` and
 `exa`. Add `bing` only when you ask for it, for example because coverage of a German firm is too

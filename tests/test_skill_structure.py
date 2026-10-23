@@ -211,22 +211,25 @@ class SkillStructureTests(unittest.TestCase):
             self.assertNotIn('@latest"', page, lang)
 
     def test_web_route_budget_is_the_same_in_spec_skill_and_docs(self):
-        # the budget numbers (10/15 at level 1, 20/30 at level 2) live in the spec, the skill and the docs; they
-        # must not drift apart. The quality gate refers to the spec and carries no numbers.
+        # the budget numbers (10/15 at level 1, 20/30 at level 2) live in the spec, the skill, the gate and the docs; they
+        # must not drift apart. The gate carries them so that it works without the spec loaded.
         def read(*parts):
             with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
                 return handle.read()
 
-        spec = read("spec", "job-application", "recherche", "en.md")
+        def flat(*parts):
+            return " ".join(read(*parts).split())
+
+        spec = flat("spec", "job-application", "recherche", "en.md")
         self.assertRegex(spec, r"At most 10 searches and 15 page fetches per Vorgang at level 1, and at most 20 and 30")
-        self.assertRegex(read("skills", "job-application-posting-analysis", "SKILL.md"),
+        self.assertRegex(flat("skills", "job-application-posting-analysis", "SKILL.md"),
                          r"at most 10 searches and 15 page fetches at level 1, 20 and 30 in total")
+        self.assertRegex(flat("skills", "job-application-quality-gate", "SKILL.md"),
+                         r"10 searches and 15 page fetches at level 1, 20 and 30 in total at level 2")
         for lang, word in (("en", "at most"), ("de", "höchstens")):
             page = read("docs", lang, "websearch.md")
             for level, searches, fetches in ((1, 10, 15), (2, 20, 30)):
                 self.assertRegex(page, rf"\| {level} \| {word} {searches} \| {word} {fetches} \|", f"{lang} level {level}")
-        gate = read("skills", "job-application-quality-gate", "SKILL.md")
-        self.assertNotRegex(gate, r"\b10 searches\b|\b15 page fetches\b")
 
 
 if __name__ == "__main__":
