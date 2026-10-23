@@ -130,11 +130,28 @@ class ExportTests(unittest.TestCase):
         self.assertIn("left=25mm", tex)
         self.assertNotIn("\\cvstation{", tex)
 
-    def test_year_in_the_period_column_is_not_taken_for_a_page_number(self):
+    def test_readback_macros_cover_the_three_layout_macros(self):
         sys.path.insert(0, os.path.dirname(EXPORTER))
         import export_document
 
         self.assertEqual(export_document.READBACK_MACROS.count("newcommand"), 3)
+
+    def test_gap_entry_and_short_row_render_in_the_grid(self):
+        # LB-5.1: a two-part station ("Zeitraum | Elternzeit") is a station with an empty employer, not a
+        # fallback heading; LB-6.1/LB-11.9: a two-word row keeps the no-break space out of the label split
+        with open(self.source, "w", encoding="utf-8") as handle:
+            handle.write(SOURCE.replace(
+                "## Sprachkenntnisse (GER-Niveau)\n",
+                "### 01/2019 – 03/2021 | Elternzeit\n\n## Ausbildung und Studium\n- 2018: Informatik\n\n## Sprachkenntnisse (GER-Niveau)\n",
+            ))
+        result = self.export("tex")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(self.out, "Test_Lebenslauf.tex"), encoding="utf-8") as handle:
+            flat = " ".join(handle.read().split())
+        self.assertIn("\\cvstation{01/2019 -- 03/2021}{Elternzeit}{}", flat)
+        self.assertNotIn("\\textbar", flat)
+        self.assertIn("\\cvrow{2018}{Informatik}", flat)
+        self.assertIn("\\textbf{Deutsch}: Muttersprache", flat)
 
     @unittest.skipUnless(python_docx_available(), "python-docx is not installed")
     def test_docx_export_keeps_headings_in_order_and_bullets(self):
@@ -183,6 +200,29 @@ class ExportTests(unittest.TestCase):
         self.assertIn("version_datum", result.stderr)
         self.assertNotIn("Traceback", result.stderr)
 
+    def test_invalid_version_datum_only_warns_for_formats_without_a_date(self):
+        # DOCX, HTML and MD carry no PDF date: like a missing date, a bad one is reported and the export goes on
+        with open(self.source, "w", encoding="utf-8") as handle:
+            handle.write(SOURCE.replace("format: chronologisch\n", "format: chronologisch\nversion_datum: '2026-02-30'\n"))
+        for fmt in ("html", "md"):
+            result = self.export(fmt)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("version_datum", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+
+    def test_quoted_version_datum_is_read_like_the_bare_date(self):
+        # YAML quotes around the date are not part of the value
+        for quoted in ('"2026-01-01"', "'2026-01-01'"):
+            with open(self.source, "w", encoding="utf-8") as handle:
+                handle.write(SOURCE.replace("format: chronologisch\n", f"format: chronologisch\nversion_datum: {quoted}\n"))
+            for fmt in ("html", "md", "tex"):
+                result = self.export(fmt)
+                self.assertEqual(result.returncode, 0, f"{quoted} {fmt}: {result.stderr}")
+            with open(os.path.join(self.out, "Test_Lebenslauf.tex.manifest.json"), encoding="utf-8") as handle:
+                manifest = json.load(handle)
+            self.assertEqual(manifest["source_date_epoch"], 1767225600)
+            self.assertEqual(manifest["frontmatter"]["version_datum"], "2026-01-01")
+
     def test_reproduce_confirms_an_unchanged_export_and_rejects_a_changed_source(self):
         self.freeze()
         self.export("tex")
@@ -203,6 +243,24 @@ class ExportTests(unittest.TestCase):
         first = open(os.path.join(self.out, "Test_Lebenslauf.pdf"), "rb").read()
         self.export("pdf")
         self.assertEqual(first, open(os.path.join(self.out, "Test_Lebenslauf.pdf"), "rb").read())
+
+
+class PageNumberTests(unittest.TestCase):
+    def strip(self, text):
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        return export_document.strip_page_numbers(text)
+
+    def test_year_in_the_period_column_is_not_taken_for_a_page_number(self):
+        # page 2 ends with a period line "2019": content, not the page number
+        self.assertEqual(self.strip("Berufserfahrung\n1\n\fAusbildung\n2019\n"), "Berufserfahrung\nAusbildung\n2019")
+
+    def test_page_number_at_the_end_of_its_page_is_dropped(self):
+        self.assertEqual(self.strip("Berufserfahrung\n1\n\fAusbildung\n2\n\n"), "Berufserfahrung\nAusbildung")
+
+    def test_single_page_without_a_number_is_unchanged(self):
+        self.assertEqual(self.strip("Berufserfahrung\nAusbildung"), "Berufserfahrung\nAusbildung")
 
 
 class CompareContentTests(unittest.TestCase):

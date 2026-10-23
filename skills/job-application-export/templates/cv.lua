@@ -4,9 +4,12 @@
 -- It maps the entry shapes of spec/job-application/lebenslauf/en.md to the macros of document.tex:
 --   LB-4.1  "Name · Anschrift · Telefon · E-Mail"     -> \cvheader{Titel}{Name}{Label}{Kontakt}
 --   LB-5.1  "### Zeitraum | Position | Arbeitgeber"    -> \cvstation{Zeitraum}{Position}{Arbeitgeber}
+--   LB-5.1  "### Zeitraum | Elternzeit" (gap entry)     -> \cvstation{Zeitraum}{Elternzeit}{}
 --   LB-6.1  "- Zeitraum: Inhalt" (education lists)     -> \cvrow{Zeitraum}{Inhalt}
 --   LB-7    "- Gruppe: Einträge" (skills, languages)   -> the label in bold
--- A block that does not match its shape is left unchanged.
+-- A block that does not match its shape is left unchanged. The last two words of a bullet are bound with a
+-- no-break space (LB-11.9); in the row and label sections this applies to the text after the label only, so
+-- the binding never crosses the column or the colon.
 
 -- Product names that must not break across lines (a no-break space replaces the space).
 local KEEP_TOGETHER = {
@@ -118,9 +121,10 @@ local function header_block(title_inlines, para_inlines)
   return pandoc.Para(inl)
 end
 
+-- Two parts (a gap entry, "Zeitraum | Elternzeit") give a station with an empty employer.
 local function station_block(content)
   local parts = split(content, "|")
-  if #parts < 3 then return nil end
+  if #parts < 2 then return nil end
   local employer = {}
   for i = 3, #parts do
     if i > 3 then employer[#employer + 1] = pandoc.Str("|") end
@@ -140,7 +144,7 @@ local function row_block(item_blocks)
   if not label or #label == 0 then return nil end
   local inl = { raw("\\cvrow{") }
   append(inl, label); inl[#inl + 1] = raw("}{")
-  append(inl, rest); inl[#inl + 1] = raw("}")
+  append(inl, bind_last_words(rest)); inl[#inl + 1] = raw("}")
   return pandoc.Para(inl)
 end
 
@@ -150,24 +154,32 @@ local function bold_label(item_blocks)
   local label, rest = label_split(first.content)
   if not label or #label == 0 then return item_blocks end
   local inl = { pandoc.Strong(label), pandoc.Str(":"), pandoc.Space() }
-  append(inl, rest)
+  append(inl, bind_last_words(rest))
   local blocks = { pandoc.Plain(inl) }
   for i = 2, #item_blocks do blocks[#blocks + 1] = item_blocks[i] end
   return blocks
 end
 
+-- Bind the last two words of every item of a plain bullet list (the bullets under a station).
+local function bind_items(bullet_list)
+  for _, item in ipairs(bullet_list.content) do
+    for _, inner in ipairs(item) do
+      if inner.t == "Para" or inner.t == "Plain" then inner.content = bind_last_words(inner.content) end
+    end
+  end
+end
+
 function Pandoc(doc)
   if FORMAT ~= "latex" then return nil end
-  -- 1. no-break product names everywhere
+  -- 1. no-break product names everywhere. The last two words are bound in step 2, after the label split, so
+  --    the no-break space never lands between a label and its text.
   for _, block in ipairs(doc.blocks) do
     if block.t == "Para" or block.t == "Plain" or block.t == "Header" then
       block.content = keep_together(block.content)
     elseif block.t == "BulletList" then
       for _, item in ipairs(block.content) do
         for _, inner in ipairs(item) do
-          if inner.t == "Para" or inner.t == "Plain" then
-            inner.content = bind_last_words(keep_together(inner.content))
-          end
+          if inner.t == "Para" or inner.t == "Plain" then inner.content = keep_together(inner.content) end
         end
       end
     end
@@ -206,8 +218,12 @@ function Pandoc(doc)
         goto continue
       end
     end
-    if block.t == "BulletList" and LABEL_SECTIONS[section] then
-      for k, item in ipairs(block.content) do block.content[k] = bold_label(item) end
+    if block.t == "BulletList" then
+      if LABEL_SECTIONS[section] then
+        for k, item in ipairs(block.content) do block.content[k] = bold_label(item) end
+      else
+        bind_items(block)
+      end
     end
     out[#out + 1] = block
     i = i + 1

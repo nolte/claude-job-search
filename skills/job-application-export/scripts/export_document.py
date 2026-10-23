@@ -80,6 +80,13 @@ def tool_version(command):
     return lines[0].strip() if lines else None
 
 
+def unquote(value):
+    """Strip one pair of enclosing YAML quotes, so `version_datum: "2026-01-01"` reads as 2026-01-01."""
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+        return value[1:-1]
+    return value
+
+
 def read_document(path):
     text = Path(path).read_text(encoding="utf-8")
     meta, body = {}, text
@@ -88,7 +95,7 @@ def read_document(path):
         for line in match.group(1).splitlines():
             if ":" in line:
                 key, _, value = line.partition(":")
-                meta[key.strip()] = value.strip()
+                meta[key.strip()] = unquote(value.strip())
         body = text[match.end():]
     return meta, body
 
@@ -232,17 +239,32 @@ def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit, doc_ty
     if page_limit and pages > page_limit:
         print(f"Warnung: {pages} Seiten, Grenze für diesen Dokumenttyp ist {page_limit} (FA-O13).", file=sys.stderr)
     raw = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, check=True).stdout
-    # The page number printed by the template is layout, not content. Drop it from the end of its page only:
-    # a line that holds just a year, as in the period column of the Lebenslauf, is content.
+    return strip_page_numbers(raw), pages
+
+
+def strip_page_numbers(text):
+    """Drop the page number the template prints from the pdftotext output (pages are separated by form feeds).
+
+    The page number is layout, not content. It is removed from the end of its own page only, so a line that
+    holds just a year, as in the period column of the Lebenslauf, stays: it is content.
+    """
     kept = []
-    for number, page_text in enumerate(raw.split("\f"), 1):
+    for number, page_text in enumerate(text.split("\f"), 1):
         lines = page_text.splitlines()
         while lines and not lines[-1].strip():
             lines.pop()
         if lines and lines[-1].strip() == str(number):
             lines.pop()
         kept.extend(lines)
-    return "\n".join(kept), pages
+    return "\n".join(kept)
+
+
+def tool_versions(fmt):
+    """The versions of the external tools an export in this format runs; lualatex only for the PDF."""
+    return {
+        "pandoc": tool_version(["pandoc", "--version"]),
+        "lualatex": tool_version(["lualatex", "--version"]) if fmt == "pdf" else None,
+    }
 
 
 def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch):
@@ -257,11 +279,7 @@ def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch):
         "source_date_epoch": epoch,
         "byte_reproduzierbar": reproducible,
         "vorlage": {"document.tex": sha256_file(TEMPLATES / "document.tex"), "cv.lua": sha256_file(TEMPLATES / "cv.lua")},
-        "werkzeuge": {
-            "pandoc": tool_version(["pandoc", "--version"]),
-            "lualatex": tool_version(["lualatex", "--version"]) if fmt == "pdf" else None,
-            "python": platform.python_version(),
-        },
+        "werkzeuge": {**tool_versions(fmt), "python": platform.python_version()},
         "umgebung": {"plugin_revision": os.environ.get("PLUGIN_REVISION") or None, "image_id": os.environ.get("EXPORT_IMAGE_ID") or None},
         "ausgabe": {"datei": out_file.name, "sha256": sha256_file(out_file), "seiten": pages},
     }
@@ -292,9 +310,8 @@ def reproduce(manifest_path):
             return 1
         rebuilt = Path(tmp) / manifest["ausgabe"]["datei"]
         identical = sha256_file(rebuilt) == manifest["ausgabe"]["sha256"]
-    current = {"pandoc": tool_version(["pandoc", "--version"]),
-               "lualatex": tool_version(["lualatex", "--version"]) if manifest["format"] == "pdf" else None}
-    differences = [f"{tool}: {manifest['werkzeuge'].get(tool)} -> {version}" for tool, version in current.items()
+    differences = [f"{tool}: {manifest['werkzeuge'].get(tool)} -> {version}"
+                   for tool, version in tool_versions(manifest["format"]).items()
                    if manifest["werkzeuge"].get(tool) != version]
     for tool in ("document.tex", "cv.lua"):
         if manifest["vorlage"].get(tool) != sha256_file(TEMPLATES / tool):
@@ -342,7 +359,15 @@ def main(argv=None):
         pandoc = require("pandoc", "Installiere pandoc (z. B. pip install pypandoc_binary oder Paket pandoc).")
 
         pages = None
-        epoch = source_date_epoch(meta)
+        try:
+            epoch = source_date_epoch(meta)
+        except ExportError as error:
+            # Only the PDF and its LaTeX source use the date (LV-6). The other formats report it and go on,
+            # as they do when the date is missing.
+            if args.format in ("pdf", "tex"):
+                raise
+            print(f"Warnung: {error} Das Datum wird für dieses Format ignoriert.", file=sys.stderr)
+            epoch = None
         if args.format == "pdf" and epoch is None:
             print("Hinweis: kein version_datum im Frontmatter. Die PDF enthält das heutige Datum und ist nicht "
                   "byte-reproduzierbar (lebenslauf-versionen LV-6).", file=sys.stderr)

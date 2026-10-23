@@ -75,14 +75,19 @@ $endif$
 \newlength{\cvperiodwidth}
 \setlength{\cvperiodwidth}{3.3cm}
 
-% Start a new page when less than #1 is left, so a heading is never the last thing on a page.
-\newcommand{\cvneedspace}[1]{\par\penalty-100\begingroup\setlength{\dimen@}{#1}\dimen@ii\pagegoal\advance\dimen@ii-\pagetotal\ifdim\dimen@>\dimen@ii\break\fi\endgroup}
+% Start a new page when less than #1 is left, so a heading is never the last thing on a page (LB-11.3, values
+% LB-11.11). Directly after a heading (@nobreak set by \@afterheading) no break is offered at all: the heading
+% has reserved the space, and a break here would leave it alone at the foot of the page.
+\newcommand{\cvneedspace}[1]{\par\if@nobreak\else\penalty-100\begingroup\setlength{\dimen@}{#1}\dimen@ii\pagegoal\advance\dimen@ii-\pagetotal\ifdim\dimen@>\dimen@ii\break\fi\endgroup\fi}
 
+% Headings end with \@afterheading, as LaTeX's own sectioning does: it sets @nobreak, so the list or paragraph
+% that follows adds no \@beginparpenalty (a legal, even encouraged break point) between heading and body.
+% The first paragraph or \item after the heading clears the flag again.
 % Section heading: text and rule form one box.
 \newcommand{\cvsection}[1]{\vbox{\offinterlineskip\hbox{\large\bfseries\color{accent}#1}\kern3pt\hbox{\color{accent}\rule{\linewidth}{0.7pt}}}}
-\renewcommand{\section}[1]{\par\addvspace{0.6em}\hbox{\large\bfseries\color{accent}#1}\par\nobreak\vspace{0.6em}\nobreak}
-\renewcommand{\subsection}[1]{\par\cvneedspace{6\baselineskip}\addvspace{1.2em}\cvsection{#1}\par\nobreak\vspace{0.2em}\nobreak}
-\renewcommand{\subsubsection}[1]{\par\cvneedspace{3.5\baselineskip}\addvspace{0.8em}{\bfseries #1}\par\nobreak\vspace{0.1em}\nobreak}
+\renewcommand{\section}[1]{\par\addvspace{0.6em}\hbox{\large\bfseries\color{accent}#1}\par\nobreak\vspace{0.6em}\@afterheading}
+\renewcommand{\subsection}[1]{\par\cvneedspace{6\baselineskip}\addvspace{1.2em}\cvsection{#1}\par\nobreak\vspace{0.2em}\@afterheading}
+\renewcommand{\subsubsection}[1]{\par\cvneedspace{3.5\baselineskip}\addvspace{0.8em}{\bfseries #1}\par\nobreak\vspace{0.1em}\@afterheading}
 
 % Header block: title label, name, then the personal data in the grid.
 \newcommand{\cvheader}[4]{%
@@ -90,13 +95,16 @@ $endif$
   \noindent{\fontsize{25}{29}\selectfont\bfseries\color{ink}#2}\par\vspace{5pt}%
   \noindent\makebox[\cvperiodwidth][l]{\small\color{muted}#3}\parbox[t]{\dimexpr\linewidth-\cvperiodwidth\relax}{\cvragged\small #4}\par}
 
-% Station: period in the left column, position bold, employer below in the muted colour.
+% Station: period in the left column, position bold, employer below in the muted colour. An empty third
+% argument (a gap entry such as "Zeitraum | Elternzeit") leaves out the employer line instead of an empty one.
+% The head reserves 3.5 lines (LB-11.11) and, like a heading, allows no break before the bullets that follow.
 \newcommand{\cvstation}[3]{%
   \par\cvneedspace{3.5\baselineskip}\addvspace{0.8em}\begingroup\parskip=0pt
   \hyphenpenalty=10000\exhyphenpenalty=10000
   \noindent\makebox[\cvperiodwidth][l]{\small\color{muted}#1}%
-  \parbox[t]{\dimexpr\linewidth-\cvperiodwidth\relax}{\cvragged\fontsize{11}{14.3}\selectfont\bfseries #2\\[-1pt]{\small\normalfont\color{muted}#3}}\par
-  \endgroup\nobreak\vspace{0.15em}\nobreak}
+  \parbox[t]{\dimexpr\linewidth-\cvperiodwidth\relax}{\cvragged\fontsize{11}{14.3}\selectfont\bfseries #2%
+    \if\relax\detokenize{#3}\relax\else\\[-1pt]{\small\normalfont\color{muted}#3}\fi}\par
+  \endgroup\nobreak\vspace{0.15em}\@afterheading}
 
 % Row: a period in the left column and its text to the right (education, certificates).
 \newcommand{\cvrow}[2]{%
