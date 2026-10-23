@@ -123,8 +123,12 @@ the URL comes from the posting or from the sender's domain, never from a search 
 ### RC-5.4 LinkedIn through the MCP server
 
 The open-source LinkedIn MCP server (<https://github.com/stickerdaniel/linkedin-mcp-server>) gives
-direct, read access to LinkedIn pages through the user's own browser session. It is optional. Without
-it, the user pastes the text or the research uses other channels.
+direct, read access to LinkedIn pages through the user's own browser session. **It is the preferred
+channel for all LinkedIn content the research needs** (postings, company pages, the contact
+person's role). When the server is connected, LinkedIn content is read through it and through no
+other route. When it is not connected, the research says so, points to the setup in the docs page
+*LinkedIn access*, and the user may paste the text instead; the research then continues with the
+other channels. The server stays optional for the plugin as a whole: no skill depends on it.
 
 | Need | Tool | Item |
 |---|---|---|
@@ -147,6 +151,12 @@ it, the user pastes the text or the research uses other channels.
    both accounts. The user is told before a person's profile is read.
 5. **Not an authority.** A LinkedIn page is a statement of the firm or of the person. It ranks 4,
    like other social media, and does not replace the imprint or the register (UA-3).
+6. **One route.** Web search and direct page fetches are not used to read `linkedin.com` pages: they
+   are unreliable there, and they bypass the consent of rule 2, the budget of rule 3 and the
+   visibility notice of rule 4. A link to LinkedIn that a search returns is opened through the server
+   or not at all.
+7. **Availability check.** At the start of a run (RC-6 step 1) the research checks whether the
+   server's tools are connected. The result is stated in the record (RC-9, line `Kanäle`).
 
 ### RC-5.5 Web search
 
@@ -190,7 +200,8 @@ The candidate shares nothing with a Vermittler that the employer would not also 
 ## RC-6 Procedure
 
 1. **Level and consent.** Fix the level (RC-2). For levels 1 and 2 confirm with the user that the
-   network is used and which channels (RC-5.4 rule 2 for LinkedIn).
+   network is used and which channels, and check whether the LinkedIn MCP server is connected
+   (RC-5.4 rules 2 and 7).
 2. **Local first.** Read the posting and the messages. Record the signals of KK-3.1 and the
    open questions.
 3. **Roles.** Determine the roles of UA-1 and the Kontaktart (KK-3).
@@ -330,7 +341,8 @@ This table states the target. The skills do not implement it yet (RC-13).
 | RS-B | Headhunter, "für unseren Mandanten" | V-1 to V-3: identity of the firm checked, Auftraggeber asked, no Lebenslauf before the answer. Assessment `Rückfragen offen` |
 | RS-C | Zeitarbeit, client named | Anstellungsgeber is the agency, Bedarfsträger the client. V-6 asked in writing. The CV does not show the client as an employer |
 | RS-D | Message with free-mail address and a request for an ID copy | Two independent signals. Assessment `Warnzeichen`. No data given |
-| RS-E | LinkedIn MCP server not installed, or the user declines | The other channels run. Missing items are `nicht ermittelt`. No error |
+| RS-E | LinkedIn MCP server not installed, or the user declines | The other channels run. The record states that LinkedIn was not read. Missing items are `nicht ermittelt`. The user may paste the text. No error, and no attempt to read LinkedIn by web search or page fetch |
+| RS-J | LinkedIn MCP server connected, posting found on LinkedIn | The posting is read with `get_job_details` after the consent of RC-5.4 rule 2. It is not fetched as a web page |
 | RS-F | Two firms with the same name | The identity gate separates them by Sitz or domain. Without two matching attributes, `Identität nicht bestätigt` |
 | RS-G | Offer received, research from 40 days ago | Findings older than 30 days are read again. The insolvency check is repeated before signing |
 | RS-H | Rating portal shows poor reviews | Recorded only as a Hinweis for interview questions. Not used in any document |
