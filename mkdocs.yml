@@ -58,20 +58,57 @@ plugins:
           build: true
           nav_translations:
             Home: Startseite
+            Getting started: Erste Schritte
+            Use cases: Anwendungsfälle
+            Overview: Übersicht
+            Apply to a posting: Auf eine Anzeige bewerben
+            Via a recruiter or an agency: Über Recruiter oder Agentur
+            Career change and job search: Berufswechsel und Stellensuche
+            Initiative application and Motivationsschreiben: Initiativbewerbung und Motivationsschreiben
+            Keep your data and CVs current: Daten und Lebensläufe aktuell halten
             Skills: Skills
+            Counterparts: Gegenpartei
+            Glossary: Glossar
+            Export: Export
+            Optional MCP servers: Optionale MCP-Server
+            LinkedIn: LinkedIn
+            Handelsregister: Handelsregister
+            Web search: Websuche
+            JobSpy: JobSpy
 
 markdown_extensions:
   - admonition
   - attr_list
+  - def_list
   - tables
   - toc:
       permalink: true
       toc_depth: 3
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
 
 nav:
   - Home: en/index.md
+  - Getting started: en/getting-started.md
+  - Use cases:
+      - Overview: en/use-cases/index.md
+      - Apply to a posting: en/use-cases/posting-application.md
+      - Via a recruiter or an agency: en/use-cases/recruiter.md
+      - Career change and job search: en/use-cases/career-change.md
+      - Initiative application and Motivationsschreiben: en/use-cases/initiative-and-motivation.md
+      - Keep your data and CVs current: en/use-cases/maintain-and-variants.md
   - Skills: en/skills.md
+  - Counterparts: en/counterparts.md
+  - Glossary: en/glossary.md
+  - Export: en/export.md
+  - Optional MCP servers: en/mcp-servers.md
+  - LinkedIn: en/linkedin.md
+  - Handelsregister: en/handelsregister.md
+  - Web search: en/websearch.md
+  - JobSpy: en/jobspy.md

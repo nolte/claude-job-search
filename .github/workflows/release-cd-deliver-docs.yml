@@ -1,0 +1,64 @@
+name: release-cd-deliver-docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# spec/project/github-actions-best-practices/ §B: an explicit block, read-only at
+# the workflow level, with the write scopes this workflow needs granted on the
+# job below. GitHub advises a read-only default token and OpenSSF Scorecard
+# checks exactly this shape.
+permissions:
+  contents: read
+
+# spec/project/github-actions-best-practices/ §F: this is a delivery workflow, so
+# §F's third rule forbids cancel-on-new-run — cancelling a run in flight can leave
+# the Pages site partially published. This block previously carried
+# `cancel-in-progress: true`, which was that violation; GitHub's own Pages
+# workflow template sets it false for the same reason.
+#
+# The group deliberately carries no branch identity. A repository has exactly one
+# Pages deployment target, so the resource is global; a per-branch group would let
+# two runs deploy to the same site concurrently, which is the interference the
+# group exists to prevent. It stays the literal `pages` rather than
+# `${{ github.workflow }}` so any future workflow deploying the same site joins
+# this lane.
+#
+# §F's second rule wants the workflow identity plus a branch identity in the key.
+# This group carries neither, deliberately: a repository has exactly one Pages
+# target, so keying on the thing contending for it would split the lane that
+# protects it. See the §Open Questions entry on resource-scoped groups.
+#
+# No collision with the reusable called below: it declares its own
+# `mkdocs-deploy` group, so the child never waits on a group its own caller run
+# already holds.
+#
+# Declared at workflow level rather than on the single job below: §F owes the
+# group to the *workflow*, and a job-level block would silently leave a
+# second job added later outside it.
+#
+# GitHub supersedes a *pending* run when a newer one queues into this group, so a
+# `workflow_dispatch` docs deploy made while a release deploy is running can be
+# dropped as `cancelled` and has to be re-dispatched.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  publish_docs:
+    uses: nolte/gh-plumbing/.github/workflows/reusable-mkdocs.yaml@80cb5ebb91a3b49126729de31b1037f11c34b5cd # v2.2.0
+    with:
+      requirements: docs/requirements.txt
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+    # Scoped to what the called workflow actually declares at the pinned digest:
+    # `reusable-mkdocs.yaml@v2.0.0` grants its own job `contents: write` only, and
+    # deploys through `mhausenblas/mkdocs-deploy-gh-pages`, which pushes the built
+    # site to the `gh-pages` branch. That is a contents-scope write. The Pages
+    # deployment API is not used, so the `pages: write` and `id-token: write` this
+    # job used to carry reached no consumer — and `id-token: write` is the widest
+    # blast radius of the three (§B, fifth rule: re-derive a job's permissions
+    # when its steps change).
+    permissions:
+      contents: write
