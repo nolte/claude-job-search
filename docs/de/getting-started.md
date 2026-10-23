@@ -88,7 +88,8 @@ Datei für dich an.
 ## 3. Daten erfassen
 
 Lege dein Rohmaterial in `<wurzel>/rohdaten/` ab: alte Lebensläufe, Zeugnisse, einen
-LinkedIn-Export, Notizen. Dann führe aus:
+LinkedIn-Export, Notizen. Hast du den optionalen LinkedIn-Server verbunden, zeigt
+[LinkedIn-Zugriff](linkedin.md), wie du dein eigenes Profil einbringst. Dann führe aus:
 
 ```text
 /claude-job-search:job-application-profile-capture

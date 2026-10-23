@@ -26,6 +26,7 @@ application. See [Getting started](getting-started.md) for the walk-through and 
 - Run `/claude-job-search:job-application-solution` with the posting text for a complete application.
 - Run `/claude-job-search:job-application-quality-gate` on any existing application folder before sending.
 - Applying through a recruiter or an agency? Read [Counterparts](counterparts.md) first.
+- Want Claude to read LinkedIn postings, company pages and profiles directly? See [LinkedIn access](linkedin.md), an optional MCP server with its own risks.
 
 !!! note "Privacy"
     Application data stays local, in the folder you configure (by default `job-application/`).
