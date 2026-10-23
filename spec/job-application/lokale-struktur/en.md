@@ -78,10 +78,19 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
     ├── lebenslauf.md                       Lebenslauf (cv-create)
     ├── anschreiben.md                      cover letter (cover-letter-create)
     ├── email.md                            only when bewerbungsweg is email
+    ├── email-nachfassen.md                 follow-up mail, only on request (email-create variant nachfassen, KK-9)
+    ├── motivationsschreiben.md             only when the posting asks for one (motivation-letter-create)
+    ├── anschreiben-portal.txt              plain text for a portal text field (AS-8.1); see the rule below the tree
+    ├── motivationsschreiben-portal.txt     plain text for a portal text field (MS-13); see the rule below the tree
     ├── pruefbericht.md                     Auswahl sections and Prüfung (LS-7.4)
     ├── versionen/                          frozen Versionen of this Vorgang's Lebenslauf (LV-3), optional
     └── export/                             PDF, DOCX, HTML, only on request (R-10)
 ```
+
+`anschreiben-portal.txt` is written when the application path has a free-text field (`anschreiben/en.md`
+AS-8.1.1), otherwise on request. `motivationsschreiben-portal.txt` is written under the same condition for
+the Motivationsschreiben. Both are plain text without frontmatter and are Ableitungen of the document of the same
+Vorgang.
 
 Vorgänge sit directly in the Wurzel, next to `grundlage/`, `rohdaten/` and `firmen/`. They are
 not nested below a `vorgaenge/` folder, so the paths already used by the skills stay valid.
@@ -107,22 +116,22 @@ never a second master.
 |---|---|---|---|
 | Kontakt: Name, Anschrift, Telefon, E-Mail, LinkedIn | Grundlage, section *Kontakt* | profile-capture (create), cv-maintain (Pflege) | profile derivation, cv-create, email-create |
 | Persönlich: Geburtsdatum, Familienstand, Staatsangehörigkeit, Foto reference | Grundlage, section *Persönlich* | cv-maintain, only with scope `persönlich` (R-9.8) | cv-create, only when the format or the country requires it (R-8.2) |
-| Berufliche Stationen with Aufgaben, Ergebnisse, Werkzeuge | Grundlage, section *Berufliche Stationen* | profile-capture, cv-maintain | profile derivation, cv-create (selection, R-9.11) |
+| Berufliche Stationen with Aufgaben, Ergebnisse, Werkzeuge. A Station refers to its Zeugnis in the section *Zeugnisse*; it does not repeat the wording | Grundlage, section *Berufliche Stationen* | profile-capture, cv-maintain | profile derivation, cv-create (selection, R-9.11) |
 | Ausbildung, Schule, Weiterbildung | Grundlage | profile-capture, cv-maintain | profile derivation, cv-create |
 | Sprachen (GER level), IT-Kenntnisse, Zielrichtung | Grundlage | profile-capture, cv-maintain | profile derivation, cv-create |
-| Zeugnis: file, date, issuer, wording of the closing assessment | Grundlage, section *Zeugnisse* (text); scan in `rohdaten/` | profile-capture, cv-maintain | cv-create (Zeugnis entries), quality-gate (traceability) |
+| Zeugnis: file, date, issuer, wording of the closing assessment. Zeugnisse stand only in the section *Zeugnisse*, one entry per Zeugnis (R-9.3) | Grundlage, section *Zeugnisse* (text); scan in `rohdaten/` | profile-capture, cv-maintain | cv-create (Zeugnis entries), quality-gate (traceability) |
 | Rohdokumente: old CVs, notes, LinkedIn export | `rohdaten/` | the user | profile-capture, cv-maintain (intake only) |
 | Photo file | `rohdaten/foto.jpg`, linked from the Grundlage | the user | cv-create, only when R-8.2 allows a photo |
 | Company Stammdaten: legal name, Rechtsform, Sitz, website, Branche | `firmen/<firma-slug>.md`, frontmatter | posting-analysis (create on first use, update only after user confirmation) | posting-analysis, cover-letter-create, email-create |
 | Company Notizen: free text about the company | `firmen/<firma-slug>.md`, body | the user | the user; skills never change it |
-| Application Metadaten: firma, stelle, Ref.-Nr., weg, status, dates, grundlage_hash | `vorgang.md`, frontmatter (LS-6.1) | posting-analysis (create), the owning skill per stage, the user for S7 and S8 | every Vorgang skill, quality-gate |
+| Application Metadaten: firma, stelle, Ref.-Nr., weg, status, dates, grundlage_hash | `vorgang.md`, frontmatter (LS-6.1) | posting-analysis (create), the owning skill per stage, the user for S7 and S8; quality-gate only `grundlage_hash` (LS-6.1) | every Vorgang skill, quality-gate |
 | Application Notizen: free text about one posting, interview, impression | `notizen.md` of the Vorgang (LS-6.3) | the user | the user; skills never change it |
 | Contact person of one posting: Anrede, name, function | Vorgang, in `analyse.md` | posting-analysis | cover-letter-create, email-create |
 | Profile for the generators | `profil.md`, Ableitung | profile-capture, cv-maintain (re-derive) | posting-analysis, cv-create, cover-letter-create, email-create, quality-gate |
 | Wunschprofil: wishes, priorities, Ausschlüsse, Hypothesen (preference, not a fact) | `wunschprofil.md` in the Wurzel, next to the Grundlage; versions kept in `Verlauf` (WJ-5) | traumjob-interview (after confirmation) | fit-check, solution (veto before the plan gate) |
 | Passung of one posting against the Wunschprofil | `passung.md`, in the Vorgang folder (WJ-6.4) | fit-check | the user, solution (plan gate) |
 | Counterpart and company roles of a Vorgang | `analyse.md`, frontmatter keys (KK-6) and section `## Unternehmen` (UA-5.1); stable firm facts in `firmen/` (UA-5.2) | posting-analysis | cover-letter-create, email-create, solution, quality-gate |
-| Research record of a Vorgang: level, channels, status per item, signals, assessment, questions to the counterpart. Identity values are not repeated here; they stay in `## Unternehmen` | `analyse.md`, section `## Recherche` (`recherche/en.md` RC-9); date of the last research in `firmen/<firma-slug>.md`, key `recherche_stand` | the skill that runs the research (target: posting-analysis, `recherche/en.md` RC-11), on the user's request | cover-letter-create, email-create, solution, quality-gate, the user |
+| Research record of a Vorgang: level, channels, status per item, signals, assessment, questions to the counterpart. Identity values are not repeated here; they stay in `## Unternehmen` | `analyse.md`, section `## Recherche` (`recherche/en.md` RC-9); date of the last research in `firmen/<firma-slug>.md`, key `recherche_stand` | the skill that runs the research (posting-analysis, `recherche/en.md` RC-11), on the user's request | cover-letter-create, email-create, solution, quality-gate, the user |
 | Ausprägung (Lebenslauf variant without a Vorgang): Arbeitsstand, Versionen, exports | `<wurzel>/<ausprägung>/` (LS-3, `lebenslauf-versionen` LV-2) | cv-create (Arbeitsstand, freeze), export (exports and Manifeste) | cv-create (derive a Vorgang's Lebenslauf from a Version), export, quality-gate |
 | Referenzen: name, function, consent of a reference person | Grundlage, section *Referenzen* (optional; an entry exists only with the person's consent) | cv-maintain, on the user's statement | cover-letter-create, only when the posting asks for references (R-5) |
 
@@ -152,8 +161,10 @@ Rules for the table:
 6. **Notizen are never overwritten.** `notizen.md` and the body of `firmen/<firma-slug>.md` are
    written by the user only. A skill that needs to add something to them asks first and appends
    after confirmation. It never rewrites them.
-7. **Only the Wurzel is written.** Skills write nothing outside the Wurzel. The plugin repository
-   is never written to.
+7. **Only the Wurzel is written.** Skills write nothing outside the Wurzel and the path that
+   `grundlage` or `grundlage_index` configures (R-9.1, LS-2.5). That path is written only by
+   profile-capture and cv-maintain, and may lie outside the Wurzel, for example in an Obsidian
+   vault. The plugin repository is never written to.
 
 ## LS-6 Vorgang lifecycle (the complete application process)
 
@@ -164,9 +175,9 @@ as manual and still has a fixed place for its data.
 |---|---|---|---|
 | **S0 Vorbereitung** | first use or change of the person's data | `konfiguration.md`, `rohdaten/`, Grundlage, `profil.md` (profile-capture, cv-maintain) | no Vorgang yet |
 | **S1 Erfassung** | the user gives a posting | `stellenanzeige.md`, `vorgang.md`, `notizen.md` (created empty) | `erfasst` |
-| **S2 Analyse** | posting-analysis; on the user's request also the research of level 1 or 2 (`recherche/en.md` RC-2) | `analyse.md` (requirement match, `## Unternehmen`, and `## Recherche` when research was run), `firmen/` (first use; `recherche_stand` after a research), `vorgang.md`. A later research run (level 2, refresh, `recherche/en.md` RC-2.3) in S6 to S8 rewrites `## Recherche` and `recherche_stand` in place; the status stays as it is | `analysiert` |
+| **S2 Analyse** | posting-analysis; on the user's request also the research of level 1 or 2 (`recherche/en.md` RC-2) | `analyse.md` (requirement match, `## Unternehmen`, and `## Recherche` when research was run), `firmen/` (first use; `recherche_stand` after a research of level 1 or 2), `vorgang.md`. A later research run (level 2, refresh, `recherche/en.md` RC-2.3) in S6 to S8 rewrites `## Recherche` and `recherche_stand` in place; the status stays as it is | `analysiert` |
 | **S3 Plan** | the user approves the plan (solution, plan gate) | `vorgang.md` section *Plan* | `geplant` |
-| **S4 Erstellung** | cv-create, cover-letter-create, email-create | `lebenslauf.md`, `anschreiben.md`, `email.md`, `pruefbericht.md` (section *Auswahl*) | `erstellt` |
+| **S4 Erstellung** | cv-create, cover-letter-create, email-create | `lebenslauf.md`, `anschreiben.md`, `anschreiben-portal.txt`, `motivationsschreiben.md`, `motivationsschreiben-portal.txt`, `email.md`, `email-nachfassen.md` (on request, after S7), `pruefbericht.md` (section *Auswahl*) | `erstellt` |
 | **S5 Prüfung** | quality-gate | `pruefbericht.md` (section *Prüfung*) | `geprüft` if zero blockers, otherwise `in Arbeit` |
 | **S6 Export** | the user asks for PDF, DOCX or HTML | `export/` | unchanged |
 | **S7 Versand** | the user sends the application | `vorgang.md`: `versendet`, `versendet_am`, `weg`, `anhaenge`, `wiedervorlage` (KK-5) | `versendet` |
@@ -177,7 +188,10 @@ as manual and still has a fixed place for its data.
 Rules for the lifecycle:
 
 1. **Status is the current state, Verlauf is the history.** Each change of status adds one line
-   to *Verlauf* with the date and a short description. Old lines are never removed.
+   to *Verlauf* with the date and a short description. Old lines are never removed. A line
+   without a change of status is allowed for an event: a veto decision (`traumjob-interview/en.md`
+   WJ-7.1), a re-run line with the old `Stand` (UA-5.1 rule 3), a Nachfassen (KK-5 rule 5), or a
+   decision against the research assessment (`recherche/en.md` RC-8 rule 4).
 2. **Status values are fixed.** Only the values in the table are allowed: `erfasst`, `analysiert`,
    `geplant`, `erstellt`, `geprüft`, `in Arbeit`, `versendet`, `rückmeldung`, `gespräch`, `angebot`,
    `verhandlung`, `zusage`, `absage`, `abgelehnt`, `zurückgezogen`, `ohne Antwort`. `absage` is the
@@ -213,6 +227,9 @@ Rules for the lifecycle:
      LV-4), also after the Vorgang folder is deleted; the user moves them to the Ausprägung the
      Lebenslauf came from, or keeps the `export/` folder alone.
    - Firm files in `firmen/` are not covered by S10 (`unternehmensanalyse/en.md` UA-7.2).
+9. **A change after `geprüft` does not reset the status.** If a document is changed after S5, the
+   owning skill leaves `status` as it is and tells the user that the check no longer covers the
+   document. The quality gate runs again (S5); it sets `geprüft` or `in Arbeit` from its own result.
 
 ### LS-6.1 Metadaten of `vorgang.md`
 
@@ -227,17 +244,23 @@ kontaktart: "Direkt: Personalabteilung" # one value of KK-2, set by posting-anal
 stellenquelle: https://…            # or: Text, eingefügt
 status: erfasst
 erfasst: 2026-10-21
-grundlage_hash: <sha256>            # set in S4, see LS-5.4
+grundlage_hash: <sha256>            # set by every skill that writes a status (S3, S4 and later), see LS-5.4
 versendet_am:                       # S7
 weg:                                # S7: E-Mail, Portal, Post
 anhaenge: []                        # S7: list of file names sent
-wiedervorlage:                      # S7: set by the user together with versendet_am, as versendet_am plus the follow-up period of KK-5 (rule 7; empty until sent)
+wiedervorlage:                      # S7: set by the user together with versendet_am, as versendet_am plus the follow-up period of KK-5 (rule 4); empty until sent
 loeschen_ab:                        # S9/S10: date of the final status plus six months; empty for zusage
 tags: []                            # free labels, for example for Obsidian search
 ---
 ```
 
-Body: `## Plan` (S3), `## Verlauf` (S7 and S8, one line per event).
+Body: a link line after the title (company, Grundlage, Analyse, Notizen, as links of LS-8.1), then
+`## Plan` (S3) and `## Verlauf` (one line per event, LS-6 rule 1).
+
+`grundlage_hash` is set by every skill that writes a status into `vorgang.md`, not only by the skill of
+S4. The quality gate (S5) sets it only if it is missing and every existing document carries the
+current hash (LS-5.4); a gate run never overwrites an existing value, and a mismatch is a finding, not
+a repair.
 
 `kontaktart` duplicates the key of KK-6 in `analyse.md` so that an Obsidian Bases view (LS-8.3)
 can show it without reading `analyse.md`; `analyse.md` stays the master and posting-analysis
@@ -262,7 +285,8 @@ tags: []
 
 Body: `## Notizen`, free Markdown written by the user.
 
-`recherche_stand` is set by the skill that runs the research, never when the file is created. It
+`recherche_stand` is set by the skill that runs the research after a run of level 1 or 2, without
+asking the user; level 0 never sets it, and it is empty when the file is created. It
 is a date only: the findings belong to one application and stay in `## Recherche` of the Vorgang
 (UA-5), not in the firm file. The key is a hint, not proof: a firm researched for Vorgang A has a
 date, but a Vorgang B at the same firm is researched only if its own `analyse.md` has the section
@@ -283,7 +307,9 @@ date, but a Vorgang B at the same firm is researched only if its own `analyse.md
 1. **Encoding.** UTF-8, LF line endings, one final newline, no byte-order mark.
 2. **Frontmatter.** YAML between two `---` lines, at the top of the file. Keys are ASCII
    `snake_case`. Values are text, number, list, or ISO dates `YYYY-MM-DD`. These are the types
-   Obsidian Properties shows. No other frontmatter type is used.
+   Obsidian Properties shows. No other frontmatter type is used. Letters and the e-mail carry the key
+   `dokumenttyp: anschreiben | motivationsschreiben | email`; the key `format` belongs to the
+   Lebenslauf (`lebenslauf/en.md`) only.
 3. **Dates.** ISO `YYYY-MM-DD` in frontmatter. `MM/JJJJ` only in the body of a Lebenslauf (R-2).
 4. **Pruefbericht sections.** `pruefbericht.md` is written by several skills. Each uses its own
    top-level section: `## Auswahl Lebenslauf` (cv-create, R-9.11.5, CG-2.3),
@@ -403,7 +429,8 @@ The following changes are required before the skills follow the spec:
 | S10 Löschung | Rule defined (LS-6 rule 8, `loeschen_ab`); no skill deletes. The legal reference (AGG § 15 Abs. 4) is to be verified by the user | rule defined, no skill |
 | Ausprägung folders | Second folder kind in LS-3; `cv-create` and `export` tell it apart by the missing `vorgang.md` | done (skill, 0.2.0) |
 | `kontaktart` in `vorgang.md` | posting-analysis writes the KK-6 value into `vorgang.md` as well (LS-6.1) | done (skill, 0.2.0) |
-| Research record | Specified here: the section `## Recherche` and the key `recherche_stand` (LS-4, LS-6.2), the S2 writes and the later runs, the S10 removal of contact-person data, the link rule (LS-8.1). Open in the skills: `job-application-posting-analysis` writes the section and the key; `job-application-quality-gate` checks it (`recherche/en.md` RC-11, RC-13); the S10 removal is done by the user | open (skill) |
+| Research record | The section `## Recherche` and the key `recherche_stand` (LS-4, LS-6.2), the S2 writes and the later runs, the S10 removal of contact-person data, the link rule (LS-8.1). `job-application-posting-analysis` writes the section and the key (levels 0 to 2, `recherche/en.md` RC-1 to RC-10); `job-application-quality-gate` checks it (RC-11). The S10 removal is done by the user | done |
+| Documents of the Vorgang | The files `motivationsschreiben.md`, `anschreiben-portal.txt`, `motivationsschreiben-portal.txt` and `email-nachfassen.md` (LS-3); the key `dokumenttyp` (LS-7.2) | done |
 | Dogfooding in this repository | Requires `wurzel` outside the repository (LS-2.4) | decision for the user |
 
 ## Related rules

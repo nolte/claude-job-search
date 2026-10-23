@@ -97,6 +97,79 @@ class SkillStructureTests(unittest.TestCase):
                     unknown.append(f"{os.path.relpath(path, ROOT)} -> {ref}")
         self.assertEqual(unknown, [])
 
+    def test_no_dangling_decision_ids(self):
+        # audit finding: short decision IDs (D3, D14, ...) were defined in no spec; skills cite rule IDs instead
+        pattern = re.compile(r"\bD[0-9]{1,2}\b")
+        offending = []
+        for path in SKILLS + AGENTS:
+            with open(path, encoding="utf-8") as handle:
+                for number, line in enumerate(handle, 1):
+                    if pattern.search(line):
+                        offending.append(f"{os.path.relpath(path, ROOT)}:{number}")
+        self.assertEqual(offending, [])
+
+    def test_cited_rules_exist_in_the_specs(self):
+        # every cited rule ID names a section `## <PREFIX>-<n>` of its spec; a cited sub-rule `<PREFIX>-<n>.<m>` needs a
+        # heading of that name, a numbered item `m.` in the section, or a table row / literal mention in the spec
+        families = {
+            "R": "konventionen", "CG": "cv-generierung", "LB": "lebenslauf", "LV": "lebenslauf-versionen",
+            "LS": "lokale-struktur", "AS": "anschreiben", "MS": "motivationsschreiben",
+            "KK": "kontaktklassifikation", "UA": "unternehmensanalyse", "WJ": "traumjob-interview",
+            "RC": "recherche",
+        }
+        specs = {}
+        for prefix, folder in families.items():
+            with open(os.path.join(ROOT, "spec", "job-application", folder, "en.md"), encoding="utf-8") as handle:
+                specs[prefix] = handle.read()
+
+        def section(prefix, number):
+            text = specs[prefix]
+            start = re.search(rf"^## {prefix}-{number}\b", text, re.M)
+            if not start:
+                return None
+            end = re.search(r"^## ", text[start.end():], re.M)
+            return text[start.start():start.end() + end.start()] if end else text[start.start():]
+
+        def sub_rule_exists(prefix, number, sub):
+            body = section(prefix, number)
+            full = f"{prefix}-{number}.{sub}"
+            if re.search(rf"(?<![\w.-]){re.escape(full)}(?![\w-]|\.\d)", specs[prefix]):
+                return True
+            items = {int(n) for n in re.findall(r"^\s*(\d+)\. ", body, re.M)}
+            items |= {int(n) for n in re.findall(r"^\| ?(\d+) ?\|", body, re.M)}
+            items |= {int(n) for n in re.findall(rf"^#{{3,4}} {prefix}-{number}\.(\d+)\b", body, re.M)}
+            return int(sub) in items
+
+        pattern = re.compile(r"\b(R|CG|LB|LV|LS|AS|MS|KK|UA|WJ|RC)-(\d+)(?:\.(\d+))?")
+        missing = []
+        for path in SKILLS + AGENTS:
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            for prefix, number, sub in set(pattern.findall(text)):
+                where = os.path.relpath(path, ROOT)
+                if section(prefix, number) is None:
+                    missing.append(f"{where} -> {prefix}-{number}")
+                elif sub and not sub_rule_exists(prefix, number, sub):
+                    missing.append(f"{where} -> {prefix}-{number}.{sub}")
+        self.assertEqual(sorted(missing), [])
+
+    def test_skills_touching_the_wurzel_state_the_repository_boundary(self):
+        # LS-2.4 / R-9.9: a skill that reads or writes the Wurzel refuses a Wurzel inside the plugin repository
+        names = [
+            "cover-letter-create", "cv-create", "cv-maintain", "email-create", "export", "fit-check",
+            "motivation-letter-create", "posting-analysis", "profile-capture", "quality-gate", "solution",
+            "traumjob-interview",
+        ]
+        missing = []
+        for name in names:
+            path = os.path.join(ROOT, "skills", f"job-application-{name}", "SKILL.md")
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            # the rule must be cited together with the refusal step, not only named in the spec line
+            if "LS-2.4" not in text or not re.search(r"plugin\.json.{0,300}claude-job-search.{0,150}refus", text, re.S | re.I):
+                missing.append(name)
+        self.assertEqual(missing, [])
+
 
 if __name__ == "__main__":
     unittest.main()

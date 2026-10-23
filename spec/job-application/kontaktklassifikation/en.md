@@ -126,12 +126,13 @@ Each classification records:
 3. **Motivation statement.** Each message answers the motivation in KK-2. A recruiter gets a
    clear availability and a clear profile. A hiring manager gets the problems solved. HR gets a
    complete and consistent set.
-4. **Follow-up date.** The column *Follow-up* gives the default per Kontaktart. `job-application-posting-analysis`
-   writes it into `wiedervorlage` of `vorgang.md` (LS-6.1) as `versendet_am` plus the period of
-   the row: the deadline stated in the posting for `Direkt: Personalabteilung`, seven days for
-   `Direkt: Fachbereich`. Where the row gives no period (`As agreed`, `After the answer`), the
-   field stays empty and the user sets it. As long as `versendet_am` is empty, `wiedervorlage`
-   stays empty; the user fills both at S7. The user may change the date at any time.
+4. **Follow-up date.** The column *Follow-up* gives the default per Kontaktart. `wiedervorlage` of
+   `vorgang.md` (LS-6.1) is set by the user at S7, together with `versendet_am`: `versendet_am` plus
+   the period of the row, that is the deadline stated in the posting for `Direkt: Personalabteilung`
+   and seven days for `Direkt: Fachbereich`. Where the row gives no period (`As agreed`, `After the
+   answer`), the user chooses the date or leaves the field empty. As long as `versendet_am` is empty,
+   `wiedervorlage` stays empty. The user may change the date at any time. A pre-fill by the skill
+   is an open point (KK-9).
 5. **Nachfassen is an event, not a status.** A follow-up message is recorded as one line in
    *Verlauf* of `vorgang.md` (LS-6 rule 1). The status stays `versendet` until the counterpart
    answers. A follow-up is sent once per deadline, as the table says.
@@ -184,6 +185,6 @@ is deferred (see the open points below).
 | Fee rules | Current German rules on candidate fees and Arbeitnehmerüberlassung are not verified here | open, to be checked before a candidate relies on it |
 | Skill integration | `job-application-posting-analysis` writes the KK-6 keys; `cover-letter-create`, `email-create`, `solution` and `quality-gate` apply KK-4, KK-5 and KK-7 | done in the skills; deterministic check open |
 | Script check | Validate the KK-6 keys in `analyse.md` (deterministic) | open |
-| Nachfass-E-Mail | A text module for the follow-up message as variant `nachfassen` of `job-application-email-create`: Betreff of R-4 with the prefix `Nachfrage:`, reference to `versendet_am`, one question, no new facts | open (skill) |
-| `wiedervorlage` default | posting-analysis pre-fills `wiedervorlage` from KK-5.4 once `versendet_am` is set (LS-6.1) | open (skill) |
+| Nachfass-E-Mail | Variant `nachfassen` of `job-application-email-create`: Betreff of R-4 with the prefix `Nachfrage:`, reference to `versendet_am`, one question, no new facts; written to `email-nachfassen.md` (LS-3) | done |
+| `wiedervorlage` default | A skill pre-fills `wiedervorlage` from KK-5.4 once the user has stated `versendet_am` (S7, LS-6.1); until then the user sets it | open (skill) |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

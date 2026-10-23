@@ -40,7 +40,10 @@ Related rules: `spec/job-application/konventionen/en.md` R-1 (facts), R-6 (data 
 5. **No inference from the Grundlage.** A skill does not add a wish because the Grundlage shows a
    past role. Past roles show what the candidate did, not what they want.
 6. **Stop anytime.** The candidate can skip a dimension, end the interview, or defer it. A skipped
-   dimension stays open and is not filled in.
+   dimension is not filled in; it is recorded as skipped (WJ-5). **Abort or deferral saves nothing.**
+   `wunschprofil.md` is written only after phase 7 is confirmed (`bestaetigt: ja`). An intermediate
+   state exists in the chat only; a later interview starts again, and the candidate may re-use the
+   answers still visible in the session.
 
 ## WJ-3 Interview: structure
 
@@ -64,8 +67,12 @@ The interview runs in seven phases. Each phase has a short result that the candi
   at most one follow-up question per dimension.
 - **Phase 5** uses pairs such as "Mehr Gestaltungsspielraum oder mehr Planbarkeit?". Both sides are
   real options. The result is an order, not a score.
-- **Phase 6** names an assumption as an assumption. A Muss that rests only on an assumption is a
-  Hypothese until the candidate has evidence.
+- **Phase 6** names an assumption as an assumption. A Muss, Soll or Kann that rests only on an
+  assumption is a Hypothese (`hypothese: ja`) until the candidate has evidence. An Ausschluss
+  without evidence is put to the candidate again; if no evidence follows, it is downgraded to Soll
+  or Kann (the candidate chooses which) with `hypothese: ja` (WJ-3.3 rule 2).
+- **Phase 7** asks once whether episodes and energy notes (phases 2 and 3) may be stored in the
+  optional section `## Episoden` (WJ-5). Without an explicit yes they stay in the session.
 
 ### WJ-3.2 Priorities
 
@@ -82,10 +89,13 @@ Each Wunsch carries one priority:
 
 1. A Wunsch is a Hypothese when the candidate has no episode for it, or marks it as an assumption
    in phase 6.
-2. A Hypothese carries the flag `hypothese: ja` in the profile. It can be a Soll or a Kann, but never
-   an Ausschluss, because a veto needs a confirmed reason.
+2. A Hypothese carries the flag `hypothese: ja` in the profile. It is allowed for Muss, Soll and
+   Kann, never for an Ausschluss, because a veto needs a confirmed reason. An Ausschluss without
+   evidence is downgraded to Soll or Kann with `hypothese: ja` after the candidate was asked
+   (WJ-3.1, phase 6).
 3. A Hypothese is confirmed or dropped when the candidate has evidence, or when a fit check shows it
-   was wrong (WJ-6.5).
+   was wrong. The fit check only reports this; the change itself is the candidate's and creates a
+   new version (WJ-5.1).
 
 ## WJ-4 Dimensions
 
@@ -144,10 +154,23 @@ Einwilligung am 2026-10-21, Speicherort, Löschung auf Wunsch.
 - 2026-10-21: Version 1 bestätigt.
 ```
 
+Optional section, only after an explicit yes in phase 7:
+
+```markdown
+## Episoden
+- Rückblick: … (in the candidate's words)
+- Energie: … (in the candidate's words)
+```
+
 1. **Wording stays.** The Wunsch column keeps the candidate's words (WJ-2.2).
+   **A skipped dimension** is one row in `## Wünsche` with the Wunsch `— (übersprungen)`, the
+   Priorität `—` and the Hypothese `—`, so it is visible that the dimension was not answered. Such a row is never used in
+   the fit check.
 2. **Versions.** A change creates a new version with its date. The old version remains in `Verlauf`
    with a short reason. Nothing is deleted without the candidate's request.
-3. **Only the Wurzel.** The file is written in the Wurzel and nowhere else (LS-5.7). It is never
+3. **`## Episoden` only on a yes.** The section is written only if the candidate said yes in phase
+   7. Otherwise episodes and energy notes stay in the session and are not stored.
+4. **Only the Wurzel.** The file is written in the Wurzel and nowhere else (LS-5.7). It is never
    copied into a document or into a Grundlage.
 
 ### WJ-5.1 Changes after the interview
@@ -225,8 +248,10 @@ gesamturteil: Veto | Klärungsbedarf | Passt überwiegend
 ```
 
 1. **Gesamturteil** has three values only. `Veto` when any veto exists. `Klärungsbedarf` when a Muss or
-   Soll is *unklar*, *nicht ermittelt* or *teilweise*. `Passt überwiegend` otherwise. A "passt" overall
-   value is never given while a Muss is *nicht ermittelt*.
+   Soll is *unklar*, *nicht ermittelt* or *teilweise*, or when a Muss is *passt nicht*. `Passt
+   überwiegend` only if no Muss is *passt nicht* and no Muss is *nicht ermittelt*. Whenever a Muss
+   is *passt nicht*, the value is `Klärungsbedarf`, and the Muss and its source are named in
+   `## Hinweise` as the reason.
 2. The file is for the candidate. It is never sent to a counterpart and never copied into a document
    (WJ-8.2).
 
@@ -249,7 +274,7 @@ gesamturteil: Veto | Klärungsbedarf | Passt überwiegend
 1. **Local only.** The Wunschprofil and the fit check stay in the Wurzel, which is git-ignored by
    default; a private, unpublished repository is allowed (R-6, LS-2.1, `lebenslauf-versionen` LV-4).
 2. **Never sent.** No skill sends the Wunschprofil, a fit check or a wish to any service or counterpart.
-   A web search does not include any wish or interview content (UA-3.3).
+   A web search does not include any wish or interview content (UA-3.2).
 3. **Deletion.** The candidate can delete the Wunschprofil and the fit checks at any time. The skill
    deletes only the files the candidate names, after showing them.
 4. **Sensitive content** volunteered in the interview is stored only as far as WJ-4.2 allows, with the
@@ -260,7 +285,7 @@ gesamturteil: Veto | Klärungsbedarf | Passt überwiegend
 | ID | Scenario | Expected behaviour |
 |---|---|---|
 | WJ-A | Interview completed, all phases confirmed | `wunschprofil.md` version 1 with `bestaetigt: ja`, Wünsche in the candidate's words |
-| WJ-B | Candidate answers "egal" to a dimension | Dimension recorded as skipped, not filled in |
+| WJ-B | Candidate answers "egal" to a dimension | Dimension recorded as skipped (row with `— (übersprungen)`, Priorität `—`), not filled in |
 | WJ-C | Wish with no episode | Hypothese flag set, cannot trigger a veto |
 | WJ-D | Posting requires people leadership, Ausschluss says no | Veto reported first, with the posting quote; plan gate stops |
 | WJ-E | Posting silent on work location | `nicht ermittelt`, question for the counterpart, not a contradiction |
@@ -268,6 +293,8 @@ gesamturteil: Veto | Klärungsbedarf | Passt überwiegend
 | WJ-G | Candidate changes a Soll after applications | New version, old version kept in Verlauf, no change to fit checks already made |
 | WJ-H | Company reputation is negative only on a rating portal | Not used as a value (UA-2.1), no veto |
 | WJ-I | Candidate asks to delete the profile | Files named by the candidate are deleted after confirmation |
+| WJ-J | Candidate aborts or defers before phase 7 | Nothing is saved; no `wunschprofil.md` is written (WJ-2.6) |
+| WJ-K | Posting contradicts a Muss (not an Ausschluss) | Gesamturteil `Klärungsbedarf`, the Muss and its source named in `## Hinweise` (WJ-6.4) |
 
 The scenarios are checked by reviewing an interview transcript and the resulting profile. A script
 check for the profile format and the veto rule is an open point.

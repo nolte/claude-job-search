@@ -7,7 +7,7 @@ the main case.
 
 Related specs:
 - `spec/job-application/lebenslauf/en.md`: the document type, its frontmatter (LB-11).
-- `spec/job-application/konventionen/en.md`: R-6 (data protection), R-9.4 (Grundlage hash).
+- `spec/job-application/konventionen/en.md`: R-6 (data protection), R-9.5 (Grundlage hash), R-10 (output formats, exit codes).
 - `spec/job-application/lokale-struktur/en.md`: the Wurzel, the Vorgang folders, LS-9 (privacy).
 
 ## LV-1 Terms
@@ -56,7 +56,7 @@ Related specs:
 4. A skill that sees a Version whose hash differs from the one in a Manifest reports it and stops (LV-6.4).
    It does not repair the file.
 5. A Version holds the facts as they were. It is not updated when the Grundlage changes. `grundlage_hash`
-   records which Grundlage state it came from (R-9.4).
+   records which Grundlage state it came from (R-9.5).
 6. Which facts a new Version may take over is decided by the rules of the Lebenslauf (R-1). Freezing adds no
    content.
 
@@ -97,6 +97,9 @@ A repository that is, or may become, public stores none of these files (R-6).
 
 ## LV-6 The Manifest and the export rules
 
+The document types, formats, page limits and exit codes of the export are defined in R-10
+(`konventionen/en.md`). This section adds what the reproduction needs.
+
 1. The exporter derives the PDF dates from `version_datum` (midnight UTC, `SOURCE_DATE_EPOCH` with
    `FORCE_SOURCE_DATE=1`).
 2. The exporter sets the PDF trailer ID from a hash of the Version, `document.tex`, `cv.lua`, the epoch and
@@ -108,8 +111,8 @@ A repository that is, or may become, public stores none of these files (R-6).
    tool versions (pandoc, LuaLaTeX, Python), the plugin revision and image id when the environment supplies
    them (`PLUGIN_REVISION`, `EXPORT_IMAGE_ID`), and the file name, SHA-256 and page count of the output.
 4. `export_document.py --reproduce <manifest>` rebuilds the output in a temporary folder and compares the
-   hash. It exits `0` when identical, `3` when different or when the source hash no longer matches, `1` on an
-   error. It lists differing tool versions and a changed template.
+   hash. The exit codes are those of R-10.10: `0` when identical, `3` when different or when the source hash
+   no longer matches, `1` on an error. It lists differing tool versions and a changed template.
 5. The Manifest holds no personal data beyond file names and hashes.
 
 ## LV-7 Toolchain retention

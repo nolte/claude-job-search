@@ -10,6 +10,16 @@ is frozen: the PDF dates and the PDF ID are derived from the source, so the same
 give a byte-identical PDF (spec lebenslauf-versionen LV-6). `--reproduce` rebuilds an output from its
 manifest and compares it.
 
+Exit codes: 0 ok (or, for --reproduce, byte-identical); 1 error (missing tool, invalid arguments, unreadable input);
+2 content check found a difference; 3 --reproduce: output differs or the source hash no longer matches the manifest
+(lebenslauf-versionen LV-6.4); 4 the PDF exceeds the page limit of its document type (LB-2.3, AS-7.1, MS-7). With 2 and
+4 the file stays and the manifest is written. If both apply, the exit code is 2 and the page count is still reported.
+The severity of a page overrun (Blocker for cv and letter, Warnung for motivation) is set by the quality gate
+(LB-13, AS-12, MS-12).
+
+The document type `email` exists only as Markdown (spec R-10.2); `--doc-type email` with another format is an error.
+`--out-dir` must not lie inside the plugin repository (spec lokale-struktur LS-5.7, LS-2.4).
+
 Defaults (spec lokale-struktur LS-3, lebenslauf-versionen LV-6): `--out-dir` is `export/` next to the source. A frozen
 Version in `versionen/vNNN_<datum>.md` is exported to `../export/` of that folder, so the export sits next to the
 Arbeitsstand. `--name` defaults to the source file name without `.md`. Every name is transliterated to ASCII
@@ -42,6 +52,9 @@ from pathlib import Path
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 PAGE_LIMITS = {"cv": 2, "letter": 1, "motivation": 2, "email": None}
+EXIT_CONTENT = 2
+EXIT_DIFFERENT = 3
+EXIT_PAGES = 4
 REFERENCE_DOCX = Path.home() / ".cache" / "claude-job-search" / "reference.docx"
 
 
@@ -75,6 +88,38 @@ def ascii_name(name):
     name = unicodedata.normalize("NFKD", name.translate(TRANSLITERATION))
     name = "".join(ch for ch in name if not unicodedata.combining(ch))
     return re.sub(r"[^A-Za-z0-9._-]", "", name)
+
+
+def in_plugin_repository(path):
+    """True when `path` or a parent holds .claude-plugin/plugin.json of claude-job-search (LS-2.4, R-9.9)."""
+    path = Path(path).resolve()
+    for directory in (path, *path.parents):
+        manifest = directory / ".claude-plugin" / "plugin.json"
+        if manifest.is_file():
+            try:
+                if json.loads(manifest.read_text(encoding="utf-8")).get("name") == "claude-job-search":
+                    return True
+            except (OSError, ValueError):
+                pass
+    return False
+
+
+ONE_PAGE_VARIANTS = ("stelle", "quereinstieg", "berufseinstieg")
+
+
+def _key(value):
+    """Frontmatter value as a comparable key: text, trimmed, lower case (a stray capital or space must not lose a limit)."""
+    return str(value).strip().lower() if value is not None else ""
+
+
+def page_limit_for(doc_type, meta):
+    """Page limit of the document type. A Lebenslauf of the format `einseitig` is limited to one page (LB-2.3), a
+    Motivationsschreiben of a job variant to one page (MS-7); a missing `variante` counts as `stelle` (MS-8)."""
+    if doc_type == "cv" and _key(meta.get("format")) == "einseitig":
+        return 1
+    if doc_type == "motivation" and (_key(meta.get("variante")) or "stelle") in ONE_PAGE_VARIANTS:
+        return 1
+    return PAGE_LIMITS[doc_type]
 
 
 def default_out_dir(source):
@@ -250,7 +295,7 @@ def export_tex(pandoc, source, out_file, grundlage_hash, doc_type="cv", traileri
     return plain, None
 
 
-def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit, doc_type="cv", epoch=None):
+def export_pdf(pandoc, source, out_dir, name, grundlage_hash, doc_type="cv", epoch=None):
     engine = require("lualatex", "Installiere TeX Live mit LuaLaTeX (Paket texlive-luatex) — Entscheidung O-3.")
     require("pdfinfo", "Installiere poppler-utils (pdfinfo, pdftotext).")
     tex = out_dir / f"{name}.tex"
@@ -274,8 +319,6 @@ def export_pdf(pandoc, source, out_dir, name, grundlage_hash, page_limit, doc_ty
         (out_dir / f"{name}{suffix}").unlink(missing_ok=True)
     info = subprocess.run(["pdfinfo", str(pdf)], capture_output=True, text=True, check=True).stdout
     pages = int(re.search(r"Pages:\s+(\d+)", info).group(1))
-    if page_limit and pages > page_limit:
-        print(f"Warnung: {pages} Seiten, Grenze für diesen Dokumenttyp ist {page_limit} (FA-O13).", file=sys.stderr)
     raw = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, check=True).stdout
     return strip_page_numbers(raw), pages
 
@@ -305,7 +348,7 @@ def tool_versions(fmt):
     }
 
 
-def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch):
+def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch, limit=None):
     reproducible = fmt in ("tex", "pdf") and epoch is not None
     return {
         "schema": 1,
@@ -319,7 +362,8 @@ def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch):
         "vorlage": {"document.tex": sha256_file(TEMPLATES / "document.tex"), "cv.lua": sha256_file(TEMPLATES / "cv.lua")},
         "werkzeuge": {**tool_versions(fmt), "python": platform.python_version()},
         "umgebung": {"plugin_revision": os.environ.get("PLUGIN_REVISION") or None, "image_id": os.environ.get("EXPORT_IMAGE_ID") or None},
-        "ausgabe": {"datei": out_file.name, "sha256": sha256_file(out_file), "seiten": pages},
+        "ausgabe": {"datei": out_file.name, "sha256": sha256_file(out_file), "seiten": pages, "seitenlimit": limit,
+                    "seitenlimit_ueberschritten": bool(pages is not None and limit is not None and pages > limit)},
     }
 
 
@@ -330,7 +374,7 @@ def write_manifest(manifest, out_file):
 
 
 def reproduce(manifest_path):
-    """Rebuild an output from its manifest and compare it. Exit 0 identical, 3 different, 1 error."""
+    """Rebuild an output from its manifest and compare it. Exit 0 identical, 3 different or source changed, 1 error."""
     manifest_path = Path(manifest_path).resolve()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     source = (manifest_path.parent / manifest["quelle"]["pfad"]).resolve()
@@ -340,11 +384,11 @@ def reproduce(manifest_path):
     if sha256_file(source) != manifest["quelle"]["sha256"]:
         print("Quelle verändert: der Hash der Quelle weicht vom Manifest ab. Eine festgeschriebene Version darf nicht "
               "bearbeitet werden (lebenslauf-versionen LV-3).", file=sys.stderr)
-        return 3
+        return EXIT_DIFFERENT
     with tempfile.TemporaryDirectory() as tmp:
         code = main([str(source), "--format", manifest["format"], "--doc-type", manifest["dokumenttyp"],
                      "--out-dir", tmp, "--name", manifest["name"], "--no-manifest"])
-        if code not in (0, 2):
+        if code not in (0, EXIT_CONTENT, EXIT_PAGES):
             return 1
         # The file is named as main() names it today; an older manifest may record a name that was
         # transliterated differently (`Max_Müller` before 0.2.0), so the recorded `datei` is not used.
@@ -357,11 +401,14 @@ def reproduce(manifest_path):
         if manifest["vorlage"].get(tool) != sha256_file(TEMPLATES / tool):
             differences.append(f"Vorlage {tool} hat sich geändert")
     print("Reproduktion: byte-identisch" if identical else "Reproduktion: abweichend")
+    if manifest["ausgabe"].get("seitenlimit_ueberschritten"):
+        print(f"Hinweis: Der ursprüngliche Export überschritt das Seitenlimit "
+              f"({manifest['ausgabe'].get('seiten')} von {manifest['ausgabe'].get('seitenlimit')}).")
     for line in differences:
         print(f"  Unterschied: {line}")
     if not identical and not manifest["byte_reproduzierbar"]:
         print("  Hinweis: Dieser Export war nicht als byte-reproduzierbar ausgewiesen (kein version_datum oder Format).")
-    return 0 if identical else 3
+    return 0 if identical else EXIT_DIFFERENT
 
 
 def main(argv=None):
@@ -387,15 +434,20 @@ def main(argv=None):
         parser.error("INPUT, --format und --doc-type sind erforderlich (oder --reproduce MANIFEST)")
 
     try:
+        if args.doc_type == "email" and args.format != "md":
+            raise ExportError("Der Dokumenttyp email gibt es nur als Markdown (--format md, Spec R-10.2).")
         meta, body = read_document(args.input)
         grundlage_hash = meta.get("grundlage_hash")
         if not grundlage_hash:
-            print("Warnung: kein grundlage_hash im Frontmatter. Der Export ist nicht prüfbar gegen die Grundlage.",
-                  file=sys.stderr)
+            print("Warnung: kein grundlage_hash im Frontmatter. Der Export ist nicht prüfbar gegen die Grundlage "
+                  "(R-10.3).", file=sys.stderr)
         name = ascii_name(args.name or args.input.stem)
         if not name:
             raise ExportError("Der Dateiname ist nach der ASCII-Umschrift leer. --name angeben (R-4).")
         out_dir = (args.out_dir or default_out_dir(args.input)).resolve()
+        if in_plugin_repository(out_dir):
+            raise ExportError(f"Ausgabeordner {out_dir} liegt im Plugin-Repository. Es wird nur in die Wurzel "
+                              "geschrieben (LS-5.7); --out-dir auf einen Ordner der Wurzel setzen.")
         out_dir.mkdir(parents=True, exist_ok=True)
         out_file = out_dir / f"{name}.{args.format}"
         pandoc = require("pandoc", "Installiere pandoc (z. B. pip install pypandoc_binary oder Paket pandoc).")
@@ -424,7 +476,7 @@ def main(argv=None):
             exported_text, _ = export_docx(pandoc, args.input, out_file, name, grundlage_hash)
         else:
             exported_text, pages = export_pdf(pandoc, args.input, out_dir, name, grundlage_hash,
-                                              PAGE_LIMITS[args.doc_type], args.doc_type, epoch)
+                                              args.doc_type, epoch)
 
         status = "ok"
         if exported_text is not None:
@@ -433,13 +485,23 @@ def main(argv=None):
                 status = "Inhaltsabweichung"
                 print(f"Fehlend im Export: {sum(missing.values())} Wörter, z. B. {list(missing)[:5]}", file=sys.stderr)
                 print(f"Zusätzlich im Export: {sum(extra.values())} Wörter, z. B. {list(extra)[:5]}", file=sys.stderr)
+        limit = page_limit_for(args.doc_type, meta)
+        over_limit = pages is not None and limit is not None and pages > limit
+        if over_limit:
+            print(f"Seitenlimit überschritten: {pages} Seiten, Grenze für diesen Dokumenttyp ist {limit} "
+                  "(LB-2.3, AS-7.1, MS-7).", file=sys.stderr)
         print(f"{out_file}")
         if not args.no_manifest:
-            print(f"Manifest: {write_manifest(build_manifest(args.input.resolve(), meta, args.format, args.doc_type, name, out_file, pages, epoch), out_file)}")
+            print(f"Manifest: {write_manifest(build_manifest(args.input.resolve(), meta, args.format, args.doc_type, name, out_file, pages, epoch, limit), out_file)}")
         if pages is not None:
             print(f"Seiten: {pages}")
+            print(f"Seitenlimit: {'überschritten' if over_limit else 'ok'} ({pages} von {limit})" if limit else "Seitenlimit: keines")
         print(f"Inhaltsprüfung: {status}")
-        return 0 if status == "ok" else 2
+        if not grundlage_hash:
+            print("grundlage_hash: fehlt")
+        if status != "ok":
+            return EXIT_CONTENT
+        return EXIT_PAGES if over_limit else 0
     except ExportError as error:
         print(f"Fehler: {error}", file=sys.stderr)
         return 1

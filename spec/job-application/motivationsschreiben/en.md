@@ -117,13 +117,28 @@ The text has five parts. The three-part core (interest, qualification, personal 
 
 ## MS-7 Length
 
-1. **Default.** One page for a job application, up to two pages for a study place or a scholarship. A
-   comparison source gives one to two pages for a Motivationsschreiben
+1. **Limit per variant.** Every variant has an explicit page limit (decision of this plugin):
+
+   | Variant | Page limit |
+   |---|---|
+   | `stelle` | 1 |
+   | `quereinstieg` | 1 |
+   | `berufseinstieg` | 1 |
+   | `studium` | 2 |
+   | `stipendium` | 2 |
+
+   The variants for a job (`stelle`, `quereinstieg`, `berufseinstieg`) are job applications and keep one page.
+   A comparison source gives one to two pages for a Motivationsschreiben
    ([Kickresume](https://www.kickresume.com/de/blog/motivation-letter-vs-cover-letter/)); another says that
    content counts more than length ([news.at](https://www.news.at/wirtschaft/bewerbungsschreiben)). The
    distinction between job and study is a decision of this plugin.
 2. **Word count.** About 300 to 600 words for the text part (decision of this plugin). The page limit decides.
-3. **Hard limit.** Two pages. A prescribed limit of the institution replaces this limit (MS-11).
+3. **Hard limit.** Two pages, the same as the export limit of the document type `motivation` (R-10.5). The
+   export cannot tell the variants apart: it reports exit code 4 only above two pages. The one-page limit of
+   the three job variants is checked by the quality gate against the page count in the manifest. A prescribed
+   limit of the institution replaces these limits (MS-11).
+4. **No exception.** The Motivationsschreiben has no exception rule for the page limit. The exception of the
+   Lebenslauf (`lebenslauf/en.md` LB-2.3) does not apply, and the Anschreiben has none either (AS-7.1).
 
 ## MS-8 Variants
 
@@ -174,13 +189,21 @@ mandatory instruction that is not met is a Blocker.
 | A wish used from a Wunschprofil without the user's confirmation, or a `hypothese: ja` wish | MS-3.3 | review | Blocker |
 | Counterpart fact without source, or from a rating portal | MS-3.5 | review | Blocker |
 | The text retells the Lebenslauf | MS-5.3 | review | Warnung |
-| Longer than the limit of the variant | MS-7 | export page check, as far as the document type is set | Warnung |
+| Longer than the limit of the variant (MS-7.1) | MS-7 | export page check (exit code 4 above two pages, R-10.10); below that the page count of the manifest against the variant | Warnung; no exception |
+| Word count outside 300 to 600 | MS-7.2 | review | Hinweis, never a Blocker (also when no PDF exists) |
+| Export manifest missing, or the export file changed after its manifest | R-10.3, CG-12.5 | review | Warnung |
+| Manifest source hash differs from the current `motivationsschreiben.md` (stale export) | CG-12.2 | review | Blocker |
+| PDF without extractable text | CG-12.4 | export check | Blocker |
+| `## Auswahl Motivationsschreiben` missing in `pruefbericht.md` | CG-2.3, R-9.11.5 | review | Warnung |
+| Anlagen line names a file that does not exist in the folder | AS-10.4 | review | Blocker |
+| Keyword stuffing: a counterpart term without evidence, or padding with supported terms | R-1.4, CG-4.6 | review | Blocker (without evidence), Warnung (padding) |
+| `grundlage_hash` stale (R-9.5) | R-9.5 | automated | Warnung |
 | Generic salutation | MS-4.3 | review | Warnung |
 | Stock phrase | MS-10.4 | review | Warnung |
 | The counterpart's mandatory instruction is not met | MS-11 | review | Blocker |
 
-The export has page limits for `cv`, `letter`, `motivation`, and `email`. The `motivation` limit is two pages; the
-stricter one page of the variant `stelle` is checked by hand (MS-13).
+The export has page limits for `cv`, `letter` and `motivation`; `email` has none (R-10.5). The `motivation` limit
+is two pages. The stricter one page of the job variants is checked by the quality gate (MS-7.3).
 
 ## MS-13 Open points
 
@@ -188,9 +211,9 @@ stricter one page of the variant `stelle` is checked by hand (MS-13).
 |---|---|---|
 | Sources | The structure and the length come from ratgeber pages. Study and scholarship rules were not found in the search. The institution's own rules are the authority | open |
 | Internship and training | No source for a specific rule. The posting's wording decides | open |
-| Online forms | A motivation text field on a portal follows the plain-text reduction of `anschreiben/en.md` AS-8.1 (MS-2.3); no skill step writes the text file yet | done (rule), open (skill) |
+| Online forms | A motivation text field on a portal follows the plain-text reduction of `anschreiben/en.md` AS-8.1 (MS-2.3). The file is `motivationsschreiben-portal.txt` in the Vorgang folder, written when the portal has a free-text field for the motivation, otherwise on request | done (rule), done (skill) |
 | Versioning | The Motivationsschreiben is not versioned like the Lebenslauf (`lebenslauf-versionen` LV-9) | open |
-| Export | The `motivation` document type with a two-page limit exists in `export_document.py`. A one-page limit for the variant `stelle` is not enforced and is checked by hand | done, variant limit open |
+| Export | The `motivation` document type with a two-page limit exists in `export_document.py`; a breach is exit code 4 (R-10.10). The one-page limit of the job variants (MS-7.1) is not enforced by the export; the quality gate checks it against the manifest | done (Exit 4), variant limit by the gate |
 | Skill | `job-application-motivation-letter-create` writes the document. `job-application-cover-letter-create` no longer lists the word in its triggers and points to the new skill | done |
 | WJ-7.2 | `traumjob-interview/en.md` WJ-7.2 forbids wishes in documents. MS-3.3 allows a confirmed wish in this document type only. WJ-7.2 refers here | done in the same change |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

@@ -27,7 +27,9 @@ layout, checks). The rules below stay in force and are the short form.
   entry comes first.
 - **Umfang:** one page for entry level, two pages otherwise (LB-2, CG-6.1). A Lebenslauf longer than
   two pages is a Blocker. The only exception is the user's explicit decision in the session, recorded in
-  `pruefbericht.md` (section `## Prüfung`, LS-7.4); the quality gate then reports a Warnung instead.
+  `pruefbericht.md` (section `## Prüfung`, LS-7.4); the quality gate then reports a Warnung instead, in this
+  and in every later run, until the user withdraws the decision. The exception exists only for the
+  Lebenslauf (LB-2.3, LB-13); the Anschreiben has none (AS-7.1) and neither has the Motivationsschreiben.
 - **Sections and their order:** as in LB-3 of `spec/job-application/lebenslauf/en.md`, with the standard
   headings of CG-11.2a (`spec/job-application/cv-generierung/en.md`). This rule keeps no list of its own.
 - **Zeiträume:** `MM/JJJJ – MM/JJJJ` or `MM/JJJJ – heute`, consistent across entries. `seit MM/JJJJ` is
@@ -69,7 +71,7 @@ Sources: [lebenslauf.de – Berufserfahrung](https://www.lebenslauf.de/ratgeber/
    - Arbeitgeber: legal name (with Rechtsform) and city, as in the profile.
 2. **Bullets** below the header, not a table.
    - **Count:** defaults and the hard maximum of 5 bullets per station are set in CG-6 of `spec/job-application/cv-generierung/en.md`. Bullet counts are not fixed by this rule; they follow relevance and evidence (CG-5). A station that does not support the application may carry the header line only.
-   - **Length:** each bullet fits on one line, two lines at most.
+   - **Length:** each bullet has at most two lines and at most 180 characters (CG-8.1.5, CV-12).
    - **Form and wording:** canonical in CG-8.1 to CG-8.3 of `spec/job-application/cv-generierung/en.md`: object first, past participle last, optional result after a semicolon, digits for measured values, no subject, no final period. Avoid „verantwortlich für“ and „zuständig für“ (CG-8.2).
    - **Results:** prefer a number (Prozent, Zeit, Kosten, Teamgröße, Volumen), supported by the profile or the Zeugnis. If no number is known, a qualitative result from the profile is enough. Never invent a number. Where confidentiality applies, a size band replaces the exact figure (cv-folio).
    - **No routine duties:** daily tasks without a result are left out (Emory, Jobscan).
@@ -154,10 +156,13 @@ A set is ready to send only when `job-application-quality-gate` reports **zero b
 - no `[ERGÄNZEN: …]` placeholder left,
 - company name, role, reference number and contact name identical across all documents,
 - every claim traceable to the profile (R-1),
-- Anschreiben within one page (a second page is a Blocker, R-3) and Lebenslauf within two pages (a third
-  page is a Blocker unless the user's recorded decision allows it, R-2),
+- Anschreiben within one page (a second page is a Blocker, R-3) and Lebenslauf within two pages, or one page
+  for the format `einseitig` (a longer Lebenslauf is a Blocker unless the user's recorded decision allows it,
+  which makes it a Warnung, R-2). The export reports a breach with exit code 4 (R-10.10); the quality gate
+  sets the severity,
 - German spelling and grammar free of obvious errors,
-- the Datengrundlage hash in every output matches the current Grundlage (R-9.4),
+- the Datengrundlage hash in every output should match the current Grundlage. A mismatch makes the output
+  stale and is a Warnung, not a Blocker (R-9.5, AS-12),
 - every Eintragsblock follows R-2.1 (header order, bullet limits of CG-6, no invented numbers),
 - every automated rule of CG-13 (CV-01 to CV-17, as reported by `scripts/cv_checks.py`) has no Blocker,
 - for ATS or portal applications, the ATS rules of R-8.3 hold.
@@ -172,7 +177,7 @@ The skill proposes a format from the situation, and the user may deviate (record
 |---|---|---|
 | Standard, Berufserfahrung in DE | chronologisch | default, two pages at most |
 | Berufseinstieg, Ausbildung oder Studium | einseitig | Ausbildung and Praktika first |
-| Schüler, Studierende, Praktikum | einseitig | Praktika with month, company, two bullets |
+| Schüler, Studierende, Praktikum | einseitig | Praktika with month, company, two bullets. Schulpraktika are not listed as stations |
 | Quereinstieg, Branchenwechsel | kombiniert | Kurzprofil of at most 3 sentences (LB-4.2), then chronological |
 | Lücke (Elternzeit, Pflege, Weiterbildung) | chronologisch | gap as its own line, neutral wording chosen by the user (R-2, CG-9) |
 | Viele Stationen oder Projektarbeit | kombiniert | Berufserfahrung grouped in blocks |
@@ -191,6 +196,7 @@ Funktional (skill-based without timeline) is not produced. It is recommended onl
 - Austria: recommended, about 4 × 5 cm, at the top ([workinaustria](https://www.workinaustria.com/your-personal-guide/arbeiten-in-oesterreich/bewerbungsunterlagen)).
 - ATS application or online portal: no photo, because a parser cannot read it.
 - Internship: photo may be omitted.
+- Form: the photo is the image file `rohdaten/foto.jpg`, inserted as an image link at the start of `Persönliche Daten` (LB-4.1.2). The export does not place it yet (open, export; status table of LB-14).
 
 ### R-8.3 ATS-Regeln
 
@@ -222,9 +228,9 @@ The user's own, complete, chronological basis in Markdown. Requirement document:
 
 1. **Location:** referenced, not copied (decision E-P2). The path is set in `job-application/konfiguration.md` under the frontmatter key `grundlage` (R-9.10). Default: `job-application/grundlage/lebenslauf-chronologisch.md`. The path names either one Markdown file (file mode) or a directory of Markdown notes (directory mode), for example one note per Station, Ausbildung and Weiterbildung. Directory mode requires the key `grundlage_index`, which names the index note with `stand` and the Pflegeverlauf. Every skill that reads the Grundlage reads all notes of the set in directory mode. The Grundlage may live anywhere on the local disk, for example in an existing notes folder. A path inside the plugin repository is refused (R-9.9).
 2. **Language:** German. Original wording in another language (Zeugnis, Zertifikat, English project names) stays unchanged and is marked, e.g. `(EN-Original)`.
-3. **Certificates (Zeugnisse):** one entry per certificate with file, date, issuer, and the full wording of the closing assessment. The scan stays outside the Grundlage and outside git.
+3. **Certificates (Zeugnisse):** the Grundlage holds them only in its section *Zeugnisse*, one entry per certificate with file, date, issuer, and the full wording of the closing assessment. A Station refers to its entry and does not copy the wording (CG-2.4). The scan stays outside the Grundlage and outside git.
 4. **Intake:** existing CVs and certificates are processed first (raw material to entries with source reference). The interview asks only for gaps, contradictions, and `[KLÄREN]` markers. Every adopted entry is confirmed by the user before it counts as established.
-5. **Hash and date:** the Grundlage carries `stand: JJJJ-MM-DD` in its frontmatter. In file mode this is the file itself, in directory mode the index note. A missing or invalid `stand` is a Blocker. Each output carries `grundlage_hash` (the hash below, at creation time). The quality gate compares the stored with the current hash. A mismatch makes the output stale. The hash is computed by `scripts/grundlage_hash.py` of this plugin, so every skill obtains the same value:
+5. **Hash and date:** the Grundlage carries `stand: JJJJ-MM-DD` in its frontmatter. In file mode this is the file itself, in directory mode the index note. A missing or invalid `stand` is a Blocker. Each output carries `grundlage_hash` (the hash below, at creation time). The quality gate compares the stored with the current hash. A mismatch makes the output stale and is a Warnung (R-7, AS-12). The hash is computed by `scripts/grundlage_hash.py` of this plugin, so every skill obtains the same value:
    - **File mode:** SHA-256 of the file's bytes.
    - **Directory mode:** the set consists of every `*.md` file below the directory, recursively, plus the index note if it lies outside the directory. Entries whose name starts with `.` (files and folders) are skipped. Symbolic links are followed; a file reached twice counts once. Each file has a label: `file:<relative path>` for files below the directory, where the relative path uses forward slashes, and `index:<file name>` for an index outside it. The set is sorted by label in byte order. The hash is SHA-256 over the UTF-8 text in which each file contributes two lines, `<label>` and the SHA-256 hex of the file's bytes, in that order.
    - File contents are hashed as bytes. Line endings and whitespace are not normalised.
@@ -240,10 +246,11 @@ The user's own, complete, chronological basis in Markdown. Requirement document:
 **Checklist.** Required items for a complete Grundlage:
 
 - Contact: name, address, phone, e-mail (required). LinkedIn: optional.
-- Persönlich: Geburtsdatum, Familienstand, Staatsangehörigkeit, Foto are optional and asked only when the session scope includes them (scope `persönlich`).
-- Each Station: Zeitraum in `MM/JJJJ – MM/JJJJ` or `MM/JJJJ – heute`, Position exactly as in the Zeugnis, Arbeitgeber with Rechtsform and Ort, at least one Aufgabe. Results are recommended for relevant stations. A Zeugnis entry is required when a Zeugnis exists.
+- Persönlich: Geburtsdatum, Familienstand, Staatsangehörigkeit, Konfession, Foto are optional and asked only when the session scope includes them (scope `persönlich`). Konfession is recorded only when the user states it (R-2).
+- Each Station: Zeitraum in `MM/JJJJ – MM/JJJJ` or `MM/JJJJ – heute`, Position exactly as in the Zeugnis, Arbeitgeber with Rechtsform and Ort, at least one Aufgabe. Results are recommended for relevant stations. When a Zeugnis exists, its entry in the section *Zeugnisse* is required (R-9.3) and the Station refers to it; the wording is not copied into the Station.
 - Station notes (CG-2.4 of `spec/job-application/cv-generierung/en.md`): sections `## Erfolge` and `## Team` are recommended for every station, and `fuehrung` records whether the candidate led people (`ungeklärt` until known). A missing `fuehrung` is a Hinweis.
-- Ausbildung: Abschluss, Ort, Zeitraum. Schule: Abschluss, Schule, Jahr.
+- Ausbildung: Abschluss, Ort, Zeitraum. Schule: Abschluss, Schule, Jahr. Schulpraktika are not kept as Stationen (R-8.1).
+- Gaps (R-2, CG-9): the neutral wording the user chose for a gap stands as its own `###` entry in the Station section of the Grundlage; in directory mode it is a note of its own.
 - Sprachen with GER level (required). IT-Kenntnisse with level or duration (recommended). Weiterbildung (recommended). Zielrichtung (optional).
 
 **Prüfstufen.** Each finding has one of three levels:
@@ -252,7 +259,7 @@ The user's own, complete, chronological basis in Markdown. Requirement document:
 |---|---|---|
 | Blocker | required item missing or contradictory | contact empty; two periods for one station |
 | Warnung | format or plausibility deviates from R-2 and R-2.1 | year only instead of `MM/JJJJ`; gap over two months without a note; end before start |
-| Hinweis | content can be improved | station without result; number without proof; possible but unclear overlap of education and school; more bullets than R-2.1 allows for an output (selection per application, R-9.11) |
+| Hinweis | content can be improved | station without result; number without proof; possible but unclear overlap of education and school; periods of two full-time Stationen that overlap; more bullets than R-2.1 allows for an output (selection per application, R-9.11) |
 
 **Flow.**
 
@@ -261,13 +268,13 @@ The user's own, complete, chronological basis in Markdown. Requirement document:
 3. Answer: the user answers, skips, or marks a finding as not relevant. Skipping keeps the open marker (`[ERGÄNZEN: …]` or `[KLÄREN: …]`). A finding marked not relevant is recorded in the Pflegeverlauf and not asked again unless the user wants it.
 4. Apply: each answer is written to the file after the user has seen the changed passage. Every answer is saved immediately, so an abort loses at most the open question.
 5. Confirmation: each new or changed Station is confirmed by the user (`Bestätigt: ja`).
-6. Close: `stand` is set to today's date, the hash is computed and reported, and a closing report lists completed points, open points, and remaining blockers.
+6. Close: when the run changed the Grundlage, `stand` is set to today's date and the Pflegeverlauf gets its entry; the hash is computed and reported in every case, and a closing report lists completed points, open points, and remaining blockers. A run without any change writes neither `stand` nor a Pflegeverlauf entry.
 
 **Rules.**
 
 - Only values the user states or confirmed source passages support are written (R-1). An unknown answer becomes an open marker, never an invented value.
 - Only the addressed passages change. Frontmatter and structure are kept. Changes are recorded in a section `## Pflegeverlauf` with the date and a short description per change.
-- A second run without changes reports only the still-open points.
+- A second run without changes reports only the still-open points and writes nothing: no `stand`, no Pflegeverlauf entry.
 - The run uses only the file and the user's answers. No network access.
 - German, with original quotations unchanged.
 - In directory mode the addressed Station is changed in its own note. The Pflegeverlauf goes into the index note. The checklist applies to the whole set.
@@ -290,14 +297,25 @@ Hash command: `python3 <plugin-root>/scripts/grundlage_hash.py job-application/k
 Requirement: `project/requirements/ausgabeformate.md` (FA-O1 … FA-O23). Decisions O-1 … O-5 are recorded there.
 
 1. **One source.** Every output is generated from the Markdown document. Outputs are never edited by hand (FA-O1).
-2. **Formats per document.** Lebenslauf and Anschreiben: PDF (LaTeX), DOCX, Markdown, HTML, and the LaTeX source as `tex` (same template, pandoc only, no LuaLaTeX needed). E-Mail: Markdown only. Review report: Markdown only.
+2. **Document types and formats.** The export knows the document types `cv`, `letter`, `motivation` and `email` (`--doc-type`) and the formats `pdf` (LaTeX), `docx`, `html`, `md` and `tex` (`--format`; `tex` is the LaTeX source of the same template, made with pandoc only, no LuaLaTeX needed). `cv`, `letter` and `motivation` are available in every format. `email` is available only with `md`; any other format is an error (exit 1). The review report is Markdown only and is not exported.
 3. **Hash.** Each output carries the `grundlage_hash` of its source (FA-O2). Stale outputs are reported by `job-application-quality-gate`.
 4. **File names** follow R-4: `Vorname_Nachname_<Dokument>.<ext>` with the ASCII transliteration of R-4, in `job-application/<slug>/export/` by default (FA-O3, FA-O4). An export of a frozen Version is named after the Version (`lebenslauf-versionen` LV-2.3).
-5. **PDF.** LuaLaTeX, embedded fonts, selectable text. Lebenslauf at most two pages, Anschreiben exactly one (FA-O11 to FA-O13). The PDF is the default file format, also for ATS portals (R-8.3.4).
+5. **PDF.** LuaLaTeX, embedded fonts, selectable text. Page limits per document type: `cv` at most two pages (one page for the format `einseitig`), `letter` at most one page, `motivation` at most two pages; `email` has none (FA-O11 to FA-O13). The PDF is the default file format, also for ATS portals (R-8.3.4).
 6. **DOCX.** Single column, Word heading styles, no tables, editable paragraphs (FA-O16, FA-O17). Only when a portal requires DOCX (R-8.3.4); the export strips the document metadata (author, revisions, comments).
 7. **HTML.** Self-contained, `lang="de"`, responsive, printable, semantic structure, no external resources (FA-O21 to FA-O23). The HTML has its own reduced layout; only the PDF carries the layout of LB-11.
 8. **Content.** Every export must contain the same words as the source (FA-O6).
 9. **Export on request only** (R-6). The export command is `task export`.
+10. **Exit codes** of `export_document.py`:
+
+    | Code | Meaning |
+    |---|---|
+    | 0 | ok |
+    | 1 | error (missing tool, invalid input or combination such as `email` with a format other than `md`, unreadable manifest) |
+    | 2 | content deviation: the word multiset of the export differs from the source (CG-12.2). File and manifest stay; the set is not ready to send |
+    | 3 | `--reproduce`: the result differs, or the source no longer matches the hash in the manifest (LV-6.4) |
+    | 4 | page limit exceeded (item 5). File and manifest stay |
+
+    When both apply, code 2 is returned; the stdout line `Seitenlimit:` and the manifest fields `ausgabe.seitenlimit` and `ausgabe.seitenlimit_ueberschritten` still report the breach, and the quality gate reads them. The export only reports; the quality gate sets the severity: Blocker for `cv` and `letter`, Warnung for `motivation` (LB-13, AS-12, MS-12).
 
 ## R-11 Englischsprachige Unterlagen (stub)
 

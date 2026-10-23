@@ -48,6 +48,18 @@ parser reads the same text as the Markdown source.
 
 The design is in `skills/job-application-export/templates/` (`document.tex` and `cv.lua`).
 
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Export done |
+| `1` | Error, for example `email` with a format other than `md` |
+| `2` | The content of the export differs from the source; the file is kept, but it is not ready to send |
+| `3` | `--reproduce`: different output or a changed source |
+| `4` | Page limit of the document type exceeded; file and manifest are kept. A Lebenslauf with `format: einseitig` has a limit of one page. The quality gate sets the severity |
+
+The environment variables `PLUGIN_REVISION` and `EXPORT_IMAGE_ID` are written to the manifest under `umgebung`.
+
 !!! info "For developers"
     The layout rules are `spec/job-application/lebenslauf/en.md` (LB-11), the ATS rule is
     `spec/job-application/konventionen/en.md` (R-8.3, R-10).
@@ -88,7 +100,8 @@ task export -- job-application/<slug>/lebenslauf.md --format tex --doc-type cv
 | `--format html` or `md` | HTML or Markdown copy |
 | `--doc-type cv` | Lebenslauf, at most two pages |
 | `--doc-type letter` | Anschreiben, one page |
-| `--doc-type motivation` | Motivationsschreiben, at most two pages |
+| `--doc-type motivation` | Motivationsschreiben, one page for the job variants, two pages for `studium` and `stipendium` (frontmatter key `variante`) |
+| `--doc-type email` | E-mail text, only with `--format md` |
 | `--name` | File name without extension, default is the source name |
 | `--out-dir` | Output folder, default `export/` next to the source: `job-application/<slug>/export/` for an application, `job-application/<variant>/export/` for a variant or one of its frozen versions |
 
