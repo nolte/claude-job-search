@@ -160,8 +160,8 @@ other channels. The server stays optional for the plugin as a whole: no skill de
 | Need | Tool | Item |
 |---|---|---|
 | Posting text, requirements, company details | `get_job_details`, `search_jobs` | E-5 |
-| Easy Apply or employer's application page | `get_job_apply_url` | E-5 |
-| Company page, size, sector, open jobs | `get_company_profile`, `search_companies` | E-1, E-4, E-5 |
+| Easy Apply or employer's application page (`portal` or `email` for `bewerbungsweg`) | `get_job_apply_url` | E-5 |
+| Company page, size, sector, open jobs | `get_company_profile`, `search_companies` | E-4, E-5 (not E-1, see rule 5) |
 | Company's own posts | `get_company_posts` | E-4 |
 | The contact person's role, firm and tenure | `get_person_profile` with the sections needed for this | E-9, V-4 |
 
@@ -176,8 +176,10 @@ other channels. The server stays optional for the plugin as a whole: no skill de
    after the other, never in bulk. The user may lower the numbers.
 4. **Visibility.** Reading a profile can be visible to its owner, depending on the settings of
    both accounts. The user is told before a person's profile is read.
-5. **Not an authority.** A LinkedIn page is a statement of the firm or of the person. It ranks 4,
-   like other social media, and does not replace the imprint or the register (UA-3).
+5. **Not an authority.** The text of a posting, as posted, is the posting (rank 2). Any other
+   LinkedIn content, such as a company page or a person's profile, is social media and ranks 5 in
+   UA-3: a lead and an opinion, never a Stammdatum, never a motivation (UA-4.5), and never the
+   source of E-1. Identity comes from the imprint and the register (RC-5.2, RC-5.3).
 6. **One route.** Web search and direct page fetches are not used to read `linkedin.com` pages: they
    are unreliable there, and they bypass the consent of rule 2, the budget of rule 3 and the
    visibility notice of rule 4. A link to LinkedIn that a search returns is opened through the server
