@@ -96,6 +96,11 @@ jobs:
       tag: ${{ inputs.tag }}
       dry_run: ${{ inputs.dry_run }}
       app-id: ${{ vars.PORTFOLIO_APP_ID }}
+      # spec/project/release-automation/ §Version-bearing file alignment, primary path: the reusable sets
+      # `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` to the draft tag, commits
+      # `chore(release): <tag>` on develop as the App and realigns the draft. A push that develop's branch
+      # protection rejects degrades to the operator-fallback message (a `chore(release): <tag>` PR).
+      auto-align: true
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
       app-private-key: ${{ secrets.PORTFOLIO_APP_PRIVATE_KEY }}
