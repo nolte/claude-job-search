@@ -1,16 +1,19 @@
-# LinkedIn access (optional)
+# LinkedIn access
 
 Much of what an application needs sits on LinkedIn: the posting, the company page, the people
 behind a recruiter's name, and your own profile. The open-source
 [LinkedIn MCP server](https://github.com/stickerdaniel/linkedin-mcp-server) by Daniel Sticker
 (Apache-2.0) gives Claude direct access to these pages, so you do not have to copy them by hand.
 
-!!! note "Optional, and not part of this plugin"
-    No skill of this plugin requires the server or calls it by itself. Everything works without
-    it: you paste the posting text, as described in [Getting started](getting-started.md). With the
-    server connected, you can ask Claude in the same session to read the page first and then
-    run the skill on the result. The server is an independent project, not affiliated with this
-    plugin or with LinkedIn.
+!!! note "The preferred route to LinkedIn, but not part of this plugin"
+    When you want Claude to use LinkedIn content, the server is the route to take: with it
+    connected, Claude reads LinkedIn pages through it and not through web search or a page
+    fetch, which are unreliable on LinkedIn and bypass the consent and the limits below. No
+    skill of this plugin requires the server or calls it by itself. Without it, everything still
+    works: you paste the posting text, as described in [Getting started](getting-started.md).
+    You can ask Claude in the same session to read the page first and then run the skill on
+    the result. The server is an independent project, not affiliated with this plugin or with
+    LinkedIn.
 
 ## Where it helps
 
@@ -75,5 +78,5 @@ retry once it has finished.
    entry, and nothing in it is final until you confirm it.
 4. **Recruiters.** A profile read does not replace the question to the counterpart. The employer
    is `gesichert` only when the counterpart confirms it (KK-3.3).
-5. **Without the server.** The posting text, the company page and your profile export work as
-   before. Paste them, or put the export into `rohdaten/`.
+5. **Without the server.** Claude does not try to read LinkedIn another way. Paste the posting
+   text or the company page, or put your profile export into `rohdaten/`.

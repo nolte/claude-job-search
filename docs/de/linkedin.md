@@ -1,4 +1,4 @@
-# LinkedIn-Zugriff (optional)
+# LinkedIn-Zugriff
 
 Vieles, was eine Bewerbung braucht, steht auf LinkedIn: die Anzeige, die Firmenseite, die
 Personen hinter dem Namen eines Personalvermittlers und dein eigenes Profil. Der quelloffene
@@ -6,12 +6,15 @@ Personen hinter dem Namen eines Personalvermittlers und dein eigenes Profil. Der
 (Apache-2.0) gibt Claude direkten Zugriff auf diese Seiten, sodass du sie nicht von Hand
 kopieren musst.
 
-!!! note "Optional und nicht Teil dieses Plugins"
-    Kein Skill dieses Plugins braucht den Server oder ruft ihn selbst auf. Alles funktioniert
-    ohne ihn: Du fügst den Anzeigentext ein, wie in [Erste Schritte](getting-started.md)
-    beschrieben. Ist der Server verbunden, kannst du Claude in derselben Sitzung bitten, erst die
-    Seite zu lesen und danach den Skill auf das Ergebnis anzuwenden. Der Server ist ein
-    eigenständiges Projekt und steht weder mit diesem Plugin noch mit LinkedIn in Verbindung.
+!!! note "Bevorzugter Weg zu LinkedIn, aber nicht Teil dieses Plugins"
+    Sollen LinkedIn-Inhalte genutzt werden, ist der Server der Weg: Ist er verbunden, liest Claude
+    LinkedIn-Seiten über ihn und nicht über Websuche oder einen Seitenabruf. Beides ist auf
+    LinkedIn unzuverlässig und umgeht die Zustimmung und die Grenzen weiter unten. Kein Skill
+    dieses Plugins braucht den Server oder ruft ihn selbst auf. Ohne ihn funktioniert weiterhin
+    alles: Du fügst den Anzeigentext ein, wie in [Erste Schritte](getting-started.md) beschrieben.
+    Du kannst Claude in derselben Sitzung bitten, erst die Seite zu lesen und danach den Skill
+    auf das Ergebnis anzuwenden. Der Server ist ein eigenständiges Projekt und steht weder mit
+    diesem Plugin noch mit LinkedIn in Verbindung.
 
 ## Wobei er hilft
 
@@ -78,5 +81,5 @@ Einrichtung noch läuft; versuche es nach deren Ende erneut.
    als fest, bevor du es bestätigst.
 4. **Personalvermittler.** Ein gelesenes Profil ersetzt nicht die Frage an die Gegenpartei. Der
    Arbeitgeber gilt erst als `gesichert`, wenn die Gegenpartei ihn bestätigt (KK-3.3).
-5. **Ohne Server.** Anzeigentext, Firmenseite und Profil-Export funktionieren wie bisher. Füge
-   sie ein oder lege den Export in `rohdaten/`.
+5. **Ohne Server.** Claude versucht nicht, LinkedIn auf anderem Weg zu lesen. Füge den
+   Anzeigentext oder die Firmenseite ein oder lege deinen Profil-Export in `rohdaten/`.
