@@ -47,7 +47,7 @@ Each entry: label, relationship category, interaction surface, expectation, docu
   - Open questions: should the documentation describe what a recruiter expects, or stay with the plugin's own rules?
 
 - **Hiring managers and employers reached through recruiters** — _category_: indirect · _surface_: the same documents, received through an agency · _expects_: no disclosure of details the candidate did not approve · _track_: `user-docs` · _status_: `assumed` · _criticality_: secondary
-  - Open questions: is the disclosure rule (`spec/job-application/kontaktklassifikation/en.md`) reflected in the user documentation? Answered: yes, since 0.2.0 the docs page *Counterparts* (`docs/en/counterparts.md`, `docs/de/counterparts.md`) describes the disclosure questions and why no full documents are produced before the employer is known.
+  - Open questions: is the disclosure rule (`spec/job-application/kontaktklassifikation/en.md`) reflected in the user documentation? Answered: yes, the docs page *Counterparts* (`docs/en/counterparts.md`, `docs/de/counterparts.md`) describes the disclosure questions and why no full documents are produced before the employer is known.
 
 - **Personalvermittler and Headhunter as the counterpart** — _category_: indirect · _surface_: the documents the plugin produces and the disclosure questions the plugin asks the candidate to put to them (Auftraggeber known? exclusive Mandat? double submission?) · _expects_: a Kurzprofil, availability, and a quick answer; receives no full documents before disclosing the Auftraggeber · _track_: `user-docs` · _rationale_: they shape what the candidate sends and when, but never use the plugin · _status_: `assumed` · _criticality_: secondary
   - Open questions: none recorded.

@@ -29,7 +29,7 @@
 - [x] Retention and deletion (S10): final status other than `zusage` leads to deletion six months after closure, date `loeschen_ab` set by the user in `vorgang.md`, no skill deletes
 - [x] Docs pages *Getting started*, *Glossary*, *Counterparts* in English and German
 - [x] CV checks hardened (CV-01 to CV-17, including the sub-bullet rule CV-17)
-- [x] Both manifests at version 0.2.0
+- [x] Plugin version comes from the release tag: `release-publish.yml` sets both manifests (`auto-align`), no manual bump in PRs
 
 ## Next
 
