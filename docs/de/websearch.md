@@ -14,6 +14,8 @@ beides, läuft auf deinem eigenen Rechner und braucht keinen API-Schlüssel.
     Skill braucht den Server. Das Plugin installiert nichts und liefert keine `.mcp.json`: Die
     Konfiguration unten trägst du selbst ein. Der Server ist ein eigenständiges Projekt und steht
     in keiner Verbindung zu diesem Plugin.
+    Die Regeln, die für alle optionalen Server gelten, stehen auf
+    [Optionale MCP-Server](mcp-servers.md).
 
 ## Was der Server tut
 

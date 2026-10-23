@@ -16,6 +16,8 @@ das Portal nicht von Hand durchsuchen musst.
     Die Recherche sagt es, und du kannst die Registerdaten selbst eintragen oder die Punkte als
     `nicht ermittelt` lassen. Der Server ist ein eigenständiges Projekt und steht weder mit diesem
     Plugin noch mit dem Registerportal in Verbindung.
+    Die Regeln, die für alle optionalen Server gelten, stehen auf
+    [Optionale MCP-Server](mcp-servers.md).
 
 ## Wann die Abfrage angeboten wird
 

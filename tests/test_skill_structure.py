@@ -295,6 +295,41 @@ class SkillStructureTests(unittest.TestCase):
         for lang in ("en", "de"):
             self.assertTrue(os.path.isfile(os.path.join(ROOT, "docs", lang, "handelsregister.md")), lang)
 
+    def test_mcp_overview_is_in_nav_and_every_server_page_links_back(self):
+        # issue #19: one overview page for the optional MCP servers, linked from the nav, the indexes and the README;
+        # every detail page links back to it
+        def read(*parts):
+            with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
+                return handle.read()
+
+        self.assertRegex(read("mkdocs.yml"), r"-\s*Optional MCP servers:\s*en/mcp-servers\.md")
+        self.assertIn("Optional MCP servers: Optionale MCP-Server", read("mkdocs.yml"))
+        for lang in ("en", "de"):
+            self.assertTrue(os.path.isfile(os.path.join(ROOT, "docs", lang, "mcp-servers.md")), lang)
+            self.assertIn("mcp-servers.md", read("docs", lang, "index.md"), f"{lang} index")
+            for page in ("linkedin.md", "handelsregister.md", "websearch.md"):
+                self.assertIn("mcp-servers.md", read("docs", lang, page), f"{lang} {page}")
+        self.assertIn("/mcp-servers/", read("README.md"))
+        # the overview carries the same RC-5.0 citations and the same budget numbers in both languages, and the
+        # LinkedIn page names its own budget (6 and 15), which the spec states in RC-5.4 rule 3
+        cites = {lang: sorted(set(re.findall(r"RC-5\.0 (?:rule|Regel) (\d)", read("docs", lang, "mcp-servers.md"))))
+                 for lang in ("en", "de")}
+        self.assertEqual(cites["en"], cites["de"])
+        self.assertEqual(cites["en"], [str(n) for n in range(1, 9)])
+        for lang, word in (("en", "At most 6 page reads"), ("de", "Höchstens 6 Seitenabrufe")):
+            self.assertIn(word, read("docs", lang, "linkedin.md"), lang)
+
+    def test_common_channel_rules_are_stated_once_in_the_research_spec(self):
+        # issue #19: RC-5.0 carries the rules of all optional network channels; RC-5.2 to RC-5.5 refer to them
+        with open(os.path.join(ROOT, "spec", "job-application", "recherche", "en.md"), encoding="utf-8") as handle:
+            spec = handle.read()
+        self.assertIn("### RC-5.0 Rules for optional network channels", spec)
+        block = spec.split("### RC-5.0", 1)[1].split("### RC-5.1", 1)[0]
+        self.assertEqual(re.findall(r"^(\d+)\. \*\*", block, re.MULTILINE), [str(n) for n in range(1, 9)])
+        for number in ("5.2", "5.3", "5.4", "5.5"):
+            section = spec.split(f"### RC-{number} ", 1)[1].split("\n### ", 1)[0]
+            self.assertIn("RC-5.0 rule", section, f"RC-{number}")
+
 
 if __name__ == "__main__":
     unittest.main()

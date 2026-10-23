@@ -274,7 +274,8 @@ gesamturteil: Veto | Klärungsbedarf | Passt überwiegend
 1. **Local only.** The Wunschprofil and the fit check stay in the Wurzel, which is git-ignored by
    default; a private, unpublished repository is allowed (R-6, LS-2.1, `lebenslauf-versionen` LV-4).
 2. **Never sent.** No skill sends the Wunschprofil, a fit check or a wish to any service or counterpart.
-   A web search does not include any wish or interview content (UA-3.2).
+   A web search does not include any wish or interview content (UA-3.2). The same holds for every
+   optional network channel (`recherche/en.md` RC-5.0 rule 5).
 3. **Deletion.** The candidate can delete the Wunschprofil and the fit checks at any time. The skill
    deletes only the files the candidate names, after showing them.
 4. **Sensitive content** volunteered in the interview is stored only as far as WJ-4.2 allows, with the

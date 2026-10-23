@@ -14,6 +14,7 @@ your own machine and needs no API key.
     requires the server. The plugin installs nothing and ships no `.mcp.json`: you add the
     configuration below yourself. The server is an independent project, not affiliated with this
     plugin.
+    The rules all optional servers share are on [Optional MCP servers](mcp-servers.md).
 
 ## What the server does
 
