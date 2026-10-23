@@ -163,7 +163,11 @@ The pages are read in the following order, because each one confirms or question
    address (localhost, private network ranges, link-local addresses, file URLs). The final URL that the
    tool reports after redirects is checked as well: when it is a `linkedin.com` page or an internal
    address, the returned text is discarded and the item is `nicht ermittelt` with the reason
-   `Weiterleitung auf unzulässiges Ziel`.
+   `Weiterleitung auf unzulässiges Ziel`. This check happens after the request: the server's own safety
+   checks refuse private and local targets, but a redirect to `linkedin.com` is detected only
+   afterwards, and the text is not used. When the tool does not report the final URL, as a built-in
+   fallback tool may not, the redirects cannot be checked: such a tool fetches only URLs on the domain
+   of a trusted place (rule 1), and the user is told that redirects could not be checked.
 
 ### RC-5.3 Official registers and portals
 
@@ -461,9 +465,11 @@ Rules for the quality-gate checks:
    becomes a Warnung if the user has decided against the assessment (RC-8 rule 4) and the decision
    stands in `## Verlauf` of `vorgang.md`.
 3. **Web route.** The gate reports as a Warnung: a search in `### Suchen` with an engine outside the
-   allowlist of RC-5.5 rule 5, a query with a term outside the list of RC-5.5 or with data beyond the firm
-   name and the Sitz (UA-3.2), counts in `Kanäle` above the budget of RC-5.5 rule 6, and a `Kanäle` line
-   that names a web route while `### Suchen` is missing or the counts differ (RC-9 rule 7).
+   allowlist of RC-5.5 rule 5, a query that, after removing the firm name and the Sitz as recorded in `## Unternehmen` or the firm
+   file (case-insensitive, legal-form words such as GmbH or AG ignored), keeps a token outside the list
+   of RC-5.5 or a token of the contact person's name recorded in `analyse.md` (RC-5.5 rule 3, UA-3.2), counts in `Kanäle` above the budget of RC-5.5 rule 6, and a `Kanäle` line
+   that names a web route while `### Suchen` is missing or the counts differ (RC-9 rule 7). If the firm name or the Sitz is not recorded, the query cannot be checked and the gate
+   reports a Hinweis instead.
 4. The gate reads the record. It runs no research of its own.
 
 ## RC-12 Acceptance scenarios

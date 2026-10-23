@@ -190,19 +190,43 @@ class SkillStructureTests(unittest.TestCase):
                 self.assertNotIn("mcpServers", set(keys(json.load(handle))), relative)
 
     def test_web_route_is_cited_and_documented_in_both_languages(self):
-        # issue #18: the skills cite the web-route rules, and the docs page exists in English and German
-        for name in ("posting-analysis", "fit-check"):
-            with open(os.path.join(ROOT, "skills", f"job-application-{name}", "SKILL.md"), encoding="utf-8") as handle:
-                text = handle.read()
-            self.assertIn("RC-5.2", text, name)
-            self.assertIn("RC-5.5", text, name)
-        pages = [os.path.join(ROOT, "docs", lang, "websearch.md") for lang in ("en", "de")]
-        for page in pages:
-            self.assertTrue(os.path.isfile(page), page)
-            with open(page, encoding="utf-8") as handle:
-                text = handle.read()
-            self.assertIn("open-websearch@", text, page)
-            self.assertNotIn("@latest\"", text, page)
+        # issue #18: the skills carry the web-route rules, the docs page exists in English and German
+        def read(*parts):
+            with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
+                return handle.read()
+
+        analysis = read("skills", "job-application-posting-analysis", "SKILL.md")
+        for needle in ("**Web route", "renderMode: request", "fetchWebContent", "RC-5.2", "RC-5.5",
+                       "Weiterleitung auf unzulässiges Ziel", "`### Suchen`", "Websuche über open-webSearch"):
+            self.assertIn(needle, analysis, needle)
+        fit_check = read("skills", "job-application-fit-check", "SKILL.md")
+        for needle in ("RC-5.2", "RC-5.5", "Stay local"):
+            self.assertIn(needle, fit_check, needle)
+        gate = read("skills", "job-application-quality-gate", "SKILL.md")
+        for needle in ("### Suchen", "allowlist", "RC-5.5 rule 6"):
+            self.assertIn(needle, gate, needle)
+        for lang in ("en", "de"):
+            page = read("docs", lang, "websearch.md")
+            self.assertIn("open-websearch@", page, lang)
+            self.assertNotIn('@latest"', page, lang)
+
+    def test_web_route_budget_is_the_same_in_spec_skill_and_docs(self):
+        # the budget numbers (10/15 at level 1, 20/30 at level 2) live in the spec, the skill and the docs; they
+        # must not drift apart. The quality gate refers to the spec and carries no numbers.
+        def read(*parts):
+            with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
+                return handle.read()
+
+        spec = read("spec", "job-application", "recherche", "en.md")
+        self.assertRegex(spec, r"At most 10 searches and 15 page fetches per Vorgang at level 1, and at most 20 and 30")
+        self.assertRegex(read("skills", "job-application-posting-analysis", "SKILL.md"),
+                         r"at most 10 searches and 15 page fetches at level 1, 20 and 30 in total")
+        for lang, word in (("en", "at most"), ("de", "höchstens")):
+            page = read("docs", lang, "websearch.md")
+            for level, searches, fetches in ((1, 10, 15), (2, 20, 30)):
+                self.assertRegex(page, rf"\| {level} \| {word} {searches} \| {word} {fetches} \|", f"{lang} level {level}")
+        gate = read("skills", "job-application-quality-gate", "SKILL.md")
+        self.assertNotRegex(gate, r"\b10 searches\b|\b15 page fetches\b")
 
 
 if __name__ == "__main__":

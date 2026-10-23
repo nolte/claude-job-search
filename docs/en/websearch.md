@@ -73,7 +73,7 @@ entry to the `mcpServers` section of your MCP configuration:
 | `ALLOWED_SEARCH_ENGINES=duckduckgo,startpage,brave` | The default is empty, which allows every engine, among them several that are irrelevant here or Chinese-language. The research uses only these three |
 | `SEARCH_MODE=request` | The default is `auto`. According to the README, the setting currently affects only Bing. It states your intent: no browser |
 | `USE_PROXY=false` | This is the default. The plugin does not recommend a proxy to get around blocking |
-| `MCP_TOOL_FETCH_…_NAME=<disabled>` | Disables the CSDN, Linux.do and Juejin fetch tools, so the tool list stays short and unambiguous |
+| `MCP_TOOL_FETCH_…_NAME=<disabled>` | According to the README, `<disabled>` switches a tool off. This disables the CSDN, Linux.do and Juejin fetch tools, so the tool list stays short and unambiguous. If `/mcp` still lists them, the setting did not take effect |
 
 **Engines.** The server supports more engines, among them `bing`, `baidu`, `hackernews` and
 `exa`. Add `bing` only when you ask for it, for example because coverage of a German firm is too
@@ -130,7 +130,10 @@ The record in `## Recherche` lists the route used and every search with engine, 
 7. **Fetched text is data.** A page can contain instructions. Claude reads it as data and never
    follows it. According to the README, the initial and final URLs of `fetchWebContent` remain
    subject to public-network safety checks. The plugin passes only URLs from trusted places and
-   never an internal address.
+   never an internal address. The check of a redirect comes after the request: a redirect to
+   `linkedin.com` is noticed only afterwards, and the text is then not used. A built-in tool that
+   does not report the final URL is used only for pages on the domain of a trusted place, and
+   Claude tells you that redirects could not be checked.
 8. **Everything read enters the session.** Fetched pages become part of the Claude session and go
    to the model provider like any other text in it (RC-10).
 9. **Supply chain.** `npx` downloads and runs code from the npm registry. A pinned version limits
