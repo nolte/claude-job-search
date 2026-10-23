@@ -191,7 +191,8 @@ Rules for the lifecycle:
    to *Verlauf* with the date and a short description. Old lines are never removed. A line
    without a change of status is allowed for an event: a veto decision (`traumjob-interview/en.md`
    WJ-7.1), a re-run line with the old `Stand` (UA-5.1 rule 3), a Nachfassen (KK-5 rule 5), or a
-   decision against the research assessment (`recherche/en.md` RC-8 rule 4).
+   decision against the research assessment (`recherche/en.md` RC-8 rule 4), or a mail record
+   (`mail-verwaltung/en.md` MV-7).
 2. **Status values are fixed.** Only the values in the table are allowed: `erfasst`, `analysiert`,
    `geplant`, `erstellt`, `geprüft`, `in Arbeit`, `versendet`, `rückmeldung`, `gespräch`, `angebot`,
    `verhandlung`, `zusage`, `absage`, `abgelehnt`, `zurückgezogen`, `ohne Antwort`. `absage` is the
@@ -200,13 +201,16 @@ Rules for the lifecycle:
    *Verlauf* or `notizen.md`.
 3. **Plan before generation.** S3 is written before S4 starts (solution skill, plan gate).
 4. **S7 and S8 are user statements.** The skill records what the user reports. It never sends,
-   and it never infers a reply.
+   and it never infers a reply. The one exception is the proposal path of `mail-verwaltung/en.md`
+   MV-7: it may propose an *Verlauf* line and a change of `status` for S8 from a mail, and writes
+   it only after the user's approval of the exact line. S7 stays a statement of the user.
 5. **Folders are never moved after S1.** Links from `firmen/`, the Obsidian graph and the user's
    notes stay valid. Closed Vorgänge are found by status, not by location.
 6. **A second Vorgang for the same company and role** gets a numeric suffix:
    `musterfirma-senior-backend-2`.
-7. **Phase 1 limit.** No skill updates S7 and S8 in Phase 1. The user maintains `vorgang.md`
-   and `notizen.md` by hand or in Obsidian. A tracking skill is an open point (LS-10).
+7. **Phase 1 limit.** No skill updates S7 and S8 on its own in Phase 1. The user maintains `vorgang.md`
+   and `notizen.md` by hand or in Obsidian. The mail proposal path of `mail-verwaltung/en.md` MV-7
+   is the first tracking function; a full tracking skill is an open point (LS-10).
 8. **S10 Aufbewahrung und Löschung.** The rule names the place and the period; no skill deletes
    anything in Phase 1.
    - A Vorgang with the final status `absage`, `zurückgezogen`, `ohne Antwort` or `abgelehnt` is
@@ -425,7 +429,7 @@ The following changes are required before the skills follow the spec:
 | `job-application-posting-analysis` | Save the verbatim posting as `stellenanzeige.md`; create `vorgang.md` (S1) with Metadaten, an empty `notizen.md`, and `firmen/` entries on first use (LS-4) | done |
 | `job-application-cv-create`, `job-application-cover-letter-create`, `job-application-motivation-letter-create`, `job-application-quality-gate` | Use the sections of `pruefbericht.md` (LS-7.4) | done |
 | `job-application-quality-gate` | Check the status against the existence of the documents; compare `grundlage_hash` in `vorgang.md` | done |
-| Nachverfolgung (S7, S8) | No skill in Phase 1. A tracking skill is a later requirement | open, deliberate |
+| Nachverfolgung (S7, S8) | No tracking skill in Phase 1. A tracking skill is a later requirement; the mail proposal path (`mail-verwaltung/en.md` MV-7) is specified but not yet implemented | open, deliberate |
 | S10 Löschung | Rule defined (LS-6 rule 8, `loeschen_ab`); no skill deletes. The legal reference (AGG § 15 Abs. 4) is to be verified by the user | rule defined, no skill |
 | Ausprägung folders | Second folder kind in LS-3; `cv-create` and `export` tell it apart by the missing `vorgang.md` | done (skill, 0.2.0) |
 | `kontaktart` in `vorgang.md` | posting-analysis writes the KK-6 value into `vorgang.md` as well (LS-6.1) | done (skill, 0.2.0) |

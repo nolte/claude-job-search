@@ -42,6 +42,12 @@ class SpecIndexTests(unittest.TestCase):
             self.assertRegex(text, r"## [A-Z]{2}-\d+ Open points", topic)
             self.assertRegex(text, r"## [A-Z]{2}-\d+ Acceptance scenarios", topic)
 
+    def test_mail_verwaltung_has_scenarios_open_points_and_no_destructive_action(self):
+        text = read(os.path.join(ROOT, "spec", "job-application", "mail-verwaltung", "en.md"))
+        self.assertRegex(text, r"## MV-\d+ Acceptance scenarios")
+        self.assertRegex(text, r"## MV-\d+ Open points")
+        self.assertRegex(text, r"Delete, trash, archive, report as spam,\s+send")
+
 
 if __name__ == "__main__":
     unittest.main()
