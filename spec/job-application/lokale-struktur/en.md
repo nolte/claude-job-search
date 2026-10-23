@@ -191,7 +191,8 @@ Rules for the lifecycle:
    to *Verlauf* with the date and a short description. Old lines are never removed. A line
    without a change of status is allowed for an event: a veto decision (`traumjob-interview/en.md`
    WJ-7.1), a re-run line with the old `Stand` (UA-5.1 rule 3), a Nachfassen (KK-5 rule 5), or a
-   decision against the research assessment (`recherche/en.md` RC-8 rule 4).
+   decision against the research assessment (`recherche/en.md` RC-8 rule 4), or a mail record
+   (`mail-verwaltung/en.md` MV-7).
 2. **Status values are fixed.** Only the values in the table are allowed: `erfasst`, `analysiert`,
    `geplant`, `erstellt`, `geprüft`, `in Arbeit`, `versendet`, `rückmeldung`, `gespräch`, `angebot`,
    `verhandlung`, `zusage`, `absage`, `abgelehnt`, `zurückgezogen`, `ohne Antwort`. `absage` is the

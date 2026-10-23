@@ -1,6 +1,6 @@
 ---
 title: Mail-Verwaltung für Bewerbungen (Gmail, Kalender, Vault)
-status: elicited (Spec noch nicht geschrieben)
+status: elicited; Spec entworfen (spec/job-application/mail-verwaltung/en.md, PR #26)
 created: 2026-10-23
 ---
 
@@ -31,7 +31,7 @@ Eine Anforderung ist `confirmed` nur nach ausdrücklichem Teach-back.
 | `functional` | yes | 0.85 | interpretation | Gesamt-Teach-back bestätigt; Ablauf Schritt 1–7 |
 | `non_functional` | yes | 0.7 | specification | Abbruch bei Fehler bestätigt; Datenschutzgrenzen teils `assumed`; keine Leistungsziele erhoben |
 | `constraints` | yes | 0.85 | interpretation | Connector (MCP), nur auf Anforderung, Freigabe für Kalender und Vault |
-| `domain_objects` | yes | 0.75 | specification | Vorgang, Kontakt, Unternehmen, Label-Hierarchie genannt; Begriffe der Specs `lokale-struktur` und `kontaktklassifikation` fehlen auf diesem Branch |
+| `domain_objects` | yes | 0.85 | interpretation | Vorgang, Firma, Label-Hierarchie; Begriffe gegen `lokale-struktur` und `kontaktklassifikation` gelesen, Vault-Ziel (Zeile in `## Verlauf`) vom Nutzer bestätigt |
 | `actors` | yes | 0.85 | interpretation | Ein Nutzer, ein Konto; Teach-back |
 | `acceptance_criteria` | yes | 0.75 | specification | Probe mit erfundenen Mails bestätigt; Mengen und Schwellen offen |
 | `edge_cases` | yes | 0.8 | interpretation | Ohne Vorgang, Konflikt, manuelle Umsortierung, unklarer Termin, Connector-Ausfall |
@@ -47,7 +47,7 @@ Eine Anforderung ist `confirmed` nur nach ausdrücklichem Teach-back.
   - _dimension_: `functional` · _status_: `confirmed` · _source_: "4" (Datenschutz-Auswahl); Rest der Aussage: Teach-back. Der Verbleib in `unsort` ist `assumed`, siehe Risiken.
 - **R4** — WHEN eine Mail als relevant gilt, the Skill SHALL sie analysieren und in die Label-Struktur verschieben, die der Nutzer festgelegt hat.
   - _dimension_: `functional` · _status_: `confirmed` · _source_: "wenn emails als relevant identifiziert wurden dürfen sie analysiert werden und werden in passende unterstrukturen verschoben"
-- **R5** — The Skill SHALL ohne Nutzerregeln einen Vorschlag für die Label-Struktur anbieten: Eingang `unsort`, darunter `Bewerbung/<Vorgang>/<Mailtyp>` mit den Mailtypen Eingangsbestätigung, Einladung, Absage, Zusage, Rückfrage. Das Regelwerk dahinter bestimmt der Nutzer selbst.
+- **R5** — The Skill SHALL ohne Nutzerregeln einen Vorschlag für die Label-Struktur anbieten: Eingang `unsort`, darunter `Bewerbung/<Vorgang>/<Mailtyp>` mit den Mailtypen Eingangsbestätigung, Einladung, Absage, Zusage, Rückfrage; im Spec-Review ergänzt: Angebot (Status `angebot`). Das Regelwerk dahinter bestimmt der Nutzer selbst.
   - _dimension_: `domain_objects` · _status_: `confirmed` · _source_: "das jeweilige regelwerk soll der nutzer möglichst selber bestimmen, trotzdem soll es einen vorschlag für eine label und ordnerstruktur geben"; "Vorgang außen, Mailtyp innen"
 - **R6** — WHEN eine relevante Mail zugeordnet wird, the Skill SHALL die Merkmale in dieser Rangfolge prüfen: Referenznummer der Stellenanzeige, Firmenname oder Stellentitel, Absender. Der Gmail-Thread SHALL nur als Zusatzsignal dienen.
   - _dimension_: `functional` · _status_: `confirmed` · _source_: "ich denke 4,3,2"; "1 als Zusatzsignal"
@@ -55,7 +55,7 @@ Eine Anforderung ist `confirmed` nur nach ausdrücklichem Teach-back.
   - _dimension_: `edge_cases` · _status_: `confirmed` · _source_: "3"; "bei Konflikt b"
 - **R8** — WHEN der Skill Labels setzt oder Mails verschiebt, the Skill SHALL das ohne Rückfrage tun.
   - _dimension_: `constraints` · _status_: `confirmed` · _source_: "2, Kalender und Vault immer mit Freigabe"
-- **R9** — WHEN der Skill Informationen in den Vault schreiben will, the Skill SHALL vorher die Freigabe des Nutzers einholen, und SHALL nur Metadaten (Datum, Absender, Mailtyp, Betreff, Thread-ID oder Link) plus eine kurze Zusammenfassung in eigenen Worten schreiben, keinen Volltext.
+- **R9** — WHEN der Skill Informationen in den Vault schreiben will, the Skill SHALL vorher die Freigabe des Nutzers einholen, und SHALL nur Metadaten (Datum, Absender, Mailtyp, Betreff, Gmail-Message-ID, Thread-ID) plus eine kurze Zusammenfassung in eigenen Worten schreiben, keinen Volltext.
   - _dimension_: `functional` · _status_: `confirmed` · _source_: "2"; "2, Kalender und Vault immer mit Freigabe"
 - **R10** — WHEN eine relevante Mail einen Termin oder eine Frist enthält, the Skill SHALL einen Eintrag im Kalender „Bewerbungen" vorschlagen und ihn erst nach Freigabe anlegen. Bei fehlenden Angaben (z. B. Uhrzeit, Zeitzone) SHALL der Skill nicht raten, sondern nachfragen oder keinen Eintrag anlegen. Nachfasstermine gehören nicht dazu. Fehlt der Kalender, SHALL der Skill ihn nicht selbst anlegen, sondern melden.
   - _dimension_: `functional` · _status_: `confirmed` (Nachfasstermine, Fehlbehandlung des Kalenders: `assumed`) · _source_: "2, eigener Kalender „Bewerbungen""
@@ -83,7 +83,7 @@ Eine Anforderung ist `confirmed` nur nach ausdrücklichem Teach-back.
   - Die `assumed`-Annahme zu Gehalt und privaten Kontaktdaten kollidiert mit KK-4.4, LS-6 Regel 8 und LS-9.6: Kontaktpersonen-Daten werden bei Endstatus entfernt, und Gehalt wird nur geteilt, wenn gefragt. Die Annahme ist damit **nicht tragfähig** und wird in der Spec enger gefasst, sofern der Nutzer nichts anderes entscheidet.
   - Vault-Ziel: Der „Vault" ist die Wurzel (LS-2, LS-8). Naheliegend ist eine Zeile in `## Verlauf` von `vorgang.md` (Datum plus Kurzbeschreibung, LS-6 Regel 1). Ein neues Dateiformat pro Mail wäre eine Änderung von LS-3.
   - `notizen.md` und der Body von `firmen/` bleiben tabu (LS-5.6). Kontaktart-Signale aus Mails nutzen KK-3.1.
-- **Begriffe:** Wurzel, Anker, Vorgang, Firma kommen aus `lokale-struktur`. Die Specs liegen auf `develop`, nicht auf `main`. Der Branch ist per Fast-Forward auf `origin/develop` gezogen. `domain_objects` bleibt bei 0.75, bis der Nutzer die Vault-Entscheidung bestätigt hat.
+- **Begriffe:** Wurzel, Anker, Vorgang, Firma kommen aus `lokale-struktur`. Die Specs liegen auf `develop`, nicht auf `main`. Der Branch ist per Fast-Forward auf `origin/develop` gezogen. `domain_objects` steht nach der bestätigten Vault-Entscheidung bei 0.85.
 - **Offen:** Vault-Ordner und Dateiformat pro Mail, und ob das Regelwerk als Datei, per Interview oder beides gepflegt wird. Der Nutzer hat nur den Standardvorschlag und die Hoheit über die Regeln festgelegt.
 - **Offen:** Welche Connector-Funktionen für Gmail und Kalender in der Umgebung tatsächlich vorhanden sind (insbesondere Labels ändern). In dieser Sitzung ist nur der Google-Drive-Connector gelistet. Das muss vor der Spec geprüft werden.
 - **Offen:** Leistungs- und Mengenziele (z. B. Mails pro Lauf) wurden nicht erhoben.

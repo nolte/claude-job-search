@@ -22,7 +22,7 @@ communication), `spec/job-application/recherche/en.md` (RC-2 level 0), and
 | **Relevanzprüfung** | The coarse decision whether a mail belongs to an application (MV-5). |
 | **Zuordnung** | The assignment of a relevant mail to a Vorgang (MV-6). |
 | **Sammel-Label** | The label `Bewerbung/_ohne Vorgang` for relevant mail without a safe Zuordnung. |
-| **Mailtyp** | The kind of a mail inside a Vorgang: Eingangsbestätigung, Einladung, Absage, Zusage or Rückfrage (MV-3.2). |
+| **Mailtyp** | The kind of a mail inside a Vorgang: Eingangsbestätigung, Einladung, Angebot, Absage, Zusage or Rückfrage (MV-3.2). |
 | **Regelwerk** | The user's rules for Relevanz, Zuordnung, labels and Mailtypen (MV-4). |
 | **Freigabe** | The user's explicit approval of one proposed change before it is made (MV-8). |
 
@@ -38,7 +38,9 @@ Vorgang, Wurzel, Anker and Verlauf are used as defined in `lokale-struktur/en.md
    messages, read the calendar list, create events in the calendar `Bewerbungen`.
 4. **Forbidden operations, whatever the user's Regelwerk says.** Delete, trash, archive, report as spam,
    send, create a Gmail draft, change or delete an existing calendar event, create a calendar. Mail is
-   never removed from the account.
+   never removed from the account. The skill adds and removes only user labels. It never adds or removes
+   a Gmail system label (`INBOX`, `SPAM`, `TRASH`, `SENT`, `DRAFT`, `STARRED`, `UNREAD`), because removing
+   `INBOX` is archiving. "Move" means: add the target label and remove `unsort`, nothing else.
 5. **One account.** The skill serves the one account the connector is connected to. Other or several
    accounts are not supported.
 6. **No research.** A Lauf does no web or register research and uses no search tool. Research stays a
@@ -55,6 +57,7 @@ Bewerbung/
 └── <vorgang>/                              folder name of the Vorgang (LS-7.7)
     ├── Eingangsbestätigung
     ├── Einladung
+    ├── Angebot
     ├── Absage
     ├── Zusage
     └── Rückfrage
@@ -74,8 +77,9 @@ Bewerbung/
 |---|---|---|
 | Eingangsbestätigung | The employer confirms receipt | none |
 | Einladung | Invitation to an interview or call | `gespräch` |
+| Angebot | The employer offers the position or sends terms | `angebot` |
 | Absage | The employer declines | `absage` |
-| Zusage | The employer accepts or offers | `zusage` |
+| Zusage | The employer confirms the hire after the candidate accepted (final status) | `zusage` |
 | Rückfrage | A question or request for documents | `rückmeldung` |
 
 ## MV-4 Regelwerk
@@ -125,7 +129,7 @@ Bewerbung/
 ## MV-7 Record in the Wurzel
 
 1. **Target.** The record of a mail is one line in `## Verlauf` of `vorgang.md` (LS-6 rule 1): date,
-   Mailtyp, a short summary in the skill's own words and the Gmail thread ID. The Wurzel is the vault
+   Mailtyp, a short summary in the skill's own words, the Gmail message ID and the thread ID. The Wurzel is the vault
    (LS-8.2).
 2. **Metadata plus summary.** The line carries no full text of the mail.
 3. **What stays out of the summary.** Salary and contract terms, private contact data of a person
@@ -134,13 +138,21 @@ Bewerbung/
    `lokale-struktur/en.md` LS-4 and LS-6 rule 8 describe.
 4. **Status proposal.** The skill may propose a change of `status` from the Mailtyp (MV-3.2). The values
    are the fixed values of LS-6 rule 2. A mail never sets S7 (`versendet`, `versendet_am`, `weg`,
-   `anhaenge`); that stays a statement of the user (LS-6 rule 4).
+   `anhaenge`); that stays a statement of the user (LS-6 rule 4). A proposal is made only when:
+   - the current `status` is `versendet` or a later value, so the user has already stated S7;
+   - the proposed value comes later in the order `versendet`, `rückmeldung`, `gespräch`, `angebot`,
+     `verhandlung`, then a final status, than the current value (no step back);
+   - the current `status` is not a final status (`zusage`, `absage`, `abgelehnt`, `zurückgezogen`,
+     `ohne Antwort`).
+
+   Otherwise the skill records the line without a status proposal and tells the user why. A Vorgang
+   that is not yet `versendet` gets the line only, and the skill points out that S7 is missing.
 5. **Freigabe.** Every write to the Wurzel needs the user's approval of the exact line (MV-8). A rejected
    proposal is not written and not repeated for the same mail.
 6. **Protected files.** The skill never writes `notizen.md` or the body of `firmen/<firma-slug>.md`
    (LS-5.6). It does not store impressions of third parties (LS-9.3).
-7. **No double entry.** A mail that is already recorded in `## Verlauf` (same thread ID and date) is
-   not recorded again.
+7. **No double entry.** A mail whose Gmail message ID already appears in `## Verlauf` is not recorded
+   again. Two mails of one thread, even on the same day, are two entries.
 
 ## MV-8 Approvals
 
@@ -211,7 +223,7 @@ Adding and removing labels is reversible. It runs without a question, but the re
 | Mailtyp unknown | A relevant mail with a clear Vorgang but no fitting Mailtyp: label at `Bewerbung/<vorgang>` without a Mailtyp is proposed, not confirmed | open |
 | Status mapping | The proposed status per Mailtyp (MV-3.2) is a proposal, not confirmed by the user | open |
 | Not relevant mail | Staying in the Eingang unchanged (MV-5.3) was assumed, not asked | open |
-| Double entry | MV-7.7 (same thread ID and date) is an assumed rule | open |
+| Double entry | MV-7.7 (key: Gmail message ID) is an assumed rule | open |
 | Quantities | Mails per Lauf and runtime goals were not collected | open |
 | Skill | No skill implements this spec; German translation follows via the `spec` skill | open |
 
@@ -221,6 +233,7 @@ This spec requires these changes in `lokale-struktur/en.md`, which are made toge
 
 - LS-6 rule 4: the skill of `mail-verwaltung` may propose entries for S8 and a change of `status` after the
   user's Freigabe. S7 stays a statement of the user.
+- LS-6 rule 1: a *Verlauf* line without a change of status is also allowed for a mail record (MV-7).
 - LS-6 rule 7 and the row *Nachverfolgung (S7, S8)* of LS-10: the proposal path of MV-7 is the first
   tracking function; the user's own maintenance remains possible.
 
@@ -240,7 +253,11 @@ The check is a probe with invented mails. Each mail is fictional and carries no 
 | MV-H | Mail the user labelled by hand earlier | Unchanged; a rule proposal on request |
 | MV-I | Mail with salary figures and an attachment | Verlauf line without the figures; attachment named only |
 | MV-J | Connector refuses a call mid-Lauf | Lauf stops, error reported, no workaround |
-| MV-K | Any Lauf | No mail is deleted, archived, sent or drafted |
+| MV-K | Any Lauf | No mail is deleted, archived, sent or drafted, and the system labels (`INBOX` and others) stay as they were |
+| MV-L | Offer mail ("we would like to offer you the position") | Label `Angebot`, proposal of `angebot`, not `zusage` |
+| MV-M | Rückfrage on a Vorgang that is already at `gespräch` | Verlauf line without a status proposal |
+| MV-N | Invitation on a Vorgang at `erfasst` | Verlauf line without a status proposal, note that S7 is missing |
+| MV-O | Two mails of one thread on the same day (receipt, invitation) | Two separate Verlauf entries |
 
 The scenarios are verified by reviewing a Lauf on invented mails, not by a script.
 
