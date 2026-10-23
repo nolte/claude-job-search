@@ -315,7 +315,7 @@ Requirement: `project/requirements/ausgabeformate.md` (FA-O1 … FA-O23). Decisi
     | 3 | `--reproduce`: the result differs, or the source no longer matches the hash in the manifest (LV-6.4) |
     | 4 | page limit exceeded (item 5). File and manifest stay |
 
-    When both apply, code 2 is returned. The export only reports; the quality gate sets the severity: Blocker for `cv` and `letter`, Warnung for `motivation` (LB-13, AS-12, MS-12).
+    When both apply, code 2 is returned; the stdout line `Seitenlimit:` and the manifest fields `ausgabe.seitenlimit` and `ausgabe.seitenlimit_ueberschritten` still report the breach, and the quality gate reads them. The export only reports; the quality gate sets the severity: Blocker for `cv` and `letter`, Warnung for `motivation` (LB-13, AS-12, MS-12).
 
 ## R-11 Englischsprachige Unterlagen (stub)
 

@@ -54,7 +54,7 @@ task export -- <datei.md> --format <pdf|docx|html|md|tex> --doc-type <cv|letter|
 ```
 
 - `--doc-type`: `cv` checks a maximum of two pages (one page for the format `einseitig`, LB-2.3), `letter` one page
-  (AS-7.1), `motivation` two pages (MS-7; the stricter one page of the job variants is checked by the quality gate against the page count in the manifest, MS-7), `email`
+  (AS-7.1), `motivation` one page for the job variants `stelle` (default), `quereinstieg` and `berufseinstieg`, two pages for `studium` and `stipendium` (MS-7, read from the frontmatter key `variante`), `email`
   no page limit. `email` is accepted only with `--format md` (R-10.2); any other format is an error (exit 1). There is no
   other document type.
 - `--out-dir`: must lie inside the Wurzel (LS-5.7); the script refuses a folder inside the plugin repository. Default

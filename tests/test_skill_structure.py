@@ -108,28 +108,50 @@ class SkillStructureTests(unittest.TestCase):
                         offending.append(f"{os.path.relpath(path, ROOT)}:{number}")
         self.assertEqual(offending, [])
 
-    def test_cited_rule_families_exist_in_the_specs(self):
-        # every cited rule ID (AS-7, CG-13.2, ...) names a top-level section `## <PREFIX>-<n>` of its spec
+    def test_cited_rules_exist_in_the_specs(self):
+        # every cited rule ID names a section `## <PREFIX>-<n>` of its spec; a cited sub-rule `<PREFIX>-<n>.<m>` needs a
+        # heading of that name, a numbered item `m.` in the section, or a table row / literal mention in the spec
         families = {
             "R": "konventionen", "CG": "cv-generierung", "LB": "lebenslauf", "LV": "lebenslauf-versionen",
             "LS": "lokale-struktur", "AS": "anschreiben", "MS": "motivationsschreiben",
             "KK": "kontaktklassifikation", "UA": "unternehmensanalyse", "WJ": "traumjob-interview",
             "RC": "recherche",
         }
-        sections = {}
+        specs = {}
         for prefix, folder in families.items():
-            spec = os.path.join(ROOT, "spec", "job-application", folder, "en.md")
-            with open(spec, encoding="utf-8") as handle:
-                sections[prefix] = set(re.findall(rf"^#{{2,3}} {prefix}-(\d+)\b", handle.read(), re.M))
-        pattern = re.compile(r"\b(R|CG|LB|LV|LS|AS|MS|KK|UA|WJ|RC)-(\d+)(?:\.\d+)*")
+            with open(os.path.join(ROOT, "spec", "job-application", folder, "en.md"), encoding="utf-8") as handle:
+                specs[prefix] = handle.read()
+
+        def section(prefix, number):
+            text = specs[prefix]
+            start = re.search(rf"^## {prefix}-{number}\b", text, re.M)
+            if not start:
+                return None
+            end = re.search(r"^## ", text[start.end():], re.M)
+            return text[start.start():start.end() + end.start()] if end else text[start.start():]
+
+        def sub_rule_exists(prefix, number, sub):
+            body = section(prefix, number)
+            full = f"{prefix}-{number}.{sub}"
+            if re.search(rf"^#{{3,4}} {re.escape(full)}\b", specs[prefix], re.M) or full in specs[prefix]:
+                return True
+            items = {int(n) for n in re.findall(r"^\s*(\d+)\. ", body, re.M)}
+            items |= {int(n) for n in re.findall(r"^\| ?(\d+) ?\|", body, re.M)}
+            items |= {int(n) for n in re.findall(rf"^#{{3,4}} {prefix}-{number}\.(\d+)\b", body, re.M)}
+            return int(sub) in items
+
+        pattern = re.compile(r"\b(R|CG|LB|LV|LS|AS|MS|KK|UA|WJ|RC)-(\d+)(?:\.(\d+))?")
         missing = []
         for path in SKILLS + AGENTS:
             with open(path, encoding="utf-8") as handle:
                 text = handle.read()
-            for prefix, number in set(pattern.findall(text)):
-                if number not in sections[prefix]:
-                    missing.append(f"{os.path.relpath(path, ROOT)} -> {prefix}-{number}")
-        self.assertEqual(missing, [])
+            for prefix, number, sub in set(pattern.findall(text)):
+                where = os.path.relpath(path, ROOT)
+                if section(prefix, number) is None:
+                    missing.append(f"{where} -> {prefix}-{number}")
+                elif sub and not sub_rule_exists(prefix, number, sub):
+                    missing.append(f"{where} -> {prefix}-{number}.{sub}")
+        self.assertEqual(sorted(missing), [])
 
     def test_skills_touching_the_wurzel_state_the_repository_boundary(self):
         # LS-2.4 / R-9.9: a skill that reads or writes the Wurzel refuses a Wurzel inside the plugin repository
@@ -143,7 +165,8 @@ class SkillStructureTests(unittest.TestCase):
             path = os.path.join(ROOT, "skills", f"job-application-{name}", "SKILL.md")
             with open(path, encoding="utf-8") as handle:
                 text = handle.read()
-            if "LS-2.4" not in text:
+            # the rule must be cited together with the refusal step, not only named in the spec line
+            if "LS-2.4" not in text or not re.search(r"refus|reject", text, re.I) or "claude-job-search" not in text:
                 missing.append(name)
         self.assertEqual(missing, [])
 

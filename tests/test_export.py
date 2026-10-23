@@ -158,8 +158,35 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(self.run_main_with_pages("cv", 2)[0], 0)
         self.assertEqual(self.run_main_with_pages("cv", 3)[0], 4)
         self.assertEqual(self.run_main_with_pages("letter", 1)[0], 0)
-        self.assertEqual(self.run_main_with_pages("motivation", 2)[0], 0)
-        self.assertEqual(self.run_main_with_pages("motivation", 3)[0], 4)
+        studium = SOURCE.replace("format: chronologisch", "variante: studium")
+        self.assertEqual(self.run_main_with_pages("motivation", 2, studium)[0], 0)
+        self.assertEqual(self.run_main_with_pages("motivation", 3, studium)[0], 4)
+
+    def test_job_variants_of_the_motivation_letter_are_limited_to_one_page(self):
+        # MS-7: stelle (the default), quereinstieg and berufseinstieg are one page
+        for variante in ("stelle", "quereinstieg", "berufseinstieg", None):
+            text = SOURCE.replace("format: chronologisch", f"variante: {variante}" if variante else "format: chronologisch")
+            self.assertEqual(self.run_main_with_pages("motivation", 1, text)[0], 0, variante)
+            self.assertEqual(self.run_main_with_pages("motivation", 2, text)[0], 4, variante)
+
+    def test_einseitig_is_recognised_in_any_spelling(self):
+        # a stray capital or space in the frontmatter must not lose the one-page limit
+        for value in ("Einseitig", '"einseitig "'):
+            text = SOURCE.replace("format: chronologisch", f"format: {value}")
+            self.assertEqual(self.run_main_with_pages("cv", 2, text)[0], 4, value)
+
+    def test_overrun_is_in_the_manifest_even_with_a_content_difference(self):
+        # R-10.10: code 2 wins, but the breach stays visible to the quality gate
+        from unittest import mock
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+        with mock.patch.object(export_document, "compare_content", lambda body, text: ({"fehlt": 1}, {})):
+            code, _ = self.run_main_with_pages("letter", 2)
+        self.assertEqual(code, 2)
+        with open(os.path.join(self.out, "Test_Doc.pdf.manifest.json"), encoding="utf-8") as handle:
+            ausgabe = json.load(handle)["ausgabe"]
+        self.assertTrue(ausgabe["seitenlimit_ueberschritten"])
+        self.assertEqual(ausgabe["seitenlimit"], 1)
 
     def test_einseitig_cv_is_limited_to_one_page(self):
         # LB-2.3: the format einseitig is one page

@@ -104,9 +104,20 @@ def in_plugin_repository(path):
     return False
 
 
+ONE_PAGE_VARIANTS = ("stelle", "quereinstieg", "berufseinstieg")
+
+
+def _key(value):
+    """Frontmatter value as a comparable key: text, trimmed, lower case (a stray capital or space must not lose a limit)."""
+    return str(value).strip().lower() if value is not None else ""
+
+
 def page_limit_for(doc_type, meta):
-    """Page limit of the document type; a Lebenslauf of the format `einseitig` is limited to one page (LB-2.3)."""
-    if doc_type == "cv" and meta.get("format") == "einseitig":
+    """Page limit of the document type. A Lebenslauf of the format `einseitig` is limited to one page (LB-2.3), a
+    Motivationsschreiben of a job variant to one page (MS-7); a missing `variante` counts as `stelle` (MS-8)."""
+    if doc_type == "cv" and _key(meta.get("format")) == "einseitig":
+        return 1
+    if doc_type == "motivation" and (_key(meta.get("variante")) or "stelle") in ONE_PAGE_VARIANTS:
         return 1
     return PAGE_LIMITS[doc_type]
 
@@ -337,7 +348,7 @@ def tool_versions(fmt):
     }
 
 
-def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch):
+def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch, limit=None):
     reproducible = fmt in ("tex", "pdf") and epoch is not None
     return {
         "schema": 1,
@@ -351,7 +362,8 @@ def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch):
         "vorlage": {"document.tex": sha256_file(TEMPLATES / "document.tex"), "cv.lua": sha256_file(TEMPLATES / "cv.lua")},
         "werkzeuge": {**tool_versions(fmt), "python": platform.python_version()},
         "umgebung": {"plugin_revision": os.environ.get("PLUGIN_REVISION") or None, "image_id": os.environ.get("EXPORT_IMAGE_ID") or None},
-        "ausgabe": {"datei": out_file.name, "sha256": sha256_file(out_file), "seiten": pages},
+        "ausgabe": {"datei": out_file.name, "sha256": sha256_file(out_file), "seiten": pages, "seitenlimit": limit,
+                    "seitenlimit_ueberschritten": bool(pages is not None and limit is not None and pages > limit)},
     }
 
 
@@ -477,9 +489,10 @@ def main(argv=None):
                   "(LB-2.3, AS-7.1, MS-7).", file=sys.stderr)
         print(f"{out_file}")
         if not args.no_manifest:
-            print(f"Manifest: {write_manifest(build_manifest(args.input.resolve(), meta, args.format, args.doc_type, name, out_file, pages, epoch), out_file)}")
+            print(f"Manifest: {write_manifest(build_manifest(args.input.resolve(), meta, args.format, args.doc_type, name, out_file, pages, epoch, limit), out_file)}")
         if pages is not None:
             print(f"Seiten: {pages}")
+            print(f"Seitenlimit: {'überschritten' if over_limit else 'ok'} ({pages} von {limit})" if limit else "Seitenlimit: keines")
         print(f"Inhaltsprüfung: {status}")
         if not grundlage_hash:
             print("grundlage_hash: fehlt")

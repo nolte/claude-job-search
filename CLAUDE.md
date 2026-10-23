@@ -41,6 +41,8 @@ claude --plugin-dir .
 
 Use `/reload-plugins` inside the session to pick up changes without restarting.
 
+The skills refuse a Wurzel inside this repository (LS-2.4), so the default `job-application/` folder in the checkout does not work for dogfooding. Point `wurzel` (and `grundlage`) in `job-application/konfiguration.md` at a folder outside the checkout, for example `~/job-application-test/`. The Anker itself stays in the working directory.
+
 ## Conventions
 
 - Skills are written in English (the instructions), while the documents they produce are German.

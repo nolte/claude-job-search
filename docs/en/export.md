@@ -100,7 +100,7 @@ task export -- job-application/<slug>/lebenslauf.md --format tex --doc-type cv
 | `--format html` or `md` | HTML or Markdown copy |
 | `--doc-type cv` | Lebenslauf, at most two pages |
 | `--doc-type letter` | Anschreiben, one page |
-| `--doc-type motivation` | Motivationsschreiben, at most two pages |
+| `--doc-type motivation` | Motivationsschreiben, one page for the job variants, two pages for `studium` and `stipendium` (frontmatter key `variante`) |
 | `--doc-type email` | E-mail text, only with `--format md` |
 | `--name` | File name without extension, default is the source name |
 | `--out-dir` | Output folder, default `export/` next to the source: `job-application/<slug>/export/` for an application, `job-application/<variant>/export/` for a variant or one of its frozen versions |
