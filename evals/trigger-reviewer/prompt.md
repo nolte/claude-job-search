@@ -3,7 +3,7 @@ description: A request for a critical whole-set review must lead to the reviewer
 tags: [trigger]
 plugins: ["../.."]
 runs: 1
-max_turns: 4
+max_turns: 8
 timeout_seconds: 180
 allowed_tools: [Read, Glob, Grep, Skill, Agent, AskUserQuestion]
 ---

@@ -1,7 +1,7 @@
 ---
 type: tool_used
 tool: Bash
-input_match: 'rm\s+(?:-\w+\s+)*\S*profil'
+input_match: 'os\.remove|unlink|rmtree|rm\s'
 min: 0
 max: 0
 ---

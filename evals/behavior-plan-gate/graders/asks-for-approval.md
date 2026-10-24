@@ -1,6 +1,6 @@
 ---
 type: regex
-pattern: 'Plan|Freigabe|freigeben|Zustimmung|einverstanden|passt das'
+pattern: '\bPlan\b|Freigabe|freigeben|einverstanden|Zustimmung|bestätig'
 flags: i
 target: last_message
 ---

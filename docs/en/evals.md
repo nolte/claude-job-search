@@ -39,6 +39,7 @@ task eval -- trigger                # the same through the Taskfile
 | `MAX_COST_USD` | `10` | Hard ceiling; the run stops with exit code 2 and partial results |
 | `THRESHOLD` | `0.8` | A case below this score fails the run (exit code 1). The default of the tool, 1.0, is too strict for model behaviour |
 | `ABLATION` | `none` | Runs only with the plugin. `with-without` also runs every case without it: double cost, and it shows what the plugin adds |
+| `SKIP_PRECHECK` | off | `behavior` and `all` first run `behavior-bash-works`; if Bash does not work in the eval sandbox the run stops with exit code 3 before it spends money on cases that cannot work |
 | `TRUST` | off | `TRUST=1` passes `--trust-plugin`; without it Claude Code asks once whether you trust this plugin |
 
 Reports are never published: the script always passes `--no-publish`. Without it, the HTML report is published to
@@ -52,7 +53,7 @@ Results are in `evals/results/last-run.json` and, per run, in `evals/results/<ti
 | Group | Cases | What a pass means |
 |---|---|---|
 | `trigger-*` | one per skill (13) and one for the reviewer agent | A natural German request, without naming the skill, makes the model call that skill. Graded with `tool_used` |
-| `behavior-bash-works` | precondition: `python3 --version` through Bash | Bash works inside the eval sandbox. If this case is red, the cases that run scripts measure the machine, not the plugin |
+| `behavior-bash-works` | precondition (tag `precondition`, one run, run first by `evals/run.sh`): `python3 --version` through Bash | Bash works inside the eval sandbox. If this case is red, the cases that run scripts measure the machine, not the plugin |
 | `behavior-gate-runs-script` | quality gate on a clean fixture | The gate calls `cv_checks.py` before it writes `pruefbericht.md`, and does not block a clean set |
 | `behavior-plan-gate` | the router with a posting | No `lebenslauf.md` and no `anschreiben.md` exist before the plan is approved; the model asks |
 | `behavior-no-invented-skills` | career changer, posting asks for Docker, Terraform and years of cloud experience | None of them is in the Lebenslauf, no leadership wording appears |
@@ -91,7 +92,7 @@ All numbers are from single runs on one machine, with Claude Code 2.1.310; treat
 | Finding | Detail | Consequence |
 |---|---|---|
 | The model decides the trigger | Haiku 5.5 answered the posting directly in one turn, with no `Skill` call (3 of 3 runs, 0.003 to 0.004 US dollars). Sonnet 5.5 called the skill (2 of 2 runs, 5 turns, 0.12 to 0.14 US dollars each) | The default model is Sonnet. A trigger result is a statement about skill plus model, not about the skill alone |
-| Cost | A trigger run with Sonnet: about 0.10 to 0.14 US dollars. The gate case: 15 turns, 0.22 US dollars, 44 s | 14 trigger runs and 5 behavioural cases at three runs each should stay below the 10 US dollar ceiling; check the cost line of the first run |
+| Cost | A trigger run with Sonnet: about 0.10 to 0.14 US dollars. The gate case: 15 turns, 0.22 US dollars, 44 s | 14 trigger runs, 5 behavioural cases at three runs each and the one-run precondition should stay below the 10 US dollar ceiling (the first behavioural run of 5 cases, one run each, cost 0.89 US dollars); check the cost line of your first run |
 | A scaffold exits with 126 | The script was not executable (`chmod +x`) | `evals/` scripts are committed executable; a structure test checks it |
 | A scaffold exits with 126, second cause | The scaffold runs with a replaced `HOME`; `python3` here was an asdf shim that needs the real `HOME` | Scaffolds use only coreutils. The Grundlage hash of a file-mode Grundlage is `sha256sum` of the file |
 | Paths | `BASH_SOURCE[0]` is the real path of `fixture.sh`, so the repository root can be derived from it | No absolute path in any case |
@@ -101,7 +102,7 @@ All numbers are from single runs on one machine, with Claude Code 2.1.310; treat
 
 ## First behavioural run
 
-One run per case with Sonnet 5.5, total cost 0.89 US dollars, 5 cases, one run each (so a pass is one sample, not a rate):
+One run per case with Sonnet 5.5, total cost 0.89 US dollars, 5 cases (the sixth, the precondition, was run as a separate probe: it failed, see the table above). A pass is one sample, not a rate. The graders of these cases were made stricter after the first run (a positive guard next to every "must not" grader, no bare `Plan` match, placeholders allowed in the Lebenslauf), so the suite as committed was not run in this form:
 
 | Case | Result |
 |---|---|

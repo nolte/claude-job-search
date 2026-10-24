@@ -1,7 +1,7 @@
 ---
 type: regex
-pattern: 'Verdict:\s*READY\s*$|Ergebnis:\s*BEREIT\s*$'
-flags: im
+pattern: '(?<![-\w])READY(?![-\w])'
+flags: i
 match: not_contains
 target: last_message
 ---

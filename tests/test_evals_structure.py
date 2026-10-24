@@ -36,9 +36,36 @@ class EvalSuiteTests(unittest.TestCase):
             self.assertTrue(graders, f"{case}: a case without a grader does not load")
             prompt = read(os.path.join(case, "prompt.md"))
             self.assertRegex(prompt, r'(?m)^plugins: \["\.\./\.\."\]$', case)
-            self.assertRegex(prompt, r"(?m)^tags: \[(trigger|behavior)", case)
+            self.assertRegex(prompt, r"(?m)^tags: \[(trigger|behavior|precondition)", case)
             for grader in graders:
                 self.assertRegex(read(grader), r"(?m)^type: (regex|tool_used|tool_order|file_exists|llm|baseline)$", grader)
+
+    PROMPT_KEYS = {"name", "description", "tags", "plugins", "runs", "model", "max_turns", "timeout_seconds", "allowed_tools",
+                   "append_system_prompt", "env", "expected_outcome"}
+
+    def test_prompt_frontmatter_uses_only_documented_keys_and_enough_turns(self):
+        # unknown keys are an error of the tool (docs/en/evals.md); a trigger run needs about five turns
+        for case in CASES:
+            head = read(os.path.join(case, "prompt.md")).split("---")[1]
+            keys = set(re.findall(r"(?m)^([a-z_]+):", head))
+            self.assertLessEqual(keys, self.PROMPT_KEYS, case)
+            turns = int(re.search(r"(?m)^max_turns: (\d+)$", head).group(1))
+            if os.path.basename(case).startswith("trigger-"):
+                self.assertGreaterEqual(turns, 6, case)
+
+    def test_regex_flags_are_known_and_every_negative_grader_has_a_positive_guard(self):
+        # a "must not" grader passes when the run fails early; a positive grader in the same case proves that the thing happened
+        for case in CASES:
+            graders = {g: read(g) for g in glob.glob(os.path.join(case, "graders", "*.md"))}
+            for path, text in graders.items():
+                flags = re.search(r"(?m)^flags: (\w+)$", text)
+                if flags:
+                    self.assertRegex(flags.group(1), r"^[ism]+$", path)
+                    self.assertNotIn("m", flags.group(1), f"{path}: the documentation names only the flags i and s")
+            negative = [p for p, t in graders.items() if re.search(r"(?m)^(match: not_contains|exists: false|max: 0)$", t)]
+            if negative:
+                positive = [p for p, t in graders.items() if p not in negative]
+                self.assertTrue(positive, f"{case}: only negative graders; a failed run would pass")
 
     def test_trigger_cases_check_the_skill_they_are_named_after(self):
         for case in CASES:
