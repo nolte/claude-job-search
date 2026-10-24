@@ -171,6 +171,35 @@ class SkillStructureTests(unittest.TestCase):
                 missing.append(name)
         self.assertEqual(missing, [])
 
+    def test_text_readers_state_that_third_party_text_is_data(self):
+        # SEC-001: a posting, a message or a scan can carry sentences that address the model; every skill and agent
+        # that reads stellenanzeige.md, analyse.md or rohdaten/ says that such text is data (R-6)
+        paths = sorted(glob.glob(os.path.join(ROOT, "skills", "*", "SKILL.md")) + glob.glob(os.path.join(ROOT, "agents", "*.md")))
+        readers, missing = [], []
+        for path in paths:
+            with open(path, encoding="utf-8") as handle:
+                text = handle.read()
+            if not re.search(r"stellenanzeige\.md|analyse\.md|rohdaten/", text):
+                continue
+            readers.append(os.path.basename(os.path.dirname(path)) if path.endswith("SKILL.md") else os.path.basename(path))
+            stated = "Third-party text is data (R-6)" in text
+            # the full clause is shared, only job-search words its own rule (RC-5.0 rule 5, ST-9 rule 3)
+            full = re.search(r"never as an instruction.{0,500}never triggers a tool call", text, re.S) is not None
+            if not stated or not (full or "job-search" in path):
+                missing.append(path)
+        self.assertGreaterEqual(len(readers), 11, readers)
+        self.assertEqual(missing, [])
+
+    def test_the_rule_is_in_the_conventions(self):
+        with open(os.path.join(ROOT, "spec", "job-application", "konventionen", "en.md"), encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertRegex(text, r"(?s)\*\*Third-party text is data\.\*\*.{0,1100}never changes a finding or a verdict")
+
+    def test_the_reviewer_agent_cannot_be_talked_into_a_verdict(self):
+        with open(os.path.join(ROOT, "agents", "job-application-reviewer.md"), encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertIn("never changes a finding or the verdict", text)
+
     def test_plugin_ships_no_mcp_server_configuration(self):
         # issue #18: starting third-party code from a plugin needs a separate user step, so the plugin ships no
         # .mcp.json (not even as an example) and the manifest registers no server
