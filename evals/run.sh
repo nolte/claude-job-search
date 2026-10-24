@@ -47,7 +47,7 @@ common=(plugin eval . --model "$MODEL" --judge-model "$JUDGE" --max-cost-usd "$M
 [ "${TRUST:-0}" = "1" ] && common+=(--trust-plugin)
 grants=()
 if [ "$needs_scaffold" = "1" ]; then
-  grants=(--scaffold --allow-tools "Bash(python3 *)" --allow-tools Write --allow-tools Edit)
+  grants=(--scaffold --allow-tools "Bash(python3 *)" --allow-tools "Bash(uname *)" --allow-tools Write --allow-tools Edit)
   echo "Note: --scaffold runs the fixture.sh of each case as you. They are in this repository (evals/*/fixture.sh)." >&2
 fi
 
@@ -74,7 +74,7 @@ args=("${common[@]}" ${grants[@]+"${grants[@]}"} --json "evals/results/last-run.
 case "$TARGET" in
   trigger)  args+=(--tag trigger) ;;
   behavior) args+=(--tag behavior) ;;
-  all)      ;;
+  all)      args+=(--tag trigger --tag behavior) ;;
   *)        args+=(--case "$TARGET") ;;
 esac
 exec claude "${args[@]}" "$@"
