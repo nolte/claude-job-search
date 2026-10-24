@@ -454,8 +454,8 @@ Absender, Empfängeranschrift, date, Betreff and Anlagen are outside it. A docum
 | BR-02 | Number in the text. Not in the Grundlage, the analysis or the posting | Blocker |
 | BR-02 | Number only in the analysis or the posting: a requirement or a company fact proves nothing about the candidate | Warnung |
 | BR-02 | Amount with a currency in a sentence about Gehalt, Vergütung or brutto (Gehaltsvorstellung, a value of the user, AS-10.1). Any other amount is a number like the rest | Hinweis |
-| BR-03 | `N Jahre Erfahrung` that no Grundlage entry states (`N Jahre`) and that the union of the station periods does not reach. A running station counts up to the date of the letter (the first date before the Anrede, numeric or with a spelled-out month; none found: running stations are skipped). Gap entries, education and internships (`Studium`, `Ausbildung`, `Praktikum`, …) and stations with `Bestätigt: nein` do not count. Phrasings: `N Jahre Berufserfahrung`, `Erfahrung von N Jahren`, `Erfahrung seit N Jahren` | Blocker |
-| BR-04 | Personnel-leadership wording while no station of the Grundlage records `fuehrung: ja`. With one such station it is a Hinweis: the mapping to the station stays in the review (MS-6.2) | Blocker, Hinweis |
+| BR-03 | `N Jahre Erfahrung` that no Grundlage entry states (`N Jahre`) and that the union of the station periods does not reach. A running station counts up to the date of the letter (the first date before the Anrede, numeric or with a spelled-out month). Without such a date running stations cannot be counted and the finding is a Warnung, not a Blocker. Gap entries, education and internships (`Studium`, `Ausbildung`, `Praktikum`, …) and stations with `Bestätigt: nein` do not count. Phrasings: `N Jahre Berufserfahrung`, `Erfahrung von N Jahren`, `Erfahrung seit N Jahren`, `seit N Jahren` | Blocker |
+| BR-04 | Personnel-leadership wording while no station of the Grundlage records `fuehrung: ja`. With one such station it is a Hinweis: the mapping to the station stays in the review (MS-6.2). A sentence that states a wish (`möchte`, `suche`, `künftig`) or speaks of the employer (`Ihre …`) is a Hinweis: a target role is no claim | Blocker, Hinweis |
 
 1. **A posting number is never proof.** The numbers of `analyse.md` and `stellenanzeige.md` lower BR-02 from
    Blocker to Warnung, never to nothing, and never cover BR-03: a letter that repeats the `5 Jahre` of the posting
@@ -463,7 +463,8 @@ Absender, Empfängeranschrift, date, Betreff and Anlagen are outside it. A docum
 2. **Scope.** The rules read numbers, placeholders and leadership words only. Whether a claim is true of the right
    station, a technology, a certificate, and company facts stay in the review (AS-6.5, MS-6.1). With no
    Grundlage given, only BR-01 runs and the report says so.
-3. **Dates** (`24.10.2026`, `1. März`) are not numbers for BR-02, and neither are digits inside a name (`S3`, `OAuth2`, `3D`). A year is a number like any other: found only in the posting it is a Warnung.
+3. **What is not a number for BR-02:** dates (`24.10.2026`, `1. März`), ordinals (`7. Platz`, `3. Quartal`), `24/7`, and digits inside a name (`S3`, `OAuth2`, `3D`). `10x`, `70k` and `5 Mio` are figures. A number is not proved by the start of another one (`70` against `70.000`); `70.000`, `70000` and `70 000` equal each other. A year is a number like any other: found only in the posting it is a Warnung.
+   An unreadable input file ends with exit code 2, never 1: 1 means that a Blocker exists.
 4. **Known limit.** BR-02 grounds a number against the whole Grundlage, not against one station (that is CV-05 in the Lebenslauf). A number that stands anywhere in the Grundlage passes; whether it belongs to the right employer stays in the review.
 
 ## CG-14 Acceptance scenarios

@@ -357,7 +357,16 @@ def select_record(station, candidates, file):
 
 
 def number_pattern(token):
-    return rf"(?<![\d.,]){re.escape(token)}(?![\d])"
+    return rf"(?<![\d.,]){re.escape(token)}(?![\d]|[.,]\d)"
+
+
+def source_has(token, text):
+    """The number stands in the text, also written with another thousands separator (`70.000`, `70000`, `70 000`)."""
+    variants = {token}
+    if re.fullmatch(r"\d{1,3}(?:\.\d{3})+", token):
+        plain = token.replace(".", "")
+        variants |= {plain, f"{int(plain):,}".replace(",", " ")}
+    return any(re.search(number_pattern(variant), text) for variant in variants)
 
 
 def check_cv(text, file, source_text=None, sources=None, ats=False):
@@ -675,22 +684,27 @@ def load_records(paths):
     return records
 
 
-LETTER_ANREDE = re.compile(r"^(?:Sehr geehrte|Guten (?:Tag|Morgen|Abend)|Hallo|Hi\b|Moin|Servus|Grüß|Liebe[rn]?)\b")
+LETTER_ANREDE = re.compile(r"^(?:Sehr geehrt(?:e[rs]?)|Guten (?:Tag|Morgen|Abend)|Hallo|Hi|Moin|Servus|Grüß|Lieb(?:e[rs]?))\b")
 LETTER_GRUSS = re.compile(
-    r"^(?:Mit (?:freundlichem? Gru|freundlichen Grü|besten Grü|herzlichen Grü)|Freundliche[rn]? Grü|Viele Grü|Beste Grü|"
-    r"Herzliche Grü|Hochachtungsvoll|Bis bald|Anlagen?:)", re.IGNORECASE)
+    r"^(?:Mit (?:freundlichem? Gru|freundlichen Gr|besten Gr|herzlichen Gr)|Freundliche[rn]? Gr|Viele Gr|Beste Gr|"
+    r"Herzliche Gr|Liebe Gr|Schöne Gr|Hochachtungsvoll|Bis bald|Anlagen?:)", re.IGNORECASE)
 MONTH_NUMBER = {name: number for number, name in enumerate(
     ("januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "dezember"), 1)}
 MONTH_NUMBER["maerz"] = 3
 LETTER_DATE = re.compile(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b|\b\d{1,2}\.\s*" + MONTHS + r"(?:\s+\d{2,4})?")
+MULTIPLIER = re.compile(r"(?:[xXkK]|Tsd|Mio|Mrd)\b")
+ORDINAL = re.compile(r"\.\s+(?:Platz|Rang|Quartal|Halbjahr|Lehrjahr|Semester|Mal|Stelle|Auflage|Monat|" + MONTHS + r")\b")
+SEVEN = re.compile(r"\b24/7\b")
+WISH = re.compile(r"möchte|möchten|will\b|wünsche|suche|strebe|künftig|zukünftig|Ziel|gerne?\b|\bIhre?[nrms]?\b|\bwürde\b", re.IGNORECASE)
 LONG_DATE = re.compile(r"\b\d{1,2}\.\s*(" + MONTHS + r")\s+(\d{4})\b")
 NUMERIC_DATE = re.compile(r"\b\d{1,2}\.(\d{1,2})\.(\d{4}|\d{2})\b")
 AMOUNT = re.compile(r"\s*(?:€|Euro\b|EUR\b|T€|k\b|Tsd)", re.IGNORECASE)
-SALARY_WORDS = re.compile(r"Gehalt|Vergütung|Vorstellung|brutto|Jahresgehalt|Monatsgehalt", re.IGNORECASE)
-# Experience spans: `10 Jahre Berufserfahrung`, `Erfahrung von zehn Jahren`, `seit 8 Jahren in der Branche tätig`
+SALARY_WORDS = re.compile(r"Gehalt|Vergütung|Vorstellung\b|Gehaltsvorstellung|Gehaltswunsch|brutto", re.IGNORECASE)
+# Experience spans: `10 Jahre Berufserfahrung`, `Erfahrung von zehn Jahren`, `seit 8 Jahren` (in der Branche tätig)
 YEARS_OF_EXPERIENCE = re.compile(
     r"\b(\d{1,2}|[a-zäöüß]+)\+?\s+Jahre?n?\s+(?:[A-Za-zäöüß]+-?)?[Ee]rfahrung"
-    r"|\b[Ee]rfahrung\s+(?:von|seit)\s+(\d{1,2}|[a-zäöüß]+)\+?\s+Jahre?n?\b")
+    r"|\b[Ee]rfahrung\s+(?:von|seit)\s+(\d{1,2}|[a-zäöüß]+)\+?\s+Jahre?n?\b"
+    r"|\bseit\s+(\d{1,2}|[a-zäöüß]+)\+?\s+Jahren\b", re.IGNORECASE)
 NOT_WORK = re.compile(r"Studium|Student|Ausbildung|Auszubildend|Schüler|Praktik", re.IGNORECASE)
 NUMBER_WORDS = {
     "ein": 1, "einem": 1, "einer": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7,
@@ -700,7 +714,7 @@ NUMBER_WORDS = {
 
 
 def letter_text(text):
-    """(text between the frontmatter and the end, first line number of the body, body lines). The body runs from
+    """(index of the first body line, body lines). The body runs from
     the Anrede to the Grußformel; a document without an Anrede (a portal copy cut differently, an e-mail) is
     taken whole."""
     lines = text.splitlines()
@@ -786,38 +800,47 @@ def check_letter(text, file, doc_type, source_text=None, records=None, context_t
         number = first + offset + 1
         if not line.strip() or PLACEHOLDER.search(line):
             continue
-        stripped = LETTER_DATE.sub(" ", line)
+        stripped = SEVEN.sub(" ", LETTER_DATE.sub(" ", line))
         for match in NUMBER.finditer(stripped):
             token = match.group(0)
             before = stripped[match.start() - 1] if match.start() else ""
-            after = stripped[match.end():match.end() + 1]
-            if before.isalpha() or after.isalpha():
-                continue  # part of a name: S3, OAuth2, 3D
-            pattern = number_pattern(token)
-            if AMOUNT.match(stripped[match.end():]) and SALARY_WORDS.search(line) and not re.search(pattern, source_text):
+            rest = stripped[match.end():]
+            if before.isalpha() or (rest[:1].isalpha() and not MULTIPLIER.match(rest)):
+                continue  # part of a name: S3, OAuth2, 3D (but `10x`, `70k` are figures)
+            if ORDINAL.match(rest):
+                continue  # `7. Platz`, `3. Quartal`
+            if AMOUNT.match(rest) and SALARY_WORDS.search(line) and not source_has(token, source_text):
                 findings.append(finding("BR-02", "Hinweis", file, number, f"Betrag „{token}“: Wert des Nutzers, nur im Schluss (AS-10.1): " + line.strip()))
-            elif re.search(pattern, source_text):
+            elif source_has(token, source_text):
                 continue
-            elif re.search(pattern, context_text):
+            elif source_has(token, context_text):
                 findings.append(finding("BR-02", "Warnung", file, number, f"Zahl „{token}“ steht nur in der Analyse oder der Anzeige, nicht in der Grundlage: eine Anforderung oder Firmenangabe belegt nichts über die Person (BR-02): " + line.strip()))
             else:
                 findings.append(finding("BR-02", "Blocker", file, number, f"Zahl „{token}“ nicht in der Grundlage belegt (BR-02): " + line.strip()))
 
         for match in YEARS_OF_EXPERIENCE.finditer(line):
-            word = (match.group(1) or match.group(2)).lower()
+            word = next(group for group in match.groups() if group).lower()
             value = int(word) if word.isdigit() else NUMBER_WORDS.get(word)
             if value is None:
                 continue
             if re.search(rf"\b{re.escape(word)}\+?\s+Jahre?n?", source_text, re.IGNORECASE):
                 continue
             if value * 12 > covered_months(records or [], today):
-                findings.append(finding("BR-03", "Blocker", file, number, f"Erfahrungsdauer „{match.group(0)}“ weder in der Grundlage genannt noch aus den Stationszeiträumen erreicht (BR-03): " + line.strip()))
+                running = any(record["end"] == "heute" for record in records or [])
+                if today is None and running:
+                    findings.append(finding("BR-03", "Warnung", file, number, f"Erfahrungsdauer „{match.group(0)}“: das Briefdatum vor der Anrede fehlt, laufende Stationen konnten nicht gezählt werden (BR-03): " + line.strip()))
+                else:
+                    findings.append(finding("BR-03", "Blocker", file, number, f"Erfahrungsdauer „{match.group(0)}“ weder in der Grundlage genannt noch aus den Stationszeiträumen erreicht (BR-03): " + line.strip()))
 
-        if leadership_wording(line):
-            if any(record.get("fuehrung") == "ja" for record in records or []):
-                findings.append(finding("BR-04", "Hinweis", file, number, "Formulierung zur Personalführung: die Zuordnung zu einer Station mit `fuehrung: ja` im Review prüfen (BR-04): " + line.strip()))
+        for sentence in re.split(r"(?<=[.!?])\s+", line):
+            if not leadership_wording(sentence):
+                continue
+            if WISH.search(sentence):
+                findings.append(finding("BR-04", "Hinweis", file, number, "Formulierung zur Personalführung als Wunsch oder Beschreibung des Arbeitgebers, keine Behauptung (BR-04): " + sentence.strip()))
+            elif any(record.get("fuehrung") == "ja" for record in records or []):
+                findings.append(finding("BR-04", "Hinweis", file, number, "Formulierung zur Personalführung: die Zuordnung zu einer Station mit `fuehrung: ja` im Review prüfen (BR-04): " + sentence.strip()))
             else:
-                findings.append(finding("BR-04", "Blocker", file, number, "Formulierung zur Personalführung, aber keine Station der Grundlage mit `fuehrung: ja` (BR-04): " + line.strip()))
+                findings.append(finding("BR-04", "Blocker", file, number, "Formulierung zur Personalführung, aber keine Station der Grundlage mit `fuehrung: ja` (BR-04): " + sentence.strip()))
     return findings
 
 
@@ -833,10 +856,14 @@ def main(argv=None):
     parser.add_argument("--ats", action="store_true", help="treat tables as Blocker (posting requires ATS)")
     args = parser.parse_args(argv)
 
-    with open(args.lebenslauf, encoding="utf-8") as handle:
-        text = handle.read()
-    source_text = read_sources(args.grundlage) if args.grundlage else None
-    sources = load_records(args.grundlage) if args.grundlage else None
+    try:
+        with open(args.lebenslauf, encoding="utf-8") as handle:
+            text = handle.read()
+        source_text = read_sources(args.grundlage) if args.grundlage else None
+        sources = load_records(args.grundlage) if args.grundlage else None
+    except (OSError, UnicodeDecodeError) as error:
+        print(f"Fehler: Eingabe nicht lesbar ({error.__class__.__name__}): {error}", file=sys.stderr)
+        return 2  # not 1: that code means "a Blocker exists"
 
     findings = []
     if args.doc_type == "cv":
