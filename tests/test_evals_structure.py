@@ -119,7 +119,7 @@ class EvalSuiteTests(unittest.TestCase):
                 # forbid one: the model still tries Bash in about 3 of 10 runs and the call is refused (calibration run)
                 self.assertEqual(tags, {"bash-denied"}, case)
                 texts = [read(g) for g in glob.glob(os.path.join(case, "graders", "*.md"))]
-                self.assertFalse(any(re.search(r"(?m)^tool: Bash$", x) for x in texts), case)
+                self.assertFalse(any(re.search(r"(?m)^tool:\s*[\"']?Bash", x) for x in texts), case)
                 continue
             if "behavior" not in tags:
                 self.assertFalse(tags & {"no-bash", "needs-bash"}, case)

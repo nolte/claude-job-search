@@ -130,7 +130,7 @@ Sonnet 5.5 as agent, 10 runs per case, total cost 14.5 US dollars (estimate at l
   those runs the report said openly that the script did not run.
 - In 1 of 10 runs no skill was called (one turn, no report); the other graders then threw because the report file was missing.
   This is a trigger flake of this prompt, not of the skill (`trigger-quality-gate` is 10 of 10).
-- Without these two measurement flaws the case passes in 9 of 10 runs.
+- Without the Bash grader the case passes in 9 of 10 runs; the one failure is the trigger flake.
 - A trigger run needs up to 7 turns (`trigger-quality-gate`), so `max_turns` of the trigger cases is 10.
 - 10 of 10 means "at least about 72 %" (lower 95 % bound), not a rate of 100 %. A case that never fails may also be
   insensitive: the next step is to weaken a skill on purpose and see the case turn red (see below).

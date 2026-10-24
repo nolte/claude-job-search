@@ -131,7 +131,7 @@ Sonnet 5.5 als Agent, 10 Läufe je Case, Gesamtkosten 14,5 US-Dollar (Schätzung
   in diesen Läufen sagte der Bericht offen, dass das Skript nicht lief.
 - In 1 von 10 Läufen rief das Modell keinen Skill auf (ein Turn, kein Bericht); die übrigen Grader scheiterten dann, weil die
   Berichtsdatei fehlte. Das ist ein Trigger-Flake dieses Prompts, nicht des Skills (`trigger-quality-gate` steht bei 10 von 10).
-- Ohne diese beiden Messfehler besteht der Case in 9 von 10 Läufen.
+- Ohne den Bash-Grader besteht der Case in 9 von 10 Läufen; der eine Fehlschlag ist der Trigger-Flake.
 - Ein Trigger-Lauf braucht bis zu 7 Turns (`trigger-quality-gate`), daher steht `max_turns` der Trigger-Cases auf 10.
 - 10 von 10 heißt „mindestens etwa 72 %“ (untere 95-%-Grenze), keine Quote von 100 %. Ein Case, der nie scheitert, kann auch
   unempfindlich sein: Der nächste Schritt ist, einen Skill gezielt zu schwächen und zu sehen, ob der Case rot wird.
