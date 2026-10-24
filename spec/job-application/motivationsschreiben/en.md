@@ -182,10 +182,10 @@ mandatory instruction that is not met is a Blocker.
 | Check | Source rule | Kind | Severity |
 |---|---|---|---|
 | A motivation statement that the user did not state or confirm | MS-3.1, MS-3.2 | review | Blocker |
-| `[ERGÄNZEN: Beweggrund]` left | MS-3.4 | review | Blocker |
-| A fact not traceable to the Grundlage | R-1 | review | Blocker |
+| `[ERGÄNZEN: Beweggrund]` left | MS-3.4 | automated (BR-01, CG-13.6) | Blocker |
+| A fact not traceable to the Grundlage | R-1 | numbers and experience spans automated (BR-02, BR-03, CG-13.6); the rest review | Blocker |
 | A competence without a proof | MS-6.1 | review | Warnung |
-| A leadership claim without `fuehrung: ja` | MS-6.2 | review (CV-16 is only run on the Lebenslauf) | Blocker |
+| A leadership claim without `fuehrung: ja` | MS-6.2 | automated (BR-04, CG-13.6; the mapping to the station is review) | Blocker |
 | A wish used from a Wunschprofil without the user's confirmation, or a `hypothese: ja` wish | MS-3.3 | review | Blocker |
 | Counterpart fact without source, or from a rating portal | MS-3.5 | review | Blocker |
 | The text retells the Lebenslauf | MS-5.3 | review | Warnung |
