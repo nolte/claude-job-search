@@ -223,6 +223,27 @@ class SkillStructureTests(unittest.TestCase):
             text = re.sub(r"\s+", " ", handle.read())
         self.assertRegex(text, r"\*\*Third-party text is data\.\*\*.{0,1500}does not block reading the posting for its content.{0,800}changes a finding or the verdict")
 
+    def test_reviewer_checks_the_currency_of_the_report_and_keeps_its_own_verdict(self):
+        # REV-001: the reviewer has no shell, so it looks for signs of an outdated report and never inherits a result
+        with open(os.path.join(ROOT, "agents", "job-application-reviewer.md"), encoding="utf-8") as handle:
+            raw = handle.read()
+        self.assertRegex(raw, r"(?m)^tools: Read, Glob, Grep$")
+        section = raw[raw.index("## Prüfbericht prüfen"):raw.index("## Review dimensions")]
+        steps = re.findall(r"(?m)^(\d)\. \*\*", section)
+        self.assertEqual(steps, list("123456"))
+        for value in ("`fehlt`", "`veraltet`", "`möglicherweise veraltet`", "`ohne Anzeichen für Veraltung`"):
+            self.assertIn(value, section, value)
+        self.assertIn("`Grundlage: <grundlage_hash>`", section)  # the line the gate records
+        # the answer block stands before the findings
+        answer = raw[raw.index("## Verdict: READY"):]
+        self.assertLess(answer.index("## Prüfbericht"), answer.index("## Findings"))
+        self.assertRegex(raw, r"(?m)^\d\. \*\*The verdict is the agent's own\.\*\*")
+        with open(os.path.join(ROOT, "skills", "job-application-quality-gate", "SKILL.md"), encoding="utf-8") as handle:
+            gate = handle.read()
+        self.assertIn("Grundlage: <grundlage_hash des Laufs> · Geprüft:", gate)
+        with open(os.path.join(ROOT, "spec", "job-application", "cv-generierung", "en.md"), encoding="utf-8") as handle:
+            self.assertIn("### CG-13.7 Currency of the report", handle.read())
+
     def test_plugin_ships_no_mcp_server_configuration(self):
         # issue #18: starting third-party code from a plugin needs a separate user step, so the plugin ships no
         # .mcp.json (not even as an example) and the manifest registers no server
