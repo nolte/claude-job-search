@@ -317,7 +317,8 @@ def check_period(cv, source, file):
         if cv_end != src_end:
             findings.append(finding("CV-06", "Blocker", file, cv["line"], f"Zeitraum weicht von der Grundlage ab (CV-06): {label} statt {source_label}"))
         else:
-            # both stations run: the end is equal, the start is still compared
+            # both stations run: the end is equal, the start is still compared (a year on one side: by year, so a
+            # year-only Grundlage start gives no CV-02 here)
             cv_start, src_start = cv["start"], source["start"]
             if cv_start and src_start:
                 same = cv_start == src_start if cv_start[1] and src_start[1] else cv_start[0] == src_start[0]

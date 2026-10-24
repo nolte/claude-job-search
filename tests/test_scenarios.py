@@ -167,8 +167,10 @@ class ScenarioC_CareerChanger(unittest.TestCase):
         self.assertNotIn("CV-13", rules(cv_findings(without, "quereinstieg")))
 
     def test_retraining_does_not_count_as_work_experience(self):
+        # Measured at the letter date 24.10.2026: the work stations reach 183 months (15 years), 207 months (17 years)
+        # with the retraining counted. 16 years is reached only if the retraining wrongly counts as work.
         text = read("briefe", "quereinstieg.md")
-        text = replace(text, "arbeite seit 2024 als Junior Entwicklerin mit Python.", "arbeite seit 2024 als Junior Entwicklerin mit Python. Ich bringe 30 Jahre Berufserfahrung mit.")
+        text = replace(text, "arbeite seit 2024 als Junior Entwicklerin mit Python.", "arbeite seit 2024 als Junior Entwicklerin mit Python. Ich bringe 16 Jahre Berufserfahrung mit.")
         found = letter_findings(text, "quereinstieg", read("anzeigen", "quereinstieg.md"))
         self.assertIn("BR-03", rules(found, "Blocker"))
 
