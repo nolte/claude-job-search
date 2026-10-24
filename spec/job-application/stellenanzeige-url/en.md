@@ -3,8 +3,8 @@
 Normative rules for the intake of a posting when the user gives only a URL: the skill loads the page, extracts
 the posting and the facts around it, shows the result for confirmation, and hands over to S1 (`lokale-struktur`
 LS-6). The page is loaded in the first place through the open-webSearch server; when the page cannot be read
-that way, through an optional browser MCP server, for example Playwright MCP or webpage-mcp. Both are optional;
-without a server the user pastes the text, as before.
+that way, through an optional browser MCP server that meets UE-4 (by the READMEs read so far, only Playwright MCP can;
+UE-12). Both are optional; without a server the user pastes the text, as before.
 
 Related rules: `spec/job-application/recherche/en.md` (RC-5.0 rules for optional network channels, RC-5.2 rules 8
 and 9 page fetches and redirect check, RC-5.4 rule 6 LinkedIn, RC-5.5 rule 9 no browser mode in the research),
@@ -41,7 +41,8 @@ snapshot of the installed version contains settles it (open point UE-12).
    posting. The skill says so, shows at most the titles it can read, and asks the user to name one entry or to give
    its URL. It opens no entry by itself and never walks through a list (UE-8 rule 3).
 3. **Cleaning.** Before the first request, tracking parameters are removed from the query string: `utm_*`, `fbclid`,
-   `gclid`, `mc_*`, `ref`, `source`, `trk`. Parameters that identify the posting, for example a job ID, stay. The
+   `gclid`, `mc_*`, `trk`. Parameters that may identify the posting (`ref`, `source`, `id`, a job ID) stay, because the
+   skill cannot tell an identifier from a tracker by name. The
    cleaned URL is what is requested and what is stored (UE-7 rule 2). If cleaning would leave no path or ID, the
    URL stays as given.
 4. **Trusted place.** A URL typed or pasted by the user is a trusted place for this one page (RC-5.2 rule 1). It
@@ -49,23 +50,30 @@ snapshot of the installed version contains settles it (open point UE-12).
 5. **Refused targets.** The skill refuses, before any request, a `linkedin.com` URL (RC-5.4 rule 6: the posting
    comes by paste or through the LinkedIn server under RC-5.4 rule 2), a non-`http(s)` URL, and an internal
    address (localhost, private network ranges, link-local addresses, `file:` URLs; RC-5.2 rule 9). The reason is
-   stated, and the user may paste the text.
+   stated, and the user may paste the text. This check sees only the typed host. A public name that resolves to a
+   private address is caught only by the safety checks of the fetch tool (RC-5.2 rule 9), so a tool without such
+   checks is not used for the page (UE-12 point 6).
 6. **PDF and downloads.** A URL that serves a file for download is not loaded. The user is asked to open the file
    and paste the text, or to point to it as a local file.
 
 ## UE-3 Route order
 
 1. **Abfrageroute first.** When the open-webSearch server is connected, the skill requests the Anzeigen-URL with
-   `fetchWebContent` and `renderMode: request`. RC-5.0 rules 1 to 8 hold; the consent follows the exception of
-   RC-5.0 rule 1 for page fetches: the user has given the URL, so no separate yes is asked for this route.
+   `fetchWebContent` and `renderMode: request`. RC-5.0 rules 1 to 8 hold. The exception of RC-5.0 rule 1 for page
+   fetches applies to this entry point (stated there): the basis is that the user gave the URL and that the skill
+   states the route and the third-party contact in one line before the request (UE-10 rule 2). No separate yes is
+   asked for this route.
 2. **Final URL.** The final URL after redirects is checked as RC-5.2 rule 9 says. A `linkedin.com` page or an
    internal address discards the text; the reason is `Weiterleitung auf unzulässiges Ziel`. A tool that does not
    report the final URL is not used for the page (reason `Abruf ohne Weiterleitungsprüfung nicht möglich`).
-3. **Readable?** The Abfrageroute result counts as unreadable when it holds no Anzeigentext: an empty body, a
-   page of fewer than 400 characters of running text, or a shell that asks to enable JavaScript. This is the only
-   trigger of the Browserroute.
-4. **Browserroute second, with consent.** An unreadable result and a connected browser MCP server (UE-4) lead
-   to an offer, not to a silent switch. The skill names the server, says that a browser loads the page and runs its
+3. **Script shell only.** The Browserroute is considered only when the Abfrageroute returned a page that holds no
+   Anzeigentext because the content is built by scripts: the page asks to enable JavaScript, or its body is only a
+   mount point with scripts. This is the only trigger. A page that reports the posting gone (HTTP 404 or 410), a
+   log-in wall, a CAPTCHA or a bot check (HTTP 403, 429) is never a trigger; it ends with the reason of UE-9 and
+   the paste request. A short posting that does contain its text is readable.
+4. **Browserroute second, with consent.** A script shell (rule 3) and a connected browser MCP server that reports
+   the loaded page's URL (UE-4 rule 5) lead to an offer, not to a silent switch. As long as no server is shown to
+   report it (UE-12 point 1), this rule does not apply and the route ends at rule 5. The skill names the server, says that a browser loads the page and runs its
    scripts on the user's machine, and waits for a yes (RC-5.0 rule 1). A no, or no connected server, ends at rule 5.
 5. **Paste last.** If no route yields an Anzeigentext, the item is `nicht ermittelt` with the reason of the last
    failure (UE-9), and the user is asked to paste the text. Nothing is invented from the search snippet, the
@@ -79,7 +87,7 @@ snapshot of the installed version contains settles it (open point UE-12).
    user adds the server following the docs page *Optional MCP servers* (RC-5.0 intro).
 2. **Read-only use.** Only these actions are used: open the one Anzeigen-URL, read the text or the accessibility
    snapshot of the loaded page, close the page. The skill does not click, type, fill forms, upload, download,
-   accept cookies on the user's behalf beyond closing a banner that covers the text, run its own scripts in the
+   accept or dismiss a cookie banner (the text is read from the snapshot as it is), run its own scripts in the
    page, or take screenshots that are stored. For Playwright MCP these actions are `browser_navigate`,
    `browser_snapshot` and `browser_close` (README); the other tools are denied in the user's permission settings.
 3. **No session.** The browser runs without the user's profile, cookies or logins: an isolated, non-persistent
@@ -157,8 +165,8 @@ snapshot of the installed version contains settles it (open point UE-12).
 1. **No link following.** Links on the page are not opened, with one exception: the user names a link, for example
    "the full text is behind Mehr anzeigen", and the link has the same host as the Anzeigen-URL. Every such page is
    a new request under UE-3 and UE-4 and counts against rule 2.
-2. **Budget.** Per Vorgang at most 2 requests on the Abfrageroute (the second only after a failed first one with
-   a transient error) and at most 3 page loads on the Browserroute. Calls run one after the other, never in bulk,
+2. **Budget.** Per Vorgang at most 2 requests on the Abfrageroute (the second only after a timeout or an HTTP 5xx
+   response of the first; never after 403, 404, 410 or 429) and at most 3 page loads on the Browserroute. Calls run one after the other, never in bulk,
    never repeated automatically; the user may lower the numbers (RC-5.0 rule 4). This budget is separate from the
    research budget of RC-5.5 rule 6.
 3. **No bulk.** One Anzeigen-URL per intake. Several URLs in one message are taken one by one, each with its own
@@ -185,7 +193,8 @@ the pasted text (RC-5.0 rule 8):
    earlier application is sent to the server, the page or any search (RC-5.0 rule 5). The URL itself can name a
    person or a firm; it is requested only after the cleaning of UE-2 rule 3.
 2. **A third party is contacted.** The request reaches the site that hosts the posting and shows that someone
-   opened it. The skill says this once, at the first fetch of a run, together with the route.
+   opened it. The skill says this once, in one line, before the first request of a run, together with the route.
+   It does not wait for an answer (UE-3 rule 1).
 3. **Terms of the site.** Some sites forbid automated reading. The skill does not claim that a fetch is allowed. A
    block is reported and skipped; there is no proxy and no other route to get round it (RC-5.0 rule 7).
 4. **Data in the Vorgang** follows `lokale-struktur` LS-9 and `konventionen` R-6.
@@ -201,18 +210,22 @@ adds the loading of the page and nothing else to the later steps.
 
 1. **Final URL is unestablished for both servers.** UE-4 rule 5 requires the loaded page's URL to be read back.
    Neither README says that a tool returns it. Until a run of a pinned version shows it (for example that the
-   snapshot of `browser_snapshot` names the page URL), the Browserroute stays off in practice and the docs say so.
+   snapshot of `browser_snapshot` names the page URL), no server counts as meeting rule 5, UE-3 rule 4 does not apply,
+   and the docs say so. Scenario UE-C holds from the moment a server is shown to report it.
 2. **Which server.** By the READMEs, only Playwright MCP can meet UE-4 rule 3 (`--isolated`, `--headless`).
    webpage-mcp cannot: it uses the user's own Chrome profile with its sessions. It is documented in the docs page
    *Browser MCP* as not suitable for this intake. Playwright MCP also states that it is "not a security
    boundary" and has tools that UE-4 rule 2 forbids (`browser_click`, `browser_evaluate`, `browser_file_upload`,
    `browser_run_code_unsafe`); the plugin cannot remove them, so the permission settings must deny them (docs page).
-3. **Threshold of "unreadable".** The 400 characters of UE-3 rule 3 are a starting value. They are checked on a set of
-   real postings of different sites before the skill is released.
+3. **Recognising a script shell.** UE-3 rule 3 names the signs (asks for JavaScript, empty mount point). They are
+   checked on a set of real postings of different sites before the skill is released.
 4. **Consent for the page's scripts.** A browser executes scripts of an arbitrary site on the user's machine. This
    spec asks for a yes per run. Whether this is enough, or whether a sandboxed or remote browser is required, is open.
 5. **Translation.** The German version follows through `/nolte-shared:spec`.
-6. **Skill and docs.** `job-application-posting-analysis` (Inputs) and the pages *Optional MCP servers* and *Web
+6. **Resolved addresses.** Whether open-webSearch and Playwright MCP refuse a public name that resolves to a private
+   address is not shown by their READMEs. UE-2 rule 5 relies on it; until shown, the user is told that the check
+   covers the typed host only.
+7. **Skill and docs.** `job-application-posting-analysis` (Inputs) and the pages *Optional MCP servers* and *Web
    search* are changed after the spec is accepted; until then they describe a pasted text and the fetch on request.
 
 ## UE-13 Acceptance scenarios
@@ -223,7 +236,7 @@ All names are fictional.
 |---|---|---|
 | UE-A | The user sends only `https://karriere.musterfirma.example/jobs/12345?utm_source=newsletter&utm_medium=mail` | The query is cleaned to `https://karriere.musterfirma.example/jobs/12345`; this is requested and stored; no further question precedes the fetch |
 | UE-B | open-webSearch is connected and the page is server-rendered | The Abfrageroute yields the Anzeigentext; the route is `Abfrageroute`; no browser consent is asked; the Entwurf is shown before anything is written |
-| UE-C | The Abfrageroute returns a shell with "Please enable JavaScript"; a browser server is connected | The skill offers the Browserroute and names the risk; after the yes it loads the one URL read-only in an isolated context; the route is `Browserroute` |
+| UE-C | The Abfrageroute returns a shell with "Please enable JavaScript"; a browser server that reports the page URL is connected | The skill offers the Browserroute and names the risk; after the yes it loads the one URL read-only in an isolated context; the route is `Browserroute` |
 | UE-D | The same, and the user says no | `nicht ermittelt` with `nur mit JavaScript lesbar`; the user is asked to paste the text; no other route is tried |
 | UE-E | The URL redirects to a `linkedin.com` page | The text is discarded with `Weiterleitung auf unzulässiges Ziel`; the posting comes by paste or through the LinkedIn server under RC-5.4 |
 | UE-F | The URL is `https://www.linkedin.com/jobs/view/…` | Refused before any request; the reason is stated (RC-5.4 rule 6) |
@@ -234,6 +247,7 @@ All names are fictional.
 | UE-K | The page does not name the Referenznummer or the contact person | Both are `nicht ermittelt`; nothing is derived from other postings of the firm |
 | UE-L | A Vorgang with the same `stellenquelle` exists | The skill names it and asks whether it is the same application before it creates a folder |
 | UE-M | The host is a job board; the page names Musterfirma GmbH | The host class is `Jobbörse`; Musterfirma GmbH is recorded as the named firm, not confirmed as the employer; KK-3.1 and UA-1 apply |
+| UE-O | The Abfrageroute returns a 404 page, a short "not found" text or a bot check of a few lines | No browser offer; the reason of UE-9 is shown and the user is asked to paste the text |
 | UE-N | Neither server is connected | The skill says so and asks for the pasted text; no error, no abort |
 
 ## UE-14 Sources
