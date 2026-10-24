@@ -30,8 +30,9 @@ AS-6.6 and AS-6.8, `spec/job-application/traumjob-interview/en.md` WJ-7.2, `spec
 Paths: `spec/job-application/lokale-struktur/en.md` LS-2.4 and LS-2.6.
 
 The agent cannot run `scripts/cv_checks.py` (CV-01 … CV-20, BR-01 … BR-04) or compute the `grundlage_hash`, because it has no shell.
-Deterministic findings and the hash check belong to `job-application-quality-gate` (CG-13.3); the agent works from
-the last `## Prüfung` in `pruefbericht.md` and reports what it cannot verify under "Nicht beurteilbar".
+Deterministic findings and the hash check belong to `job-application-quality-gate` (CG-13.3); the agent reads
+the last `## Prüfung` in `pruefbericht.md`, checks it for currency (section "Prüfbericht prüfen") and reports what it cannot
+verify under "Nicht beurteilbar".
 
 ## Inputs
 
@@ -63,6 +64,32 @@ Then take the perspective of the counterpart from `kontaktart` in `analyse.md` (
   Anrede, Betreff, Anlagen line), the requested documents and format.
 - **Vermittler:** availability, a short clear profile (Kurzprofil), the disclosure state (Auftraggeber named? exclusivity
   asked?), no salary before the employer is known (KK-4.4).
+
+## Prüfbericht prüfen
+
+The last `## Prüfung` of `pruefbericht.md` may be older than the documents (CG-13.7). The agent has no shell, so it cannot
+compute a hash or a modification time and cannot prove that the report is current. It looks for signs that it is not, and
+says which result it reached in the section "Prüfbericht" of its answer. Its own verdict never depends on the report.
+
+1. **No `## Prüfung`** (the file or the section is missing): the quality gate has not run. Result `fehlt`; list "Prüfbericht
+   fehlt, Gate nicht gelaufen" under "Nicht beurteilbar". Do not take a result from anywhere else.
+2. **A document is newer than the report.** Compare `Stand: JJJJ-MM-TT` of the report with the date of the closing line of
+   `lebenslauf.md` (`Ort, TT.MM.JJJJ`, LB-9.4) and of `anschreiben.md` and `motivationsschreiben.md` (the date line of the
+   head). A date after `Stand` means the document was written after the check: result `veraltet`.
+3. **The quoted findings.** Search each quoted passage of the Blocker and Warnung lines in the cited file (Grep). A passage that
+   is gone was fixed or moved: it is not repeated as open. If the report says `BLOCKIERT` and none of its Blocker passages is
+   found any more, the report is probably out of date: result `veraltet`.
+4. **The report against the documents.** A report with `BEREIT` or `BEREIT MIT WARNUNGEN` while the agent itself finds an open
+   `[ERGÄNZEN` or `[KLÄREN`, or an untraceable claim, contradicts the documents: result `veraltet`, and the agent's own finding
+   stands.
+5. **Mixed states of the Grundlage.** The frontmatter `grundlage_hash` of the documents and of `vorgang.md` differs between
+   them: a Warnung "Dokumente stammen aus verschiedenen Ständen der Grundlage" (R-9.5; whether the value is the current one is
+   for the gate).
+6. **None of the signs.** Result `ohne Anzeichen für Veraltung`. That is not a proof: say so, and name the gate as the place
+   that settles it (it compares the hash and the manifests).
+
+A result `veraltet` or `fehlt` goes into the answer as a Warnung "Prüfbericht nicht aktuell, `job-application-quality-gate`
+neu laufen lassen". It does not change the verdict by itself.
 
 ## Review dimensions
 
@@ -101,6 +128,9 @@ Returned in chat, not written to disk:
 
 ```markdown
 ## Verdict: READY | READY-WITH-WARNINGS | BLOCKED
+
+## Prüfbericht
+Stand: JJJJ-MM-TT · Ergebnis des Gates: <BLOCKIERT | BEREIT MIT WARNUNGEN | BEREIT | fehlt> · Aktualität: fehlt | veraltet | ohne Anzeichen für Veraltung (kein Beweis)
 
 ## Findings
 | # | Severity | Dokument | Passage | Befund | Vorschlag |
@@ -146,5 +176,7 @@ listed here.
 3. **No taste as verdict.** Style preferences are Hinweis, at most Warnung where the quality gate lists them (spelling,
    stock phrases, generic salutation). Only facts, consistency, requirement coverage, and disclosure are Blocker.
 4. **Do not invent company facts** to test a claim. If it cannot be checked, list it under "Nicht beurteilbar".
-5. **Trace to the Grundlage.** A claim that is in the profile but not in the Grundlage entry the profile cites is a
+5. **The verdict is the agent's own.** A gate result `BEREIT` does not lift a Blocker the agent finds, and a gate result
+   `BLOCKIERT` is not repeated without finding the passage again (section "Prüfbericht prüfen").
+6. **Trace to the Grundlage.** A claim that is in the profile but not in the Grundlage entry the profile cites is a
    Blocker against the profile, not against the document.

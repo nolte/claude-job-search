@@ -472,6 +472,22 @@ Absender, Empfängeranschrift, date, Betreff and Anlagen are outside it. A docum
    An unreadable input file ends with exit code 2, never 1: 1 means that a Blocker exists.
 4. **Known limit.** BR-02 grounds a number against the whole Grundlage, not against one station (that is CV-05 in the Lebenslauf). A number that stands anywhere in the Grundlage passes; whether it belongs to the right employer stays in the review.
 
+### CG-13.7 Currency of the report
+
+`## Prüfung` in `pruefbericht.md` is a record of one run. The documents can change afterwards, and a report that no
+longer matches them must not be read as their state (audit finding REV-001).
+
+1. **The gate settles it.** `job-application-quality-gate` compares the `grundlage_hash` and the export manifests with
+   the current files (R-9.5, CG-12.2). A report is current only after a run of the gate on the present documents.
+2. **The reviewer looks for signs.** The reviewer agent has no shell and cannot prove currency. It reports one of
+   `fehlt`, `veraltet` and `ohne Anzeichen für Veraltung` in its section *Prüfbericht*. Signs of an outdated report: a
+   document dated after `Stand` of the report; quoted Blocker passages that are gone while the result is `BLOCKIERT`; a
+   result `BEREIT` that contradicts what the reviewer reads; documents with different `grundlage_hash` values.
+3. **No inheritance.** The verdict of the reviewer comes from its own reading. A gate result does not lift a Blocker
+   that the reviewer finds, and does not replace a check the reviewer cannot make (it goes under *Nicht beurteilbar*).
+4. **Severity.** An outdated or missing report is a Warnung with the advice to run the gate again; it does not change
+   the verdict by itself.
+
 ## CG-14 Acceptance scenarios
 
 Each scenario states the expected behaviour. The column *Verification* tells how it is checked.

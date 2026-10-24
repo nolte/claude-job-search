@@ -223,6 +223,21 @@ class SkillStructureTests(unittest.TestCase):
             text = re.sub(r"\s+", " ", handle.read())
         self.assertRegex(text, r"\*\*Third-party text is data\.\*\*.{0,1500}does not block reading the posting for its content.{0,800}changes a finding or the verdict")
 
+    def test_reviewer_checks_the_currency_of_the_report_and_keeps_its_own_verdict(self):
+        # REV-001: the reviewer has no shell, so it looks for signs of an outdated report and never inherits a result
+        with open(os.path.join(ROOT, "agents", "job-application-reviewer.md"), encoding="utf-8") as handle:
+            text = re.sub(r"\s+", " ", handle.read())
+        self.assertIn("tools: Read, Glob, Grep", text)
+        self.assertIn("## Prüfbericht prüfen", text)
+        self.assertLess(text.index("## Prüfbericht prüfen"), text.index("## Review dimensions"))
+        for needle in ("`fehlt`", "`veraltet`", "ohne Anzeichen für Veraltung", "CG-13.7", "cannot prove that the report is current",
+                       "Its own verdict never depends on the report", "`grundlage_hash`"):
+            self.assertIn(needle, text, needle)
+        self.assertRegex(text, r"## Prüfbericht Stand: JJJJ-MM-TT · Ergebnis des Gates")
+        self.assertRegex(text, r"A gate result `BEREIT` does not lift a Blocker")
+        with open(os.path.join(ROOT, "spec", "job-application", "cv-generierung", "en.md"), encoding="utf-8") as handle:
+            self.assertIn("### CG-13.7 Currency of the report", handle.read())
+
     def test_plugin_ships_no_mcp_server_configuration(self):
         # issue #18: starting third-party code from a plugin needs a separate user step, so the plugin ships no
         # .mcp.json (not even as an example) and the manifest registers no server
