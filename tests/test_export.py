@@ -181,6 +181,21 @@ class ExportTests(unittest.TestCase):
         with open(os.path.join(self.out, "Test_Doc.pdf.manifest.json"), encoding="utf-8") as handle:
             self.assertEqual(json.load(handle)["ausgabe"]["seiten"], 2)
 
+    def test_placeholders_do_not_mask_the_page_limit_exit_code(self):
+        source = SOURCE + "\n- [ERGÄNZEN: Aufgaben]\n"
+        code, err = self.run_main_with_pages("letter", 2, source_text=source)
+        self.assertEqual(code, 4)
+        self.assertIn("1 offene Platzhalter", err)
+        self.assertIn("Seitenlimit überschritten", err)
+
+    def test_the_placeholder_marker_is_the_one_of_the_quality_gate_script(self):
+        # the export and cv_checks.py (CV-01, BR-01) count the same marker; a new marker has to be added in both
+        sys.path.insert(0, os.path.join(ROOT, "scripts"))
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import cv_checks
+        import export_document
+        self.assertEqual(export_document.OPEN_PLACEHOLDER.pattern, cv_checks.PLACEHOLDER.pattern)
+
     def test_page_limits_differ_by_document_type(self):
         self.assertEqual(self.run_main_with_pages("cv", 2)[0], 0)
         self.assertEqual(self.run_main_with_pages("cv", 3)[0], 4)

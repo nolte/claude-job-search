@@ -52,7 +52,7 @@ from pathlib import Path
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 PAGE_LIMITS = {"cv": 2, "letter": 1, "motivation": 2, "email": None}
-OPEN_PLACEHOLDER = re.compile(r"\[(?:ERGÄNZEN|KLÄREN)")  # R-1 / R-7: not ready to send
+OPEN_PLACEHOLDER = re.compile(r"\[(ERGÄNZEN|KLÄREN)")  # R-1 / R-7: not ready to send
 EXIT_CONTENT = 2
 EXIT_DIFFERENT = 3
 EXIT_PAGES = 4
@@ -446,7 +446,8 @@ def main(argv=None):
         open_placeholders = len(OPEN_PLACEHOLDER.findall(args.input.read_text(encoding="utf-8")))
         if open_placeholders:
             print(f"Warnung: {open_placeholders} offene Platzhalter ([ERGÄNZEN …] oder [KLÄREN …]) im Dokument. Der Export "
-                  "enthält sie sichtbar und ist nicht versandfertig (R-7, CV-01, BR-01); der Export blockiert nicht.",
+                  "zählt die ganze Datei (Frontmatter eingeschlossen) und ist nicht versandfertig (R-7, CV-01, BR-01); der Export "
+                  "blockiert nicht.",
                   file=sys.stderr)
         name = ascii_name(args.name or args.input.stem)
         if not name:
