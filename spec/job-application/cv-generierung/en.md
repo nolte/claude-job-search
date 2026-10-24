@@ -454,7 +454,7 @@ Absender, Empfängeranschrift, date, Betreff and Anlagen are outside it. A docum
 | BR-02 | Number in the text. Not in the Grundlage, the analysis or the posting | Blocker |
 | BR-02 | Number only in the analysis or the posting: a requirement or a company fact proves nothing about the candidate | Warnung |
 | BR-02 | Amount with a currency in a sentence about Gehalt, Vergütung or brutto (Gehaltsvorstellung, a value of the user, AS-10.1). Any other amount is a number like the rest | Hinweis |
-| BR-03 | `N Jahre Erfahrung` that no Grundlage entry states (`N Jahre`) and that the union of the station periods does not reach. A running station counts up to the date of the letter (the first date before the Anrede, numeric or with a spelled-out month). Without such a date running stations cannot be counted and the finding is a Warnung, not a Blocker. Gap entries, education and internships (`Studium`, `Ausbildung`, `Praktikum`, …) and stations with `Bestätigt: nein` do not count. Phrasings: `N Jahre Berufserfahrung`, `Erfahrung von N Jahren`, `Erfahrung seit N Jahren`, `seit N Jahren` | Blocker |
+| BR-03 | `N Jahre Erfahrung` that no Grundlage entry states (`N Jahre`) and that the union of the station periods does not reach. A running station counts up to the date of the letter (the first date before the Anrede, numeric or with a spelled-out month). Without such a date running stations cannot be counted and the finding is a Warnung, not a Blocker. Gap entries, education, retraining and internships (`Studium`, `Ausbildung`, `Umschulung`, `Praktikum`, …) and stations with `Bestätigt: nein` do not count. Phrasings: `N Jahre Berufserfahrung`, `Erfahrung von N Jahren`, `Erfahrung seit N Jahren`, `seit N Jahren` | Blocker |
 | BR-04 | Personnel-leadership wording while no station of the Grundlage records `fuehrung: ja`. With one such station it is a Hinweis: the mapping to the station stays in the review (MS-6.2). A sentence that states a wish (`möchte`, `suche`, `künftig`) or speaks of the employer (`Ihre …`) is a Hinweis: a target role is no claim | Blocker, Hinweis |
 
 1. **A posting number is never proof.** The numbers of `analyse.md` and `stellenanzeige.md` lower BR-02 from
@@ -488,7 +488,8 @@ Each scenario states the expected behaviour. The column *Verification* tells how
 | M | Year-only period in a station note | Year-only header line unchanged, CV-02 Warnung, no placeholder; the bullets are still checked | `tests/test_cv_checks.py` (CV-02, CG-13.4.1) |
 
 Scenarios A, C, D and E depend on the selection step and are verified by review of a generated
-example, not by a script.
+example, not by a script. `tests/test_scenarios.py` runs the deterministic part of every scenario on fictional
+fixtures (`tests/fixtures/szenarien/README.md`).
 
 ## CG-15 Open points
 
