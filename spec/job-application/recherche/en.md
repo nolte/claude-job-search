@@ -128,7 +128,9 @@ number and add only what is specific to the channel: tools, budget numbers, term
    `nicht ermittelt`. **Exception: web search and page fetches** (RC-5.2 rules 8 and 9, RC-5.5) need
    no separate yes per server. A search sends only a company name and one generic term (RC-5.5), a
    fetch only requests a known public page from a trusted place (RC-5.2 rule 1), and the user has
-   confirmed the use of the network in RC-6 step 1. The other rules still apply.
+   confirmed the use of the network in RC-6 step 1. The other rules still apply. The same holds for the fetch of
+   a posting from a URL that the user gives (draft `stellenanzeige-url/en.md` UE-3 rule 1), where the user's URL
+   and the statement before the request take the place of RC-6 step 1.
 2. **One route per source.** LinkedIn only through the LinkedIn server; the registers through the
    Handelsregister server where it applies; web search and page fetches through the connected
    open-webSearch server first, with the built-in tools under the same rules as the fallback; job boards
@@ -347,7 +349,9 @@ open-webSearch server and the built-in tools alike (rule 4).
    (rule 1, RC-5.2 rule 2).
 9. **No browser mode.** Rendering with a browser or Playwright is not used. A page that is readable
    only with JavaScript is `nicht ermittelt` with the reason `nur mit JavaScript lesbar`; the user
-   may paste the text.
+   may paste the text. The one exception is planned in the draft spec
+   `spec/job-application/stellenanzeige-url/en.md` (UE-4 rule 7) for the intake of a posting from a URL that the
+   user gave. It is not implemented yet and does not extend to the research.
 10. **Records.** Each search is listed with engine, query and date in the record (RC-9, block
     `### Suchen`), so that the query rules of UA-3.2 can be checked afterwards.
 11. **Terms.** The generic terms of the table above are the only terms; the server does not widen
