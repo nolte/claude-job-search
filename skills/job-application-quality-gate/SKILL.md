@@ -98,6 +98,22 @@ a Blocker exists. Its rule IDs:
 | CV-19 | Entry of a list section (skills, languages, certificates, education) that stands nowhere in the Grundlage, or a number in its parenthesis that stands nowhere (CG-13.4.6) | Blocker |
 | CV-20 | Station used in the Lebenslauf that the Grundlage records with `Bestätigt: nein` (R-9.5 point 5, CG-13.4.8) | Blocker |
 
+The letters run the same script with `--doc-type`, once per document that exists
+(`anschreiben.md` and `anschreiben-portal.txt` as `letter`, `motivationsschreiben.md` and its portal copy as `motivation`,
+`email.md` and `email-nachfassen.md` as `email`; CG-13.6):
+
+```bash
+python3 <plugin-root>/scripts/cv_checks.py <wurzel>/<slug>/anschreiben.md --doc-type letter \
+  --grundlage <Grundlage> --analyse <wurzel>/<slug>/analyse.md --stellenanzeige <wurzel>/<slug>/stellenanzeige.md
+```
+
+| Rule | Check | Severity |
+|---|---|---|
+| BR-01 | Placeholder `[ERGÄNZEN` or `[KLÄREN` left in a letter or the e-mail | Blocker |
+| BR-02 | Number in the text (Anrede to Grußformel) that stands nowhere in the Grundlage, the analysis or the posting; Warnung when only the analysis or the posting holds it; Hinweis for an amount with a currency | Blocker, Warnung, Hinweis |
+| BR-03 | Experience span (`N Jahre Erfahrung`) that the Grundlage does not state and the station periods do not reach | Blocker |
+| BR-04 | Personnel-leadership wording while no station of the Grundlage records `fuehrung: ja` (Hinweis when one does) | Blocker, Hinweis |
+
 Checks that need judgement stay in the review: ownership, leadership, expertise and proficiency
 wording (CG-7.2), relevance of selection (CG-5), seniority and role positioning, language and
 country conventions, employer instructions, and the requested format.
@@ -149,7 +165,7 @@ country conventions, employer instructions, and the requested format.
 | Lebenslauf not matching the format chosen for the situation (R-8.1) | Warnung |
 | Missing Ort, Datum, or Unterschrift line where R-2 expects them | Hinweis |
 | Date in the closing line of the Lebenslauf more than 30 days before the check date (LB-9.4) | Warnung |
-| Motivationsschreiben: a leadership claim without `fuehrung: ja` (MS-6.2, MS-12; CV-16 runs only on the Lebenslauf) | Blocker |
+| Motivationsschreiben: a leadership claim without `fuehrung: ja` (MS-6.2, MS-12; the script finds the wording as BR-04, the mapping to the station is review) | Blocker |
 | Motivationsschreiben: a wish from the Wunschprofil without the user's confirmation, or a `hypothese: ja` wish (MS-3.3) | Blocker |
 | Motivationsschreiben: counterpart fact without source in `analyse.md`, or from a rating portal (MS-3.5) | Blocker |
 | Motivationsschreiben or Anschreiben: mandatory counterpart instruction not met (MS-11, CG-11.6) | Blocker |

@@ -440,6 +440,33 @@ the gate and the reviewer report the same level.
 | A `## Auswahl …` section missing in `pruefbericht.md` for a generated document (CG-2.3, R-9.11.5) | Warnung |
 | `grundlage_hash` of a document or an export stale (R-9.5) | Warnung |
 
+### CG-13.6 Automated checks of the letters
+
+`scripts/cv_checks.py --doc-type letter|motivation|email` runs a smaller set on `anschreiben.md`,
+`motivationsschreiben.md` (and their `-portal.txt` copies) and `email.md`. It reuses the number and leadership
+functions of the Lebenslauf checks. The text checked runs from the Anrede (`Sehr geehrte`, `Guten Tag|Morgen|Abend`, `Hallo`, `Hi`, `Moin`, `Liebe`, …) to the
+Grußformel (`Mit freundlichen Grüßen`, `Viele Grüße`, `Hochachtungsvoll`, …) or, failing that, to the `Anlagen:` line.
+Absender, Empfängeranschrift, date, Betreff and Anlagen are outside it. A document without an Anrede is checked whole.
+
+| Rule | Check | Severity |
+|---|---|---|
+| BR-01 | Placeholder `[ERGÄNZEN` or `[KLÄREN` left (all three document types) | Blocker |
+| BR-02 | Number in the text. Not in the Grundlage, the analysis or the posting | Blocker |
+| BR-02 | Number only in the analysis or the posting: a requirement or a company fact proves nothing about the candidate | Warnung |
+| BR-02 | Amount with a currency in a sentence about Gehalt, Vergütung or brutto (Gehaltsvorstellung, a value of the user, AS-10.1). Any other amount is a number like the rest | Hinweis |
+| BR-03 | `N Jahre Erfahrung` that no Grundlage entry states (`N Jahre`) and that the union of the station periods does not reach. A running station counts up to the date of the letter (the first date before the Anrede, numeric or with a spelled-out month). Without such a date running stations cannot be counted and the finding is a Warnung, not a Blocker. Gap entries, education and internships (`Studium`, `Ausbildung`, `Praktikum`, …) and stations with `Bestätigt: nein` do not count. Phrasings: `N Jahre Berufserfahrung`, `Erfahrung von N Jahren`, `Erfahrung seit N Jahren`, `seit N Jahren` | Blocker |
+| BR-04 | Personnel-leadership wording while no station of the Grundlage records `fuehrung: ja`. With one such station it is a Hinweis: the mapping to the station stays in the review (MS-6.2). A sentence that states a wish (`möchte`, `suche`, `künftig`) or speaks of the employer (`Ihre …`) is a Hinweis: a target role is no claim | Blocker, Hinweis |
+
+1. **A posting number is never proof.** The numbers of `analyse.md` and `stellenanzeige.md` lower BR-02 from
+   Blocker to Warnung, never to nothing, and never cover BR-03: a letter that repeats the `5 Jahre` of the posting
+   as the candidate's own experience is blocked when the periods do not reach it (R-1, CG-4.5).
+2. **Scope.** The rules read numbers, placeholders and leadership words only. Whether a claim is true of the right
+   station, a technology, a certificate, and company facts stay in the review (AS-6.5, MS-6.1). With no
+   Grundlage given, only BR-01 runs and the report says so.
+3. **What is not a number for BR-02:** dates (`24.10.2026`, `1. März`), ordinals (`7. Platz`, `3. Quartal`), `24/7`, and digits inside a name (`S3`, `OAuth2`, `3D`). `10x`, `70k` and `5 Mio` are figures. A number is not proved by the start of another one (`70` against `70.000`); `70.000`, `70000` and `70 000` equal each other. A year is a number like any other: found only in the posting it is a Warnung.
+   An unreadable input file ends with exit code 2, never 1: 1 means that a Blocker exists.
+4. **Known limit.** BR-02 grounds a number against the whole Grundlage, not against one station (that is CV-05 in the Lebenslauf). A number that stands anywhere in the Grundlage passes; whether it belongs to the right employer stays in the review.
+
 ## CG-14 Acceptance scenarios
 
 Each scenario states the expected behaviour. The column *Verification* tells how it is checked.
@@ -475,6 +502,7 @@ example, not by a script.
 | Gap wording | Neutral wording chosen by the user from the list in CG-9; `Auszeit` is not a default | done (decision) |
 | DOCX metadata | The DOCX export clears the author fields (`dc:creator`, `cp:lastModifiedBy`) in `export_document.py` (CG-11.5); a fresh pandoc DOCX carries no revisions or comments | done (export, 0.2.0) |
 | CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-20 are the whole automated set (R-7, CG-13.4.5) | done (script) |
+| BR-01 to BR-04 | `cv_checks.py --doc-type letter, motivation or email` checks placeholders, numbers, experience spans and leadership wording of the letters (CG-13.6, audit finding FF-002) | done (script) |
 | CV-19, CV-20, CV-05 unit | List-entry grounding, unconfirmed stations and unit comparison (CG-13.4.6 to 13.4.8, audit findings FF-001, FF-003) | done (script) |
 | Page limit | Exit code 4 of `export_document.py` (R-10.10); the gate sets the severity (CG-12.4, CG-13.5) | done (export) |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

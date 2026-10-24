@@ -476,6 +476,260 @@ class GroundingTests(unittest.TestCase):
         self.assertIn("CV-05", rules(found, "Blocker"))
 
 
+LETTER = """\
+---
+dokumenttyp: anschreiben
+---
+**Anna Muster**
+Musterweg 12, 10115 Berlin
+
+Musterfirma GmbH
+Berlin, 24.10.2026
+
+**Bewerbung als Plattform-Ingenieur (Ref.-Nr. 4711)**
+
+Sehr geehrte Frau Beispiel,
+
+{body}
+
+Mit freundlichen Grüßen
+Anna Muster
+
+Anlagen: Lebenslauf
+"""
+
+
+def letter(body, grundlage=GRUNDLAGE, doc_type="letter", context="", leader=False):
+    """Findings of cv_checks.check_letter for a letter with the given body paragraph."""
+    text = LETTER.format(body=body)
+    with Grundlage({"grundlage.md": grundlage}) as g:
+        return cv_checks.check_letter(text, "anschreiben.md", doc_type, g.text, g.records, context)
+
+
+class LetterTests(unittest.TestCase):
+    """BR-01 to BR-04 (CG-13.6): the numbers, placeholders and leadership wording of a letter."""
+
+    def test_clean_letter_has_no_findings(self):
+        body = "Bei der Musterfirma GmbH habe ich die Latenz der Event-Pipeline von 800 ms auf 120 ms gesenkt."
+        self.assertEqual(letter(body), [])
+
+    def test_address_head_and_date_are_not_checked(self):
+        # `12`, `10115`, `4711` and `24.10.2026` stand outside the text from Anrede to Grußformel
+        self.assertEqual(letter("Ich interessiere mich für Ihre Plattform."), [])
+
+    def test_placeholder_blocks_in_every_document_type(self):
+        for doc_type in ("letter", "motivation", "email"):
+            found = letter("Mein Beweggrund: [ERGÄNZEN: Beweggrund]", doc_type=doc_type)
+            self.assertIn("BR-01", rules(found, "Blocker"), doc_type)
+
+    def test_email_runs_only_the_placeholder_check(self):
+        self.assertEqual(letter("Ich habe 99 Projekte geleitet, Teamleitung für 40 Mitarbeiter.", doc_type="email"), [])
+
+    def test_invented_number_blocks(self):
+        found = letter("Ich habe die Kosten um 40 % gesenkt.")
+        self.assertEqual(rules(found, "Blocker"), ["BR-02"])
+
+    def test_number_only_in_the_posting_is_a_warning_not_proof(self):
+        context = "Gesucht: 5 Jahre Erfahrung, 500 Mitarbeitende"
+        found = letter("Ihre 500 Mitarbeitenden reizen mich.", context=context)
+        self.assertEqual(rules(found), ["BR-02"])
+        self.assertEqual(rules(found, "Warnung"), ["BR-02"])
+
+    def test_requirement_number_copied_as_experience_blocks(self):
+        # the posting asks for 9 years (the periods reach 8); the letter must not claim them without a source
+        context = "Gesucht: 9 Jahre Berufserfahrung"
+        found = letter("Mit 9 Jahren Berufserfahrung in der Plattformentwicklung bewerbe ich mich.", context=context)
+        self.assertIn("BR-03", rules(found, "Blocker"))
+
+    def test_experience_span_that_the_station_periods_reach_passes(self):
+        # 04/2021 – heute and 09/2018 – 03/2021 reach 8 years by 24.10.2026
+        body = "Mit sieben Jahren Berufserfahrung in der Softwareentwicklung bewerbe ich mich."
+        self.assertNotIn("BR-03", rules(letter(body)))
+        body = "Mit zehn Jahren Berufserfahrung in der Softwareentwicklung bewerbe ich mich."
+        self.assertIn("BR-03", rules(letter(body), "Blocker"))
+
+    def test_experience_span_stated_in_the_grundlage_passes(self):
+        grundlage = GRUNDLAGE + "\n## Profil\n- 12 Jahre Berufserfahrung\n"
+        self.assertNotIn("BR-03", rules(letter("Mit 12 Jahren Berufserfahrung bewerbe ich mich.", grundlage)))
+
+    def test_amount_is_a_note(self):
+        found = letter("Meine Gehaltsvorstellung liegt bei 70.000 Euro.")
+        self.assertEqual(rules(found, "Hinweis"), ["BR-02"])
+        self.assertEqual(rules(found, "Blocker"), [])
+
+    def test_leadership_blocks_without_a_station_with_fuehrung_ja(self):
+        found = letter("Ich habe ein Team als Teamleiter geführt.")
+        self.assertIn("BR-04", rules(found, "Blocker"))
+
+    def test_leadership_is_a_note_when_a_station_records_it(self):
+        grundlage = GRUNDLAGE.replace(
+            "- Einführung von Code-Reviews im Team mit fünf Entwicklern.",
+            "- Einführung von Code-Reviews im Team mit fünf Entwicklern.\n- Team: 5 Entwickler; Führung: ja")
+        found = letter("Ich habe ein Team als Teamleiter geführt.", grundlage)
+        self.assertEqual(rules(found, "Blocker"), [])
+        self.assertIn("BR-04", rules(found, "Hinweis"))
+
+    def test_spelled_out_letter_date_counts_a_running_station(self):
+        # review finding: `24. Oktober 2026` was not read, so the station `heute` was skipped
+        text = LETTER.format(body="Mit sieben Jahren Berufserfahrung in der Softwareentwicklung bewerbe ich mich.")
+        text = text.replace("Berlin, 24.10.2026", "Berlin, 24. Oktober 2026")
+        with Grundlage({"grundlage.md": GRUNDLAGE}) as g:
+            found = cv_checks.check_letter(text, "anschreiben.md", "letter", g.text, g.records)
+        self.assertNotIn("BR-03", rules(found))
+        self.assertEqual(cv_checks.letter_date(text), (2026, 10))
+        self.assertEqual(cv_checks.letter_date("Berlin, 1.3.27\n\nHallo Frau X,"), (2027, 3))
+        self.assertIsNone(cv_checks.letter_date("Hallo Frau X,\n\nam 24.10.2026 war ich da"))
+
+    def test_invented_amount_without_salary_context_blocks(self):
+        found = letter("Ich habe die Cloud-Kosten um 250.000 € gesenkt.")
+        self.assertEqual(rules(found, "Blocker"), ["BR-02"])
+        found = letter("Meine Gehaltsvorstellung liegt bei 250.000 € brutto.")
+        self.assertEqual(rules(found, "Hinweis"), ["BR-02"])
+
+    def test_year_only_in_the_posting_is_a_warning(self):
+        found = letter("Seit 2015 bin ich in der Branche.", context="Das Unternehmen wurde 2015 gegründet.")
+        self.assertEqual(rules(found, "Warnung"), ["BR-02"])
+        self.assertEqual(rules(letter("Seit 2015 bin ich in der Branche.")), ["BR-02"])
+
+    def test_education_gaps_and_unconfirmed_stations_do_not_count_as_experience(self):
+        grundlage = GRUNDLAGE + """
+### 10/2010 – 09/2016 | Studium Informatik | Beispiel-Universität, Hamburg
+- Abschluss Bachelor.
+
+### 01/2017 – 08/2018 | Elternzeit | —
+- Lücke; Bestätigt: ja
+
+### 01/2012 – 12/2013 | Entwickler | Nebenfirma, Kiel
+- Bestätigt: nein
+"""
+        found = letter("Mit zehn Jahren Berufserfahrung bewerbe ich mich.", grundlage)
+        self.assertIn("BR-03", rules(found, "Blocker"))
+        self.assertEqual(cv_checks.covered_months([], (2026, 10)), 0)
+
+    def test_other_anrede_and_gruss_forms_bound_the_text(self):
+        for anrede, gruss in (("Guten Morgen Frau Beispiel,", "Mit freundlichem Gruß"), ("Hi Frau Beispiel,", "Hochachtungsvoll"),
+                              ("Moin Frau Beispiel,", "Viele Grüße")):
+            text = LETTER.format(body="Ich bewerbe mich.").replace("Sehr geehrte Frau Beispiel,", anrede)
+            text = text.replace("Mit freundlichen Grüßen", gruss).replace("Anlagen: Lebenslauf", "Anlagen: Lebenslauf (2 Seiten)")
+            with Grundlage({"grundlage.md": GRUNDLAGE}) as g:
+                self.assertEqual(cv_checks.check_letter(text, "anschreiben.md", "letter", g.text, g.records), [], anrede)
+
+    def test_anlagen_line_ends_the_text_without_a_gruss(self):
+        text = LETTER.format(body="Ich bewerbe mich.").replace("Mit freundlichen Grüßen\nAnna Muster\n\n", "")
+        text = text.replace("Anlagen: Lebenslauf", "Anlagen: Lebenslauf (2 Seiten)")
+        with Grundlage({"grundlage.md": GRUNDLAGE}) as g:
+            self.assertEqual(cv_checks.check_letter(text, "anschreiben.md", "letter", g.text, g.records), [])
+
+    def test_digits_inside_names_are_not_numbers(self):
+        self.assertEqual(letter("Ich habe S3, OAuth2 und 3D-Drucker eingesetzt."), [])
+        self.assertEqual(rules(letter("7 Projekte habe ich geleitet.")), ["BR-02"])
+
+    def test_more_experience_phrasings_are_checked(self):
+        for body in ("Ich habe langjährige Erfahrung von 15 Jahren in der Plattformentwicklung.",
+                     "Mit dreißig Jahren Berufserfahrung in Kubernetes bewerbe ich mich.",
+                     "Ich habe Erfahrung seit zwanzig Jahren."):
+            self.assertIn("BR-03", rules(letter(body), "Blocker"), body)
+
+    def test_masculine_and_neuter_anrede_bound_the_text(self):
+        # review of PR 39: `Sehr geehrter Herr` was not an Anrede, so the address block counted as text
+        for anrede in ("Sehr geehrter Herr Beispiel,", "Sehr geehrtes Team,", "Liebes Team,", "Lieber Herr Beispiel,"):
+            text = LETTER.format(body="Ich bewerbe mich.").replace("Sehr geehrte Frau Beispiel,", anrede)
+            text = text.replace("Musterweg 12, 10115 Berlin", "Musterweg 12, 10115 Berlin\nTel. 0176 1234567")
+            with Grundlage({"grundlage.md": GRUNDLAGE}) as g:
+                self.assertEqual(cv_checks.check_letter(text, "anschreiben.md", "letter", g.text, g.records), [], anrede)
+
+    def test_a_number_is_not_proved_by_the_start_of_another_number(self):
+        grundlage = GRUNDLAGE + "\n- Kosten 70.000, am 15.03.2020, Version 3.12, Quote 2,5\n"
+        for number in ("70", "15", "3", "2"):
+            self.assertEqual(rules(letter(f"Ich betreute {number} Kunden.", grundlage), "Blocker"), ["BR-02"], number)
+        self.assertEqual(letter("Ich sparte 70.000 Euro Kosten ein.", grundlage), [])
+
+    def test_thousands_separators_are_normalised(self):
+        for written in ("70000", "70 000"):
+            grundlage = GRUNDLAGE + f"\n- Budget {written}\n"
+            self.assertEqual(letter("Ich verantwortete ein Budget von 70.000 für das Projekt.", grundlage), [], written)
+
+    def test_seit_n_jahren_is_an_experience_span(self):
+        grundlage = GRUNDLAGE + "\n- 12 Kunden\n"
+        self.assertIn("BR-03", rules(letter("Seit 12 Jahren bin ich als Entwickler tätig.", grundlage), "Blocker"))
+        self.assertNotIn("BR-03", rules(letter("Seit sieben Jahren bin ich als Entwickler tätig.")))
+
+    def test_missing_letter_date_is_a_warning_when_a_running_station_decides(self):
+        text = LETTER.format(body="Ich habe sieben Jahre Erfahrung.").replace("Berlin, 24.10.2026", "Berlin")
+        with Grundlage({"grundlage.md": GRUNDLAGE}) as g:
+            found = cv_checks.check_letter(text, "anschreiben.md", "letter", g.text, g.records)
+        self.assertEqual(rules(found, "Blocker"), [])
+        self.assertEqual(rules(found, "Warnung"), ["BR-03"])
+        ended = GRUNDLAGE.replace("04/2021 – heute", "04/2021 – 05/2021")
+        with Grundlage({"grundlage.md": ended}) as g:
+            found = cv_checks.check_letter(text, "anschreiben.md", "letter", g.text, g.records)
+        self.assertEqual(rules(found, "Blocker"), ["BR-03"])
+
+    def test_leadership_wish_or_description_of_the_employer_is_a_note(self):
+        for body in ("Ich möchte künftig Teamleitung übernehmen.",
+                     "Ich suche eine Rolle mit Führungsverantwortung.",
+                     "Ihre flache Hierarchie und die Führung durch den Teamlead überzeugen mich."):
+            found = letter(body)
+            self.assertEqual(rules(found, "Blocker"), [], body)
+            self.assertEqual(rules(found, "Hinweis"), ["BR-04"], body)
+        found = letter("Ich suche Neues. Als Teamleiter habe ich ein Team geführt.")
+        self.assertEqual(rules(found, "Blocker"), ["BR-04"])
+
+    def test_multipliers_are_figures_and_names_with_digits_are_not(self):
+        self.assertEqual(rules(letter("Den Umsatz habe ich um 10x gesteigert."), "Blocker"), ["BR-02"])
+        found = letter("Mein Gehalt liegt bei 70k brutto.")
+        self.assertEqual(rules(found, "Hinweis"), ["BR-02"])
+        self.assertEqual(letter("Ich habe S3, OAuth2 und 3D-Drucker eingesetzt."), [])
+
+    def test_ordinals_versions_and_round_the_clock_are_not_claims(self):
+        self.assertEqual(letter("Ich belegte den 7. Platz und betreute den 24/7 Betrieb."), [])
+        self.assertEqual(rules(letter("Ich betreute 7 Kunden. Dann wechselte ich.")), ["BR-02"])
+
+    def test_gehalt_context_is_not_a_job_interview(self):
+        found = letter("Ich verantwortete 500.000 € Budget und freue mich auf das Vorstellungsgespräch.")
+        self.assertEqual(rules(found, "Blocker"), ["BR-02"])
+
+    def test_more_gruss_forms_end_the_text(self):
+        for gruss in ("Mit freundlichen Gruessen", "Liebe Grüße", "Schöne Grüße"):
+            text = LETTER.format(body="Ich bewerbe mich.").replace("Mit freundlichen Grüßen", gruss)
+            text = text.replace("Anna Muster\n\nAnlagen", "Anna Muster, Tel. 0176 1234567\n\nAnlagen")
+            with Grundlage({"grundlage.md": GRUNDLAGE}) as g:
+                self.assertEqual(cv_checks.check_letter(text, "anschreiben.md", "letter", g.text, g.records), [], gruss)
+
+    def test_unreadable_input_has_its_own_exit_code(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "brief.md")
+            with open(path, "wb") as handle:
+                handle.write(b"\xff\xfe not utf-8 \x80")
+            run_cli = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "cv_checks.py"), path, "--doc-type", "letter"],
+                                     capture_output=True, text=True)
+        self.assertEqual(run_cli.returncode, 2)
+        self.assertIn("nicht lesbar", run_cli.stderr)
+
+    def test_letter_without_a_grundlage_checks_placeholders_only(self):
+        found = cv_checks.check_letter(LETTER.format(body="Ich habe 99 Projekte geleitet."), "anschreiben.md", "letter")
+        self.assertEqual(found, [])
+
+    def test_cli_runs_the_letter_rules_and_reads_the_posting(self):
+        import json
+        import subprocess
+        with tempfile.TemporaryDirectory() as folder:
+            paths = {}
+            for name, content in (("anschreiben.md", LETTER.format(body="Ihre 500 Mitarbeitenden und 40 % Kosten.")),
+                                  ("grundlage.md", GRUNDLAGE), ("anzeige.md", "500 Mitarbeitende")):
+                paths[name] = os.path.join(folder, name)
+                with open(paths[name], "w", encoding="utf-8") as handle:
+                    handle.write(content)
+            run_cli = subprocess.run(
+                [sys.executable, os.path.join(ROOT, "scripts", "cv_checks.py"), paths["anschreiben.md"], "--doc-type", "letter",
+                 "--grundlage", paths["grundlage.md"], "--stellenanzeige", paths["anzeige.md"]],
+                capture_output=True, text=True)
+        self.assertEqual(run_cli.returncode, 1)
+        report = json.loads(run_cli.stdout)
+        self.assertEqual({(f["regel"], f["schweregrad"]) for f in report["befunde"]}, {("BR-02", "Blocker"), ("BR-02", "Warnung")})
+
+
 class StationNoteTests(unittest.TestCase):
     """Vault-style station notes: frontmatter periods, years only, Erfolge and Team sections."""
 

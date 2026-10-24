@@ -34,6 +34,19 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
   CV-20 station used in the Lebenslauf that the Grundlage records with
         `Bestätigt: nein` (R-9.5 point 5)                         Blocker
 
+Letters (`--doc-type letter|motivation|email`, CG-13.6) run a smaller set on anschreiben.md,
+motivationsschreiben.md and email.md:
+
+  BR-01 placeholder left in the document                          Blocker
+  BR-02 number in the text (Anrede to Grußformel): Blocker when it stands nowhere in the
+        Grundlage, the analysis or the posting; Warnung when only the analysis or the posting
+        holds it (a requirement or a company fact is no proof of the candidate); Hinweis for an
+        amount with a currency (Gehaltsvorstellung, AS-10.1)
+  BR-03 experience span (`N Jahre Erfahrung`) that no Grundlage entry states and the station
+        periods do not reach                                      Blocker
+  BR-04 personnel-leadership wording: Blocker when no station of the Grundlage records
+        `fuehrung: ja`, Hinweis otherwise (the mapping to the station stays in the review)
+
 A station header that is not in the strict form `MM/JJJJ – MM/JJJJ | Position | Arbeitgeber, Ort`
 (for example years only) gets CV-02. Its bullets and its period are still checked: the station is
 matched loosely (`<von> – <bis> | Position | Arbeitgeber`), so CV-04, CV-05, CV-13, CV-15 and
@@ -48,6 +61,7 @@ so a number in a bullet is checked against its own station first (CV-05).
 
 Usage:
   cv_checks.py lebenslauf.md [--grundlage PFAD ...] [--analyse analyse.md] [--ats]
+  cv_checks.py anschreiben.md --doc-type letter|motivation|email [--grundlage PFAD ...] [--analyse analyse.md] [--stellenanzeige stellenanzeige.md]
 
 `--grundlage` is repeatable: in directory mode pass the directory and the index note.
 Prints a JSON report to stdout. Exits 1 when at least one Blocker is found, otherwise 0.
@@ -343,7 +357,16 @@ def select_record(station, candidates, file):
 
 
 def number_pattern(token):
-    return rf"(?<![\d.,]){re.escape(token)}(?![\d])"
+    return rf"(?<![\d.,]){re.escape(token)}(?![\d]|[.,]\d)"
+
+
+def source_has(token, text):
+    """The number stands in the text, also written with another thousands separator (`70.000`, `70000`, `70 000`)."""
+    variants = {token}
+    if re.fullmatch(r"\d{1,3}(?:\.\d{3})+", token):
+        plain = token.replace(".", "")
+        variants |= {plain, f"{int(plain):,}".replace(",", " ")}
+    return any(re.search(number_pattern(variant), text) for variant in variants)
 
 
 def check_cv(text, file, source_text=None, sources=None, ats=False):
@@ -661,25 +684,202 @@ def load_records(paths):
     return records
 
 
+LETTER_ANREDE = re.compile(r"^(?:Sehr geehrt(?:e[rs]?)|Guten (?:Tag|Morgen|Abend)|Hallo|Hi|Moin|Servus|Grüß|Lieb(?:e[rs]?))\b")
+LETTER_GRUSS = re.compile(
+    r"^(?:Mit (?:freundlichem? Gru|freundlichen Gr|besten Gr|herzlichen Gr)|Freundliche[rn]? Gr|Viele Gr|Beste Gr|"
+    r"Herzliche Gr|Liebe Gr|Schöne Gr|Hochachtungsvoll|Bis bald|Anlagen?:)", re.IGNORECASE)
+MONTH_NUMBER = {name: number for number, name in enumerate(
+    ("januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "dezember"), 1)}
+MONTH_NUMBER["maerz"] = 3
+LETTER_DATE = re.compile(r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b|\b\d{1,2}\.\s*" + MONTHS + r"(?:\s+\d{2,4})?")
+MULTIPLIER = re.compile(r"(?:[xXkK]|Tsd|Mio|Mrd)\b")
+ORDINAL = re.compile(r"\.\s+(?:Platz|Rang|Quartal|Halbjahr|Lehrjahr|Semester|Mal|Stelle|Auflage|Monat|" + MONTHS + r")\b")
+SEVEN = re.compile(r"\b24/7\b")
+WISH = re.compile(r"möchte|möchten|will\b|wünsche|suche|strebe|künftig|zukünftig|Ziel|gerne?\b|\bIhre?[nrms]?\b|\bwürde\b", re.IGNORECASE)
+LONG_DATE = re.compile(r"\b\d{1,2}\.\s*(" + MONTHS + r")\s+(\d{4})\b")
+NUMERIC_DATE = re.compile(r"\b\d{1,2}\.(\d{1,2})\.(\d{4}|\d{2})\b")
+AMOUNT = re.compile(r"\s*(?:€|Euro\b|EUR\b|T€|k\b|Tsd)", re.IGNORECASE)
+SALARY_WORDS = re.compile(r"Gehalt|Vergütung|Vorstellung\b|Gehaltsvorstellung|Gehaltswunsch|brutto", re.IGNORECASE)
+# Experience spans: `10 Jahre Berufserfahrung`, `Erfahrung von zehn Jahren`, `seit 8 Jahren` (in der Branche tätig)
+YEARS_OF_EXPERIENCE = re.compile(
+    r"\b(\d{1,2}|[a-zäöüß]+)\+?\s+Jahre?n?\s+(?:[A-Za-zäöüß]+-?)?[Ee]rfahrung"
+    r"|\b[Ee]rfahrung\s+(?:von|seit)\s+(\d{1,2}|[a-zäöüß]+)\+?\s+Jahre?n?\b"
+    r"|\bseit\s+(\d{1,2}|[a-zäöüß]+)\+?\s+Jahren\b", re.IGNORECASE)
+NOT_WORK = re.compile(r"Studium|Student|Ausbildung|Auszubildend|Schüler|Praktik", re.IGNORECASE)
+NUMBER_WORDS = {
+    "ein": 1, "einem": 1, "einer": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7,
+    "acht": 8, "neun": 9, "zehn": 10, "elf": 11, "zwölf": 12, "dreizehn": 13, "vierzehn": 14, "fünfzehn": 15,
+    "sechzehn": 16, "siebzehn": 17, "achtzehn": 18, "neunzehn": 19, "zwanzig": 20, "dreißig": 30, "vierzig": 40,
+}
+
+
+def letter_text(text):
+    """(index of the first body line, body lines). The body runs from
+    the Anrede to the Grußformel; a document without an Anrede (a portal copy cut differently, an e-mail) is
+    taken whole."""
+    lines = text.splitlines()
+    first = 0
+    if lines and lines[0] == "---":
+        for index in range(1, len(lines)):
+            if lines[index] == "---":
+                first = index + 1
+                break
+    start, end = first, len(lines)
+    for index in range(first, len(lines)):
+        if LETTER_ANREDE.match(lines[index].strip()):
+            start = index
+            break
+    for index in range(start, len(lines)):
+        if LETTER_GRUSS.match(lines[index].strip()):
+            end = index
+            break
+    return start, lines[start:end]
+
+
+def letter_date(text):
+    """(year, month) of the letter: the first date before the Anrede, numeric or with the month spelled out.
+    None when the head holds no date."""
+    for line in text.splitlines():
+        if LETTER_ANREDE.match(line.strip()):
+            break
+        match = LONG_DATE.search(line)
+        if match:
+            return int(match.group(2)), MONTH_NUMBER[match.group(1).lower()]
+        match = NUMERIC_DATE.search(line)
+        if match:
+            year = int(match.group(2))
+            return (year + 2000 if year < 100 else year), int(match.group(1))
+    return None
+
+
+def covered_months(records, today):
+    """Months of the union of the periods of the work stations, a `heute` end counted up to `today`
+    ((year, month) or None, then the station is skipped). Gap entries, education and internships, stations that
+    the Grundlage records with `Bestätigt: nein` and records without a readable start are skipped."""
+    spans = []
+    for record in records:
+        if is_gap_entry(record["position"]) or NOT_WORK.search(record["position"]) or record.get("bestaetigt") == "nein":
+            continue
+        start = month_index(record["start"], 1)
+        end = record["end"]
+        if start is None:
+            continue
+        if end == "heute":
+            if today is None:
+                continue
+            stop = today[0] * 12 + today[1] - 1
+        else:
+            stop = month_index(end, 12)
+        if stop is not None and stop >= start:
+            spans.append((start, stop))
+    total, reach = 0, None
+    for start, stop in sorted(spans):
+        if reach is None or start > reach:
+            total += stop - start + 1
+            reach = stop
+        elif stop > reach:
+            total += stop - reach
+            reach = stop
+    return total
+
+
+def check_letter(text, file, doc_type, source_text=None, records=None, context_text=""):
+    """BR-01 to BR-04 for anschreiben.md, motivationsschreiben.md and email.md (CG-13.6).
+
+    `source_text` and `records` come from the Grundlage, `context_text` is the analysis and the posting."""
+    findings = []
+    for number, line in enumerate(text.splitlines(), 1):
+        if PLACEHOLDER.search(line):
+            findings.append(finding("BR-01", "Blocker", file, number, "offener Platzhalter (BR-01): " + line.strip()))
+    if doc_type == "email" or source_text is None:
+        return findings
+
+    first, body = letter_text(text)
+    today = letter_date(text)
+    for offset, line in enumerate(body):
+        number = first + offset + 1
+        if not line.strip() or PLACEHOLDER.search(line):
+            continue
+        stripped = SEVEN.sub(" ", LETTER_DATE.sub(" ", line))
+        for match in NUMBER.finditer(stripped):
+            token = match.group(0)
+            before = stripped[match.start() - 1] if match.start() else ""
+            rest = stripped[match.end():]
+            if before.isalpha() or (rest[:1].isalpha() and not MULTIPLIER.match(rest)):
+                continue  # part of a name: S3, OAuth2, 3D (but `10x`, `70k` are figures)
+            if ORDINAL.match(rest):
+                continue  # `7. Platz`, `3. Quartal`
+            if AMOUNT.match(rest) and SALARY_WORDS.search(line) and not source_has(token, source_text):
+                findings.append(finding("BR-02", "Hinweis", file, number, f"Betrag „{token}“: Wert des Nutzers, nur im Schluss (AS-10.1): " + line.strip()))
+            elif source_has(token, source_text):
+                continue
+            elif source_has(token, context_text):
+                findings.append(finding("BR-02", "Warnung", file, number, f"Zahl „{token}“ steht nur in der Analyse oder der Anzeige, nicht in der Grundlage: eine Anforderung oder Firmenangabe belegt nichts über die Person (BR-02): " + line.strip()))
+            else:
+                findings.append(finding("BR-02", "Blocker", file, number, f"Zahl „{token}“ nicht in der Grundlage belegt (BR-02): " + line.strip()))
+
+        for match in YEARS_OF_EXPERIENCE.finditer(line):
+            word = next(group for group in match.groups() if group).lower()
+            value = int(word) if word.isdigit() else NUMBER_WORDS.get(word)
+            if value is None:
+                continue
+            if re.search(rf"\b{re.escape(word)}\+?\s+Jahre?n?", source_text, re.IGNORECASE):
+                continue
+            if value * 12 > covered_months(records or [], today):
+                running = any(record["end"] == "heute" for record in records or [])
+                if today is None and running:
+                    findings.append(finding("BR-03", "Warnung", file, number, f"Erfahrungsdauer „{match.group(0)}“: das Briefdatum vor der Anrede fehlt, laufende Stationen konnten nicht gezählt werden (BR-03): " + line.strip()))
+                else:
+                    findings.append(finding("BR-03", "Blocker", file, number, f"Erfahrungsdauer „{match.group(0)}“ weder in der Grundlage genannt noch aus den Stationszeiträumen erreicht (BR-03): " + line.strip()))
+
+        for sentence in re.split(r"(?<=[.!?])\s+", line):
+            if not leadership_wording(sentence):
+                continue
+            if WISH.search(sentence):
+                findings.append(finding("BR-04", "Hinweis", file, number, "Formulierung zur Personalführung als Wunsch oder Beschreibung des Arbeitgebers, keine Behauptung (BR-04): " + sentence.strip()))
+            elif any(record.get("fuehrung") == "ja" for record in records or []):
+                findings.append(finding("BR-04", "Hinweis", file, number, "Formulierung zur Personalführung: die Zuordnung zu einer Station mit `fuehrung: ja` im Review prüfen (BR-04): " + sentence.strip()))
+            else:
+                findings.append(finding("BR-04", "Blocker", file, number, "Formulierung zur Personalführung, aber keine Station der Grundlage mit `fuehrung: ja` (BR-04): " + sentence.strip()))
+    return findings
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Deterministic checks for a Lebenslauf (CG-13).")
-    parser.add_argument("lebenslauf", help="path to lebenslauf.md")
+    parser = argparse.ArgumentParser(description="Deterministic checks for a Lebenslauf (CG-13) or a letter (CG-13.6).")
+    parser.add_argument("lebenslauf", help="path to lebenslauf.md, or to the letter with --doc-type")
+    parser.add_argument("--doc-type", choices=("cv", "letter", "motivation", "email"), default="cv",
+                        help="cv (default): the rules CV-01 to CV-20; letter, motivation, email: the rules BR-01 to BR-04")
     parser.add_argument("--grundlage", action="append", default=[], help="Grundlage file or directory (repeatable: directory and index note)")
     parser.add_argument("--analyse", help="path to analyse.md")
+    parser.add_argument("--stellenanzeige", help="path to stellenanzeige.md (letters: numbers of the posting are no proof of the candidate)")
     parser.add_argument("--firma", action="append", default=[], help="firm file in <wurzel>/firmen/ (repeatable): birthdate check CV-18")
     parser.add_argument("--ats", action="store_true", help="treat tables as Blocker (posting requires ATS)")
     args = parser.parse_args(argv)
 
-    with open(args.lebenslauf, encoding="utf-8") as handle:
-        text = handle.read()
-    source_text = read_sources(args.grundlage) if args.grundlage else None
-    sources = load_records(args.grundlage) if args.grundlage else None
+    try:
+        with open(args.lebenslauf, encoding="utf-8") as handle:
+            text = handle.read()
+        source_text = read_sources(args.grundlage) if args.grundlage else None
+        sources = load_records(args.grundlage) if args.grundlage else None
+    except (OSError, UnicodeDecodeError) as error:
+        print(f"Fehler: Eingabe nicht lesbar ({error.__class__.__name__}): {error}", file=sys.stderr)
+        return 2  # not 1: that code means "a Blocker exists"
 
-    findings = check_cv(text, args.lebenslauf, source_text, sources, ats=args.ats)
-    if args.analyse:
-        analysis_text = read_optional(args.analyse, "CV-14", "Analyse", findings)
-        if analysis_text is not None:
-            findings += check_analysis(analysis_text, args.analyse)
+    findings = []
+    if args.doc_type == "cv":
+        findings = check_cv(text, args.lebenslauf, source_text, sources, ats=args.ats)
+        if args.analyse:
+            analysis_text = read_optional(args.analyse, "CV-14", "Analyse", findings)
+            if analysis_text is not None:
+                findings += check_analysis(analysis_text, args.analyse)
+    else:
+        context = []
+        for path in (args.analyse, args.stellenanzeige):
+            if path:
+                content = read_optional(path, "BR-02", "Kontextdatei", findings)
+                if content is not None:
+                    context.append(content)
+        findings += check_letter(text, args.lebenslauf, args.doc_type, source_text, sources, "\n".join(context))
 
     for firm_path in args.firma:
         firm_text = read_optional(firm_path, "CV-18", "Firmendatei", findings)
@@ -687,9 +887,10 @@ def main(argv=None):
             findings += birthdate_findings(firm_text, firm_path)
 
     summary = {level: sum(1 for f in findings if f["schweregrad"] == level) for level in ("Blocker", "Warnung", "Hinweis")}
+    unchecked = "CV-05, CV-06, CV-15, CV-16, CV-19, CV-20" if args.doc_type == "cv" else "BR-02, BR-03, BR-04"
     report = {
         "regeln": RULE_VERSION,
-        "abgleich": "mit Grundlage" if args.grundlage else "ohne Grundlage (CV-05, CV-06, CV-15, CV-16 nicht geprüft)",
+        "abgleich": "mit Grundlage" if args.grundlage else f"ohne Grundlage ({unchecked} nicht geprüft)",
         "grundlage_stationen": len(sources) if sources is not None else None,
         "zusammenfassung": summary,
         "befunde": findings,
