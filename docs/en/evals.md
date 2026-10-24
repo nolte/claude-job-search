@@ -39,7 +39,7 @@ task eval -- trigger                # the same through the Taskfile
 | `MAX_COST_USD` | `10` | Hard ceiling; the run stops with exit code 2 and partial results |
 | `THRESHOLD` | `0.8` | A case below this score fails the run (exit code 1). The default of the tool, 1.0, is too strict for model behaviour |
 | `ABLATION` | `none` | Runs only with the plugin. `with-without` also runs every case without it: double cost, and it shows what the plugin adds |
-| `SKIP_PRECHECK` | off | `behavior` and `all` first run `behavior-bash-works`; if Bash does not work in the eval sandbox the run stops with exit code 3 before it spends money on cases that cannot work |
+| `SKIP_PRECHECK` | off | Every target except the trigger cases first runs the two preconditions `behavior-bash-works` and `behavior-python-works`; if one is red the run stops with exit code 3 before it spends money on cases that cannot work |
 | `TRUST` | off | `TRUST=1` passes `--trust-plugin`; without it Claude Code asks once whether you trust this plugin |
 
 Reports are never published: the script always passes `--no-publish`. Without it, the HTML report is published to
@@ -53,7 +53,8 @@ Results are in `evals/results/last-run.json` and, per run, in `evals/results/<ti
 | Group | Cases | What a pass means |
 |---|---|---|
 | `trigger-*` | one per skill (13) and one for the reviewer agent | A natural German request, without naming the skill, makes the model call that skill. Graded with `tool_used` |
-| `behavior-bash-works` | precondition (tag `precondition`, one run, run first by `evals/run.sh`): `python3 --version` through Bash | Bash works inside the eval sandbox. If this case is red, the cases that run scripts measure the machine, not the plugin |
+| `behavior-bash-works` | precondition 1 (tag `precondition`, one run, run first by `evals/run.sh`): `uname -s` through Bash | An external command runs inside the eval sandbox (a shell builtin such as `echo` would pass without it) |
+| `behavior-python-works` | precondition 2 (same): `python3 --version` through Bash | `python3` runs inside the sandbox (the skills call python3 scripts). If either precondition is red, the cases that run scripts measure the machine, not the plugin |
 | `behavior-gate-runs-script` | quality gate on a Vorgang that holds only a Lebenslauf | The gate calls `cv_checks.py` before it writes `pruefbericht.md`. The verdict is not graded: with a lone Lebenslauf a gate may legitimately block on missing documents |
 | `behavior-plan-gate` | the router with a posting | No `lebenslauf.md` and no `anschreiben.md` exist before the plan is approved; the model asks |
 | `behavior-no-invented-skills` | career changer, posting asks for Docker, Terraform and years of cloud experience | None of them is in the Lebenslauf, no leadership wording appears |
@@ -97,7 +98,7 @@ All numbers are from single runs on one machine, with Claude Code 2.1.310; treat
 | A scaffold exits with 126, second cause | The scaffold runs with a replaced `HOME`; `python3` here was an asdf shim that needs the real `HOME` | Scaffolds use only coreutils. The Grundlage hash of a file-mode Grundlage is `sha256sum` of the file |
 | Paths | `BASH_SOURCE[0]` is the real path of `fixture.sh`, so the repository root can be derived from it | No absolute path in any case |
 | Reports are published by default | The HTML report goes to claude.ai when the account supports it | Always `--no-publish` |
-| Bash did not work inside the eval sandbox | A probe case granted `Bash` and asked for `python3 --version`: the model called Bash once and reported a sandbox error (its wording varied between runs: sandbox, denied, bwrap, seccomp); the same with `Bash(python3 *)`, `Bash(python3:*)` and a plain `Bash` grant. `bwrap` itself works from a normal shell on that machine (Ubuntu 26.04) | Cause not pinned down. The quality gate case made no Bash call in two runs and wrote its report without `cv_checks.py`, which is therefore most likely the machine and not the skill. The precondition case `behavior-bash-works` is in the suite so that this is visible; run `claude doctor` and the `/sandbox` command of Claude Code if it is red |
+| No external program ran inside the eval sandbox | `Bash` is called, but only shell builtins work. A probe printed `PATH=` without `/usr/bin` and without asdf; `command -v ls` found nothing; `/usr/bin/python3 --version` was refused with a permission-type message; `echo` worked. The split preconditions agree: `echo` passes, `python3 --version` fails (Sonnet 5.5, Ubuntu 26.04, `bwrap` and `socat` installed, `bwrap` works from a normal shell). An earlier suspicion, the asdf shim in HOME, was wrong: `/usr/bin` first in `PATH` did not help | The cause is in the sandbox of that machine, not in the plugin or in python3. The quality gate case made no Bash call in four runs, and its report was written without `cv_checks.py`: the machine, not the skill. `behavior-bash-works` now runs an external command (`uname -s`) because `echo` proves nothing. Run `claude doctor` and `/sandbox` in Claude Code; on a machine where the preconditions are green, run the gate case again |
 | Run traces | The path of each trace is in the JSON (`tracePath`, under the system temp directory); `--keep-temp` keeps the scaffold workspaces | Read the trace of a failing run before changing a skill |
 
 ## First behavioural run

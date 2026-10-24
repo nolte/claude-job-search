@@ -14,7 +14,7 @@
 #   RUNS=                           override the runs per case (default: the value in each case)
 #   ABLATION=none                   none | with-without (with-without also runs every case without the plugin: double cost)
 #   TRUST=1                         pass --trust-plugin (otherwise Claude Code asks once whether you trust this plugin)
-#   SKIP_PRECHECK=1                 do not run behavior-bash-works first
+#   SKIP_PRECHECK=1                 do not run the preconditions behavior-bash-works and behavior-python-works first
 #   ANTHROPIC_API_KEY               your key; without it the login of `claude` is used
 set -euo pipefail
 
@@ -51,19 +51,21 @@ if [ "$needs_scaffold" = "1" ]; then
   echo "Note: --scaffold runs the fixture.sh of each case as you. They are in this repository (evals/*/fixture.sh)." >&2
 fi
 
-# Precondition: if Bash does not work inside the eval sandbox, the cases that run scripts measure the machine.
+# Preconditions: if Bash or python3 does not work inside the eval sandbox, the cases that run commands measure the machine.
 case "$TARGET" in
-  trigger|trigger-*) ;;
+  trigger|trigger-*|behavior-bash-works|behavior-python-works) ;;
   *)
-    if [ "${SKIP_PRECHECK:-0}" != "1" ] && [ "$TARGET" != "behavior-bash-works" ]; then
-      echo "Precondition: behavior-bash-works" >&2
-      rc=0
-      claude "${common[@]}" ${grants[@]+"${grants[@]}"} --runs 1 --case behavior-bash-works --json evals/results/precheck.json || rc=$?
-      case "$rc" in
-        0) ;;
-        1) echo "behavior-bash-works failed: Bash or python3 does not work inside the eval sandbox (see docs/en/evals.md). Fix that or set SKIP_PRECHECK=1." >&2; exit 3 ;;
-        *) echo "The precondition run ended with exit code $rc (2: cost ceiling, 130 or 143: aborted); that is no verdict on Bash." >&2; exit "$rc" ;;
-      esac
+    if [ "${SKIP_PRECHECK:-0}" != "1" ]; then
+      for pre in behavior-bash-works behavior-python-works; do
+        echo "Precondition: $pre" >&2
+        rc=0
+        claude "${common[@]}" ${grants[@]+"${grants[@]}"} --runs 1 --case "$pre" --json "evals/results/$pre.json" || rc=$?
+        case "$rc" in
+          0) ;;
+          1) echo "$pre failed (see docs/en/evals.md, 'What the spike found'). Fix that or set SKIP_PRECHECK=1." >&2; exit 3 ;;
+          *) echo "The precondition run ended with exit code $rc (2: cost ceiling, 130 or 143: aborted); that is no verdict on the sandbox." >&2; exit "$rc" ;;
+        esac
+      done
     fi ;;
 esac
 

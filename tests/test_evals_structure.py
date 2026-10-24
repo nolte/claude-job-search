@@ -30,7 +30,7 @@ class EvalSuiteTests(unittest.TestCase):
         self.assertIn("trigger-reviewer", names)
 
     def test_every_case_has_a_prompt_a_grader_and_the_plugin(self):
-        self.assertGreaterEqual(len(CASES), 19)
+        self.assertGreaterEqual(len(CASES), 21)
         for case in CASES:
             graders = glob.glob(os.path.join(case, "graders", "*.md"))
             self.assertTrue(graders, f"{case}: a case without a grader does not load")
@@ -66,6 +66,23 @@ class EvalSuiteTests(unittest.TestCase):
             if negative:
                 positive = [p for p, t in graders.items() if p not in negative]
                 self.assertTrue(positive, f"{case}: only negative graders; a failed run would pass")
+
+    def test_frontmatter_is_valid_yaml_for_plain_scalars(self):
+        # found by the first run of the committed suite: `description: ... graded: a gate ...` is invalid YAML (a ": " inside
+        # a plain scalar) and the whole case failed to load. The test suite is stdlib-only, so this checks the rule that bit.
+        files = glob.glob(os.path.join(EVALS, "*", "prompt.md")) + glob.glob(os.path.join(EVALS, "*", "graders", "*.md"))
+        for path in files:
+            parts = read(path).split("---")
+            self.assertGreaterEqual(len(parts), 3, path)
+            for number, line in enumerate(parts[1].splitlines(), 1):
+                match = re.match(r"^([A-Za-z_][\w-]*):[ ]+(.*)$", line)
+                if not match:
+                    continue
+                value = match.group(2).strip()
+                if not value or value[0] in "'\"[{|>&*!%@`":
+                    continue
+                self.assertNotIn(": ", value, f"{path}:{number + 1}: a plain YAML scalar must not contain ': ' (quote it)")
+                self.assertNotIn(" #", value, f"{path}:{number + 1}: a plain YAML scalar must not contain ' #'")
 
     def test_trigger_cases_check_the_skill_they_are_named_after(self):
         for case in CASES:
