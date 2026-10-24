@@ -69,3 +69,13 @@ tasks:
     desc: Start Claude Code with this repo loaded as a plugin (dogfooding)
     cmds:
       - claude --plugin-dir .
+
+  worktree:add:
+    desc: |
+      Create a parallel working copy under ${NOLTE_WORKTREE_ROOT:-~/repos/.worktrees}/<repo>/<slug>/,
+      branched off origin/develop, and seed a .resume/<slug>/plan.md plan stub.
+      Usage: task worktree:add -- <branch> [slug]
+        task worktree:add -- feat/parser-fix
+        task worktree:add -- chore/ci-tidy ci
+    cmds:
+      - ./scripts/worktree_add.sh {{.CLI_ARGS}}
