@@ -5,6 +5,7 @@
 #   evals/run.sh behavior           the behavioural cases (scaffolds a fictional Wurzel, grants Bash, Write, Edit)
 #   evals/run.sh all                both
 #   evals/run.sh <case-glob>        one case or a glob, for example behavior-plan-gate
+#                                   (a case tagged bash-denied runs in its own invocation without Bash)
 #
 # Environment (all optional):
 #   MODEL=claude-sonnet-5-5         model of the agent under test (haiku does not trigger the skills, see the docs)
@@ -29,7 +30,7 @@ TARGET="${1:-}"
 shift || true
 
 if [ -z "$TARGET" ]; then
-  sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit 64
 fi
 command -v claude >/dev/null || { echo "claude is not on the PATH" >&2; exit 127; }
@@ -51,13 +52,16 @@ if [ "$needs_scaffold" = "1" ]; then
   echo "Note: --scaffold runs the fixture.sh of each case as you. They are in this repository (evals/*/fixture.sh)." >&2
 fi
 
+# True if the target names a case tagged bash-denied: it runs without Bash and needs no precondition.
+is_denied_case() { local d; for d in evals/$1; do [ -f "$d/prompt.md" ] && grep -q '^tags: .*bash-denied' "$d/prompt.md" && return 0; done; return 1; }
+
 # Preconditions: if Bash or python3 does not work inside the eval sandbox, the cases that run commands measure the machine.
 # A red precondition no longer stops the run: the cases tagged needs-bash are left out and the rest runs.
 bash_ok=1
 case "$TARGET" in
   trigger|trigger-*|behavior-bash-works|behavior-python-works) ;;
   *)
-    if [ "${SKIP_PRECHECK:-0}" != "1" ]; then
+    if [ "${SKIP_PRECHECK:-0}" != "1" ] && ! is_denied_case "$TARGET"; then
       for pre in behavior-bash-works behavior-python-works; do
         echo "Precondition: $pre" >&2
         rc=0
@@ -77,13 +81,27 @@ if [ "$bash_ok" = "0" ] && [ "$TARGET" = "behavior" -o "$TARGET" = "all" ]; then
   echo "Left out because Bash does not work here: ${skipped:-none}. Run them on a machine where the preconditions are green." >&2
 fi
 
-args=("${common[@]}" ${grants[@]+"${grants[@]}"} --json "evals/results/last-run.json")
-[ -n "${RUNS:-}" ] && args+=(--runs "$RUNS")
+main_args=("${common[@]}" ${grants[@]+"${grants[@]}"} --json "evals/results/last-run.json")
+# Cases tagged bash-denied need a run in which Bash is removed for every case (--disallow-tools); the grant of Bash
+# cannot be taken back for one case. They get their own invocation and do not run in the main one.
+denied_args=("${common[@]}" --scaffold --allow-tools Write --allow-tools Edit --disallow-tools Bash --json "evals/results/last-run-bash-denied.json")
+if [ -n "${RUNS:-}" ]; then main_args+=(--runs "$RUNS"); denied_args+=(--runs "$RUNS"); fi
+
+
+run_main=0; run_denied=0
 case "$TARGET" in
-  trigger)  args+=(--tag trigger) ;;
-  behavior) if [ "$bash_ok" = "1" ]; then args+=(--tag behavior); else args+=(--tag no-bash); fi ;;
-  all)      if [ "$bash_ok" = "1" ]; then args+=(--tag trigger --tag behavior); else args+=(--tag trigger --tag no-bash); fi ;;
-  *)        args+=(--case "$TARGET")
-            [ "$bash_ok" = "0" ] && echo "Note: a case tagged needs-bash that you selected by name will fail here." >&2 ;;
+  trigger)  main_args+=(--tag trigger); run_main=1 ;;
+  behavior) if [ "$bash_ok" = "1" ]; then main_args+=(--tag behavior); else main_args+=(--tag no-bash); fi
+            run_main=1; run_denied=1; denied_args+=(--tag bash-denied) ;;
+  all)      if [ "$bash_ok" = "1" ]; then main_args+=(--tag trigger --tag behavior); else main_args+=(--tag trigger --tag no-bash); fi
+            run_main=1; run_denied=1; denied_args+=(--tag bash-denied) ;;
+  *)        if is_denied_case "$TARGET"; then run_denied=1; denied_args+=(--case "$TARGET")
+            else run_main=1; main_args+=(--case "$TARGET")
+                 [ "$bash_ok" = "0" ] && echo "Note: a case tagged needs-bash that you selected by name will fail here." >&2
+            fi ;;
 esac
-exec claude "${args[@]}" "$@"
+
+main_rc=0; denied_rc=0
+[ "$run_main" = "1" ] && { claude "${main_args[@]}" "$@" || main_rc=$?; }
+[ "$run_denied" = "1" ] && { echo "Run without Bash: bash-denied cases (results in evals/results/last-run-bash-denied.json)" >&2; claude "${denied_args[@]}" "$@" || denied_rc=$?; }
+exit $(( main_rc > denied_rc ? main_rc : denied_rc ))

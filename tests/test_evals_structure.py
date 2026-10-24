@@ -30,13 +30,13 @@ class EvalSuiteTests(unittest.TestCase):
         self.assertIn("trigger-reviewer", names)
 
     def test_every_case_has_a_prompt_a_grader_and_the_plugin(self):
-        self.assertGreaterEqual(len(CASES), 21)
+        self.assertGreaterEqual(len(CASES), 22)
         for case in CASES:
             graders = glob.glob(os.path.join(case, "graders", "*.md"))
             self.assertTrue(graders, f"{case}: a case without a grader does not load")
             prompt = read(os.path.join(case, "prompt.md"))
             self.assertRegex(prompt, r'(?m)^plugins: \["\.\./\.\."\]$', case)
-            self.assertRegex(prompt, r"(?m)^tags: \[(trigger|behavior|precondition)", case)
+            self.assertRegex(prompt, r"(?m)^tags: \[(trigger|behavior|precondition|bash-denied)", case)
             for grader in graders:
                 self.assertRegex(read(grader), r"(?m)^type: (regex|tool_used|tool_order|file_exists|llm|baseline)$", grader)
 
@@ -111,7 +111,14 @@ class EvalSuiteTests(unittest.TestCase):
         for case in CASES:
             head = read(os.path.join(case, "prompt.md")).split("---")[1]
             tags = set(re.findall(r"[\w-]+", re.search(r"(?m)^tags: \[(.*)\]$", head).group(1)))
-            self.assertLessEqual(tags, {"trigger", "behavior", "precondition", "no-bash", "needs-bash"}, case)
+            self.assertLessEqual(tags, {"trigger", "behavior", "precondition", "no-bash", "needs-bash", "bash-denied"}, case)
+            if "bash-denied" in tags:
+                # run.sh runs these cases without Bash (--disallow-tools); a guard proves it, no grader may require Bash
+                self.assertEqual(tags, {"bash-denied"}, case)
+                texts = [read(g) for g in glob.glob(os.path.join(case, "graders", "*.md"))]
+                self.assertTrue(any(re.search(r"(?m)^tool: Bash$", x) and re.search(r"(?m)^max: 0$", x) for x in texts), f"{case}: no guard that Bash was absent")
+                self.assertFalse(any(re.search(r"(?m)^tool: Bash$", x) and not re.search(r"(?m)^max: 0$", x) for x in texts), case)
+                continue
             if "behavior" not in tags:
                 self.assertFalse(tags & {"no-bash", "needs-bash"}, case)
                 continue
