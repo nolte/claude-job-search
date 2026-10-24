@@ -226,15 +226,21 @@ class SkillStructureTests(unittest.TestCase):
     def test_reviewer_checks_the_currency_of_the_report_and_keeps_its_own_verdict(self):
         # REV-001: the reviewer has no shell, so it looks for signs of an outdated report and never inherits a result
         with open(os.path.join(ROOT, "agents", "job-application-reviewer.md"), encoding="utf-8") as handle:
-            text = re.sub(r"\s+", " ", handle.read())
-        self.assertIn("tools: Read, Glob, Grep", text)
-        self.assertIn("## Prüfbericht prüfen", text)
-        self.assertLess(text.index("## Prüfbericht prüfen"), text.index("## Review dimensions"))
-        for needle in ("`fehlt`", "`veraltet`", "ohne Anzeichen für Veraltung", "CG-13.7", "cannot prove that the report is current",
-                       "Its own verdict never depends on the report", "`grundlage_hash`"):
-            self.assertIn(needle, text, needle)
-        self.assertRegex(text, r"## Prüfbericht Stand: JJJJ-MM-TT · Ergebnis des Gates")
-        self.assertRegex(text, r"A gate result `BEREIT` does not lift a Blocker")
+            raw = handle.read()
+        self.assertRegex(raw, r"(?m)^tools: Read, Glob, Grep$")
+        section = raw[raw.index("## Prüfbericht prüfen"):raw.index("## Review dimensions")]
+        steps = re.findall(r"(?m)^(\d)\. \*\*", section)
+        self.assertEqual(steps, list("123456"))
+        for value in ("`fehlt`", "`veraltet`", "`möglicherweise veraltet`", "`ohne Anzeichen für Veraltung`"):
+            self.assertIn(value, section, value)
+        self.assertIn("`Grundlage: <grundlage_hash>`", section)  # the line the gate records
+        # the answer block stands before the findings
+        answer = raw[raw.index("## Verdict: READY"):]
+        self.assertLess(answer.index("## Prüfbericht"), answer.index("## Findings"))
+        self.assertRegex(raw, r"(?m)^\d\. \*\*The verdict is the agent's own\.\*\*")
+        with open(os.path.join(ROOT, "skills", "job-application-quality-gate", "SKILL.md"), encoding="utf-8") as handle:
+            gate = handle.read()
+        self.assertIn("Grundlage: <grundlage_hash des Laufs> · Geprüft:", gate)
         with open(os.path.join(ROOT, "spec", "job-application", "cv-generierung", "en.md"), encoding="utf-8") as handle:
             self.assertIn("### CG-13.7 Currency of the report", handle.read())
 

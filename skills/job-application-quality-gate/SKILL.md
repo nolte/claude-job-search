@@ -201,6 +201,7 @@ unchanged.
 ## Prüfung
 
 Stand: JJJJ-MM-TT · Ergebnis: BLOCKIERT | BEREIT MIT WARNUNGEN | BEREIT
+Grundlage: <grundlage_hash des Laufs> · Geprüft: lebenslauf.md, anschreiben.md, …
 
 ### Blocker
 - [ ] <Regel-ID> · <Datei>:<Zeile> · „<zitierte Passage>“ — <Befund> — <Vorschlag>
@@ -216,7 +217,9 @@ Stand: JJJJ-MM-TT · Ergebnis: BLOCKIERT | BEREIT MIT WARNUNGEN | BEREIT
 ```
 
 `BEREIT` requires zero Blocker and zero Warnungen. `BEREIT MIT WARNUNGEN` requires zero Blocker. Any Blocker means
-`BLOCKIERT`. A user's exception to the page limit of the Lebenslauf (LB-2.3) is recorded under
+`BLOCKIERT`. The second head line records the `grundlage_hash` of the run (from `scripts/grundlage_hash.py`, left out when the
+script stops with a `Blocker:`) and the documents checked, so that the reviewer can see that the report is older than the
+Grundlage or the documents (CG-13.7). A user's exception to the page limit of the Lebenslauf (LB-2.3) is recorded under
 `### Entscheidungen des Nutzers`; the finding then stays as a Warnung in this and every later run until the decision is
 withdrawn. Every finding names the rule ID, the file, the line and the quoted passage (CG-13.3).
 

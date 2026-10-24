@@ -70,26 +70,35 @@ Then take the perspective of the counterpart from `kontaktart` in `analyse.md` (
 The last `## Prüfung` of `pruefbericht.md` may be older than the documents (CG-13.7). The agent has no shell, so it cannot
 compute a hash or a modification time and cannot prove that the report is current. It looks for signs that it is not, and
 says which result it reached in the section "Prüfbericht" of its answer. Its own verdict never depends on the report.
+Only Read and Grep are needed.
 
 1. **No `## Prüfung`** (the file or the section is missing): the quality gate has not run. Result `fehlt`; list "Prüfbericht
-   fehlt, Gate nicht gelaufen" under "Nicht beurteilbar". Do not take a result from anywhere else.
-2. **A document is newer than the report.** Compare `Stand: JJJJ-MM-TT` of the report with the date of the closing line of
-   `lebenslauf.md` (`Ort, TT.MM.JJJJ`, LB-9.4) and of `anschreiben.md` and `motivationsschreiben.md` (the date line of the
-   head). A date after `Stand` means the document was written after the check: result `veraltet`.
-3. **The quoted findings.** Search each quoted passage of the Blocker and Warnung lines in the cited file (Grep). A passage that
-   is gone was fixed or moved: it is not repeated as open. If the report says `BLOCKIERT` and none of its Blocker passages is
-   found any more, the report is probably out of date: result `veraltet`.
-4. **The report against the documents.** A report with `BEREIT` or `BEREIT MIT WARNUNGEN` while the agent itself finds an open
-   `[ERGÄNZEN` or `[KLÄREN`, or an untraceable claim, contradicts the documents: result `veraltet`, and the agent's own finding
-   stands.
-5. **Mixed states of the Grundlage.** The frontmatter `grundlage_hash` of the documents and of `vorgang.md` differs between
-   them: a Warnung "Dokumente stammen aus verschiedenen Ständen der Grundlage" (R-9.5; whether the value is the current one is
-   for the gate).
+   fehlt, Gate nicht gelaufen" under "Nicht beurteilbar".
+2. **The Grundlage changed after the run.** The gate records `Grundlage: <grundlage_hash>` in the head of `## Prüfung`
+   (CG-13.7). A `grundlage_hash` in the frontmatter of a document or in `vorgang.md` that differs from it: result
+   `veraltet`. A report without that line (older format) gives no sign either way. Different values among the documents and
+   `vorgang.md` themselves: a Warnung "Dokumente stammen aus verschiedenen Ständen der Grundlage" (R-9.5).
+3. **The quoted findings.** Take the Blocker lines that quote a passage. Search a short, literal, single-line fragment of the
+   passage in the cited file (Grep), ignoring the line number, which moves. A passage that is gone was fixed or moved: it is
+   not repeated as open. If at least one Blocker with a passage exists and all of them are gone while the result is
+   `BLOCKIERT`, the report is probably out of date: result `veraltet`. A Blocker without a passage (a missing file, a page
+   limit, a hash, a file size), an ellipsis or a multi-line quote does not count for this rule.
+4. **Open placeholders.** A report with `BEREIT` or `BEREIT MIT WARNUNGEN` while the agent itself reads an open `[ERGÄNZEN` or
+   `[KLÄREN` in a document: result `veraltet`. A claim that the agent finds untraceable is its own finding (dimension 1),
+   not a sign of an outdated report: the two readers can simply disagree.
+5. **Dates.** `Stand: JJJJ-MM-TT` of the report against the closing line of `lebenslauf.md` (`Ort, TT.MM.JJJJ`, LB-9.4) and
+   the date line of `anschreiben.md` and `motivationsschreiben.md`; convert `TT.MM.JJJJ` before comparing. A date strictly
+   after `Stand` is only a hint (`möglicherweise veraltet`): the user may have set the planned sending date, and a document
+   changed on the day of the run cannot be told apart. A missing or unreadable date is no sign.
 6. **None of the signs.** Result `ohne Anzeichen für Veraltung`. That is not a proof: say so, and name the gate as the place
    that settles it (it compares the hash and the manifests).
 
-A result `veraltet` or `fehlt` goes into the answer as a Warnung "Prüfbericht nicht aktuell, `job-application-quality-gate`
-neu laufen lassen". It does not change the verdict by itself.
+What the report says about the deterministic checks (`cv_checks.py`, the hash, the manifests) is quoted only as "Stand des
+Gates, nicht bestätigt" when the result is `fehlt`, `veraltet` or `möglicherweise veraltet`; with `ohne Anzeichen` the report
+may be named as the source. What the agent cannot check itself goes under "Nicht beurteilbar".
+
+A result `fehlt` or `veraltet` is a Warnung "Prüfbericht nicht aktuell, `job-application-quality-gate` neu laufen lassen",
+and a Warnung acts on the verdict like any other (`READY-WITH-WARNINGS` at best). `möglicherweise veraltet` is a Hinweis.
 
 ## Review dimensions
 
@@ -130,7 +139,7 @@ Returned in chat, not written to disk:
 ## Verdict: READY | READY-WITH-WARNINGS | BLOCKED
 
 ## Prüfbericht
-Stand: JJJJ-MM-TT · Ergebnis des Gates: <BLOCKIERT | BEREIT MIT WARNUNGEN | BEREIT | fehlt> · Aktualität: fehlt | veraltet | ohne Anzeichen für Veraltung (kein Beweis)
+Stand des Gates: JJJJ-MM-TT · Ergebnis des Gates: BLOCKIERT | BEREIT MIT WARNUNGEN | BEREIT (no report: `—`) · Aktualität: fehlt | veraltet | möglicherweise veraltet | ohne Anzeichen für Veraltung (kein Beweis)
 
 ## Findings
 | # | Severity | Dokument | Passage | Befund | Vorschlag |
