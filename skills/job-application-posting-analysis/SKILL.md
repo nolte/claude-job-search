@@ -64,14 +64,17 @@ by one, each with its own Entwurf and confirmation (UE-8 rule 3).
 
 1. **Clean and check the URL.** Run `python3 <plugin-root>/scripts/posting_url.py "<url>"`. `bereinigt` is the
    Anzeigen-URL that is requested and stored (UE-2 rule 3). On exit code 3 the URL is refused before any request; state
-   the `grund` and offer the paste (UE-2 rule 5, scenario UE-F). The script sees only the typed host. A URL that serves
-   a file (PDF, download) is not loaded: ask the user to paste the text or point to the local file (UE-2 rule 6).
+   the `grund` and offer the paste (UE-2 rules 5 and 6, scenario UE-F). Refused are `linkedin.com` and its short link
+   `lnkd.in`, non-`http(s)` and internal addresses (also in encoded or numeric spelling), and a path that names a file
+   (`.pdf`, `.docx` and similar): ask the user to paste the text or point to the local file. The script sees only the
+   typed host and path; a download behind a plain path shows only in the response, then do not use its content.
 2. **Abfrageroute (UE-3 rule 1).** Say in one line which route is used and that the site hosting the posting sees the
    request (UE-10 rule 2); do not wait for an answer. Request the URL with `fetchWebContent` and `renderMode: request` of
    the open-webSearch server (RC-5.0 rules 1 to 8, RC-5.2 rules 8 and 9). Budget per Vorgang: at most 2 requests (the
    second only after a timeout or HTTP 5xx, never after 403, 404, 410, 429), one after the other (UE-8 rule 2). Only the
    URL leaves the machine, nothing from the Grundlage, profile or Wunschprofil (UE-10 rule 1).
-3. **Final URL (UE-3 rule 2).** A final URL on `linkedin.com` or an internal address discards the text with
+3. **Final URL (UE-3 rule 2).** This check comes after the request: a redirect target has already been contacted
+   when the final URL is known, so it discards the text but does not prevent the request. A final URL on `linkedin.com` or an internal address discards the text with
    `Weiterleitung auf unzulässiges Ziel`; a tool that does not report the final URL is not used
    (`Abruf ohne Weiterleitungsprüfung nicht möglich`). Without open-webSearch the built-in fetch tool is used only under
    the same condition. Neither available: say so and ask for the pasted text (scenario UE-N).
@@ -102,7 +105,8 @@ by one, each with its own Entwurf and confirmation (UE-8 rule 3).
 8. **Show the Entwurf before anything is written (UE-6).** Show the fields with values or `nicht ermittelt`, the route,
    date and time of the fetch, and the first and last lines of the Anzeigentext. If the text was cut, say
    `Nur Teiltext gelesen` and ask to confirm or to paste the rest; a cut posting is not saved as complete (scenario UE-J).
-   If a Vorgang with the same `stellenquelle`, or the same Ref.-Nr. and firm, exists, name it and ask whether it is the
+   If a Vorgang with the same `stellenquelle`, or the same Ref.-Nr. and firm, exists (compare the URLs without
+   fragment and trailing slash, with scheme `http` equal to `https` and the host in lower case; parameters stay as they are), name it and ask whether it is the
    same application before a folder is created (UE-6 rule 4, scenario UE-L). The user may correct a field, replace the
    text by a pasted one, or stop; a stop writes nothing.
 9. **Store (UE-7).** After the confirmation write the Vorgang as in "Output: the Vorgang folder". `stellenanzeige.md` holds
