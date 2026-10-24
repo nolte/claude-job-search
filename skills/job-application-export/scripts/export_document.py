@@ -442,7 +442,8 @@ def main(argv=None):
         if not grundlage_hash:
             print("Warnung: kein grundlage_hash im Frontmatter. Der Export ist nicht prüfbar gegen die Grundlage "
                   "(R-10.3).", file=sys.stderr)
-        open_placeholders = len(OPEN_PLACEHOLDER.findall(body))
+        # the whole file, frontmatter included: the same text and marker as CV-01 in the quality gate
+        open_placeholders = len(OPEN_PLACEHOLDER.findall(args.input.read_text(encoding="utf-8")))
         if open_placeholders:
             print(f"Warnung: {open_placeholders} offene Platzhalter ([ERGÄNZEN …] oder [KLÄREN …]) im Dokument. Der Export "
                   "enthält sie sichtbar und ist nicht versandfertig (R-7, CV-01, BR-01); der Export blockiert nicht.",

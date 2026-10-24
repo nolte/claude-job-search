@@ -191,7 +191,7 @@ mandatory instruction that is not met is a Blocker.
 | The text retells the Lebenslauf | MS-5.3 | review | Warnung |
 | Longer than the limit of the variant (MS-7.1) | MS-7 | export page check (exit code 4 above two pages, R-10.10); below that the page count of the manifest against the variant | Warnung; no exception |
 | Word count outside 300 to 600 | MS-7.2 | review | Hinweis, never a Blocker (also when no PDF exists) |
-| Export manifest missing, or the export file changed after its manifest | R-10.3, CG-12.5 | review | Warnung |
+| Export manifest missing, or the export file changed after its manifest | R-10.3, CG-12.6 | review | Warnung |
 | Manifest source hash differs from the current `motivationsschreiben.md` (stale export) | CG-12.2 | review | Blocker |
 | PDF without extractable text | CG-12.4 | export check | Blocker |
 | `## Auswahl Motivationsschreiben` missing in `pruefbericht.md` | CG-2.3, R-9.11.5 | review | Warnung |

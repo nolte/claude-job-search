@@ -334,8 +334,9 @@ The skill may reformulate verified content. It may not add facts.
    Warnung for `motivation`. The limit for `cv` with the format `einseitig` is one page. A PDF without
    extractable text is a Blocker. Where LuaLaTeX is not installed, this check is *not run* and the
    report says so.
-5. **Open placeholders.** The export does not block on an open `[ERGÄNZEN …]` or `[KLÄREN …]` (R-6: the user asked
-   for the export, and a preview with the gaps visible is useful). It keeps them visible in the output, reports
+5. **Open placeholders.** The export does not block on an open `[ERGÄNZEN …]` or `[KLÄREN …]` (R-6: the export is
+   made on the user's request, and a preview with the gaps visible is useful; R-7: the quality gate is what blocks).
+   The whole file is searched, frontmatter included, with the marker of CV-01. It keeps them visible in the output, reports
    `Platzhalter: n offen` on stdout and a Warnung on stderr, and leaves the exit code unchanged. The set is not ready
    to send; the quality gate reports the placeholder as a Blocker (CV-01, BR-01).
 6. **Further export findings.** A missing manifest for a file in `export/` is a Warnung. An export
@@ -440,7 +441,7 @@ the gate and the reviewer report the same level.
 | A Motivationsschreiben above the limit of its variant (MS-7) | Warnung; no exception rule |
 | Word count outside the aid range (AS-7.2, MS-7.2) | Hinweis only, never a Blocker; also when no PDF exists |
 | An Anlagen line or an attachment list names a file that does not exist (AS-10.4) | Blocker |
-| Export findings of CG-12 | as listed in CG-12.2, CG-12.4 and CG-12.5 |
+| Export findings of CG-12 | as listed in CG-12.2, CG-12.4, CG-12.5 and CG-12.6 |
 | A `## Auswahl …` section missing in `pruefbericht.md` for a generated document (CG-2.3, R-9.11.5) | Warnung |
 | `grundlage_hash` of a document or an export stale (R-9.5) | Warnung |
 

@@ -119,8 +119,8 @@ Severity of code 4 is set by the quality gate: Blocker for `cv` (LB-13) and `let
    report the difference and do not call the export ready.
 5. If the output has the line `Platzhalter: n offen`, tell the user that the document still holds open `[ERGÄNZEN …]` or
    `[KLÄREN …]` placeholders: they stand visibly in the export, the export is not ready to send, and the quality gate
-   reports them as a Blocker (CV-01, BR-01). The export does not block and the exit code stays 0 (R-6: export only on
-   request, no hidden refusal).
+   reports them as a Blocker (CV-01, BR-01). The export does not block, and the placeholders do not change its exit code (R-6: export only
+   on request; R-7: the gate blocks).
 6. If the report says `grundlage_hash: fehlt`, tell the user that the output cannot be checked against the Grundlage
    (R-10.3) and that the quality gate cannot compare it.
 7. Report the reproduction level from the manifest (`byte_reproduzierbar`, spec `lebenslauf-versionen` LV-5). Export a

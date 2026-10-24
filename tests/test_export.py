@@ -116,6 +116,15 @@ class ExportTests(unittest.TestCase):
         with open(os.path.join(self.out, "Test_Lebenslauf.html"), encoding="utf-8") as handle:
             self.assertIn("ERGÄNZEN", handle.read())
 
+    def test_a_placeholder_in_the_frontmatter_is_counted_like_the_gate_does(self):
+        with open(self.source, encoding="utf-8") as handle:
+            text = handle.read()
+        with open(self.source, "w", encoding="utf-8") as handle:
+            handle.write(text.replace("format: chronologisch", "format: chronologisch\nnotiz: [ERGÄNZEN: Ort]", 1))
+        result = self.export("md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Platzhalter: 1 offen", result.stdout)
+
     def test_a_document_without_placeholders_prints_no_placeholder_line(self):
         result = self.export("md")
         self.assertEqual(result.returncode, 0, result.stderr)
