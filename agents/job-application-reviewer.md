@@ -29,7 +29,7 @@ RC-7 and RC-11, `spec/job-application/motivationsschreiben/en.md` MS-3, MS-6 and
 AS-6.6 and AS-6.8, `spec/job-application/traumjob-interview/en.md` WJ-7.2, `spec/job-application/cv-generierung/en.md` CG-13.
 Paths: `spec/job-application/lokale-struktur/en.md` LS-2.4 and LS-2.6.
 
-The agent cannot run `scripts/cv_checks.py` (CV-01 … CV-18) or compute the `grundlage_hash`, because it has no shell.
+The agent cannot run `scripts/cv_checks.py` (CV-01 … CV-20) or compute the `grundlage_hash`, because it has no shell.
 Deterministic findings and the hash check belong to `job-application-quality-gate` (CG-13.3); the agent works from
 the last `## Prüfung` in `pruefbericht.md` and reports what it cannot verify under "Nicht beurteilbar".
 

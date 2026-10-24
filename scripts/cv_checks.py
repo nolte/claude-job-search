@@ -9,7 +9,8 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
   CV-04 stations not in reverse chronological order (Warnung);
         end before start (Blocker)
   CV-05 number in a bullet not found in the station record        Blocker when the number is
-        nowhere in the Grundlage; Hinweis when it is in another entry of the Grundlage
+        nowhere in the Grundlage; Hinweis when it is in another entry of the Grundlage;
+        Warnung when the station holds the number with another unit or noun
   CV-06 station period differs from the Grundlage                 Blocker
   CV-07 Muss row marked erfüllt without evidence (analysis)       Blocker
   CV-08 table in the Lebenslauf (Blocker with --ats)              Warnung
@@ -22,11 +23,16 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
   CV-14 analysis status vocabulary or evidence strength invalid   Warnung
   CV-15 station not found in the Grundlage                        Blocker
         (Warnung when the Grundlage has no station records)
-  CV-16 personnel-leadership wording: Blocker with `fuehrung: nein`,
-        Warnung when the station note does not record leadership (`ungeklärt`, missing)
+  CV-16 personnel-leadership wording without `fuehrung: ja`        Blocker
+        (`nein`, `ungeklärt` or missing; CG-13.4.3)
   CV-17 sub-bullets below a bullet (not part of R-2.1)            Hinweis
   CV-18 birthdate of a person in analyse.md or a firm file (RC-5.3 rule 5,
         RC-11 rule 4)                                             Warnung
+  CV-19 entry of a list section (skills, languages, certificates, education)
+        that stands nowhere in the Grundlage; a number in its qualifier
+        that stands nowhere                                       Blocker
+  CV-20 station used in the Lebenslauf that the Grundlage records with
+        `Bestätigt: nein` (R-9.5 point 5)                         Blocker
 
 A station header that is not in the strict form `MM/JJJJ – MM/JJJJ | Position | Arbeitgeber, Ort`
 (for example years only) gets CV-02. Its bullets and its period are still checked: the station is
@@ -92,6 +98,17 @@ STANDARD_HEADINGS = (
 )
 # A heading may add a qualifier in parentheses (CG-11.2a), for example `Sprachkenntnisse (GER-Niveau)`.
 STANDARD_HEADING = re.compile(r"^(?:" + "|".join(re.escape(h) for h in STANDARD_HEADINGS) + r")( \(.*\))?$")
+# Station flags of a header-form Grundlage record (`- Team: …; Führung: ja`, `- Bestätigt: ja`). The unfilled
+# template form `ja | nein | ungeklärt` does not count as an answer.
+FUEHRUNG_LINE = re.compile(r"Führung:\s*(ja|nein|ungeklärt)\b(?!\s*\|)", re.IGNORECASE)
+BESTAETIGT_LINE = re.compile(r"Bestätigt:\s*(ja|nein)\b(?!\s*\|)", re.IGNORECASE)
+# List sections whose entries must stand in the Grundlage (CV-19). Free text (Kurzprofil, projects, Ehrenamt,
+# Interessen) is not covered; that stays in the review (CG-13.4.6).
+LIST_SECTIONS = (
+    "IT- und Fachkenntnisse", "Kenntnisse", "Sprachkenntnisse", "Weiterbildung und Zertifikate",
+    "Ausbildung und Studium", "Ausbildung", "Schulbildung",
+)
+LABEL_IS_PERIOD = re.compile(r"^[\d/\s–.\-]*(?:heute)?$")
 ANALYSIS_STATUS = ("erfüllt", "teilweise", "nicht belegt", "unklar")
 ANALYSIS_STRENGTH = ("stark", "mittel", "schwach", "—")
 MAX_BULLETS = 5
@@ -192,6 +209,14 @@ def cv_stations(lines):
     return stations
 
 
+def flag(value, pattern, text):
+    """A station flag from a frontmatter value or, failing that, from a labelled line of the note. '' when absent."""
+    if value:
+        return value.strip().lower()
+    match = pattern.search(text)
+    return match.group(1).lower() if match else ""
+
+
 def grundlage_records(path):
     """Station records of one Grundlage note or of every note below a directory."""
     paths = []
@@ -215,6 +240,7 @@ def grundlage_records(path):
                 "position": meta.get("titel", ""),
                 "employer": meta.get("arbeitgeber", ""),
                 "fuehrung": meta.get("fuehrung", "ungeklärt"),
+                "bestaetigt": flag(meta.get("bestaetigt") or meta.get("bestätigt"), BESTAETIGT_LINE, body),
                 "team_groesse": meta.get("team_groesse", ""),
                 "text": text,
             })
@@ -228,6 +254,7 @@ def grundlage_records(path):
             while end < len(body_lines) and not re.match(r"^#{1,3} ", body_lines[end]):
                 end += 1
             start, end_raw, position, employer = match.groups()
+            block = "\n".join(body_lines[index:end])
             records.append({
                 "file": note,
                 "line": index + 1,
@@ -237,9 +264,10 @@ def grundlage_records(path):
                 "end_raw": end_raw,
                 "position": position.strip(),
                 "employer": employer.split(",")[0].strip(),
-                "fuehrung": "ungeklärt",
+                "fuehrung": flag(None, FUEHRUNG_LINE, block) or "ungeklärt",
+                "bestaetigt": flag(None, BESTAETIGT_LINE, block),
                 "team_groesse": "",
-                "text": "\n".join(body_lines[index:end]),
+                "text": block,
             })
     return records
 
@@ -380,6 +408,8 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
                 continue
             record = select_record(s, candidates, file)
             findings += check_period(s, record, file)
+            if record.get("bestaetigt") == "nein" and not s["gap"]:
+                findings.append(finding("CV-20", "Blocker", file, s["line"], f"Station in der Grundlage nicht bestätigt (`Bestätigt: nein`, CV-20): {s['position']} | {s['employer']}"))
             s["record"] = record
 
     for station_line, items in bullets.items():
@@ -397,9 +427,12 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
             if len(bullet) > MAX_BULLET_CHARS:
                 findings.append(finding("CV-12", "Hinweis", file, number, f"Stichpunkt länger als zwei Zeilen ({len(bullet)} Zeichen, CG-8.1)"))
             if source_text is not None:
-                for token in NUMBER.findall(bullet):
+                for match in NUMBER.finditer(bullet):
+                    token = match.group(0)
                     pattern = number_pattern(token)
                     if record_text is not None and re.search(pattern, record_text):
+                        if not unit_in_record(token, bullet[match.end():], record_text):
+                            findings.append(finding("CV-05", "Warnung", file, number, f"Zahl „{token}“ steht im Stationseintrag, aber nicht mit dieser Einheit oder diesem Bezug (CV-05): " + bullet))
                         continue
                     if re.search(pattern, source_text):
                         if record_text is not None:
@@ -408,8 +441,7 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
                     findings.append(finding("CV-05", "Blocker", file, number, f"Zahl „{token}“ nicht in der Grundlage belegt (CV-05): " + bullet))
             if record is not None and record.get("fuehrung") != "ja" and leadership_wording(bullet):
                 fuehrung = record.get("fuehrung") or "ungeklärt"
-                severity = "Blocker" if fuehrung == "nein" else "Warnung"
-                findings.append(finding("CV-16", severity, file, number, f"Formulierung zur Personalführung ohne `fuehrung: ja` in der Stationsnotiz (fuehrung: {fuehrung}, CV-16): " + bullet))
+                findings.append(finding("CV-16", "Blocker", file, number, f"Formulierung zur Personalführung ohne `fuehrung: ja` in der Grundlage (fuehrung: {fuehrung}, CV-16): " + bullet))
 
     if stations:
         ordered = sorted(stations, key=lambda s: -month_index(s["start"], 1))
@@ -423,6 +455,66 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
             first, last = sorted((newer["line"], older["line"]))
             if not any(first < number < last for number in gap_candidates):
                 findings.append(finding("CV-13", "Blocker", file, newer["line"], f"Lücke von {gap} Monaten zwischen {older['end_raw']} und {newer['start_raw']} ohne neutralen Eintrag (CG-9)"))
+    if source_text is not None:
+        findings += check_list_sections(lines, file, source_text)
+    return findings
+
+
+def normalise(value):
+    """Lower case, punctuation to spaces; `+`, `#` and inner dots stay (`C++`, `.NET`, `Node.js`)."""
+    value = re.sub(r"[^\w+#.]+", " ", value.lower())
+    return " ".join(token.rstrip(".") or token for token in value.split())
+
+
+def in_text(item, normalised_source):
+    """True when the item stands in the source as whole words."""
+    item = normalise(item)
+    return bool(item) and re.search(rf"(?<![\w+#.]){re.escape(item)}(?![\w+#])", normalised_source) is not None
+
+
+def unit_in_record(token, after, record_text):
+    """The number of a bullet stands in the station record with the same unit or noun (compared by its first four
+    letters, so `Entwickler` equals `Entwicklern`). A year, or a number with no word after it, is not compared."""
+    if re.fullmatch(r"(?:19|20)\d{2}", token):
+        return True
+    match = re.match(r"\s*(%|[A-Za-zÄÖÜäöüß]+)", after)
+    if not match:
+        return True
+    unit = match.group(1).lower()[:4]
+    for hit in re.finditer(number_pattern(token), record_text):
+        following = re.match(r"\s*(%|[A-Za-zÄÖÜäöüß]+)", record_text[hit.end():])
+        if following and following.group(1).lower()[:4] == unit:
+            return True
+    return False
+
+
+def check_list_sections(lines, file, source_text):
+    """CV-19: every entry of a list section stands in the Grundlage. An entry is `<Label>: <item>, <item>`: the items
+    are checked, the label only in Sprachkenntnisse (the language) and when it is not a period or a skill group.
+    A number in a parenthesis must stand in the Grundlage."""
+    findings = []
+    normalised = normalise(source_text)
+    section = None
+    for number, line in enumerate(lines, 1):
+        if line.startswith("## "):
+            section = re.sub(r" \(.*\)$", "", line[3:].strip())
+            continue
+        if section not in LIST_SECTIONS or not line.startswith("- ") or PLACEHOLDER.search(line):
+            continue
+        entry = line[2:].strip()
+        label, sep, rest = entry.partition(":")
+        if not sep:
+            label, rest = "", entry
+        checks = [part for part in re.split(r"[,;]", re.sub(r"\([^)]*\)", "", rest)) if part.strip()]
+        if section == "Sprachkenntnisse" and label.strip():
+            checks.append(label)
+        for item in checks:
+            if not in_text(item, normalised):
+                findings.append(finding("CV-19", "Blocker", file, number, f"Eintrag „{item.strip()}“ steht nirgends in der Grundlage (CV-19): " + entry))
+        for qualifier in re.findall(r"\(([^)]*)\)", rest):
+            for token in NUMBER.findall(qualifier):
+                if not re.search(number_pattern(token), source_text):
+                    findings.append(finding("CV-19", "Blocker", file, number, f"Zahl „{token}“ nicht in der Grundlage belegt (CV-19): " + entry))
     return findings
 
 
