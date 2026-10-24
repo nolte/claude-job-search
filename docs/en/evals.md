@@ -115,7 +115,25 @@ One run per case with Sonnet 5.5, total cost 0.89 US dollars, 5 cases (the sixth
 | `behavior-reviewer-stale-report` | passed: the reviewer was called, did not return a plain `READY`, and named the report |
 | `behavior-gate-runs-script` | failed, see "Bash did not work inside the eval sandbox": no script call, report `BLOCKIERT` (an earlier grader read that as wrong; it is not, the fixture holds only a Lebenslauf, and the grader was removed) |
 
-Ten-run batches have not been made. Read the passes as "no sign of a problem", not as a rate.
+## Calibration run (ten runs per case)
+
+Sonnet 5.5 as agent, 10 runs per case, total cost 14.5 US dollars (estimate at list price), about 68 minutes:
+
+| Group | Result |
+|---|---|
+| 14 trigger cases (no scaffold, no grants) | 10 of 10 each; `trigger-reviewer` is 22 of 22 without grants, against three failures in a full run with grants |
+| 4 behavioural cases | 10 of 10 each: `no-invented-skills`, `plan-gate`, `posting-injection`, `reviewer-stale-report` |
+| `behavior-gate-discloses-missing-script` | 6 of 10, see below |
+
+- In 3 of 10 runs of the case without Bash the model still tried Bash once and the call was refused. The grader that required
+  `Bash` to be called 0 times counted the attempt, not the availability, so it was removed. The disclosure graders stay: in
+  those runs the report said openly that the script did not run.
+- In 1 of 10 runs no skill was called (one turn, no report); the other graders then threw because the report file was missing.
+  This is a trigger flake of this prompt, not of the skill (`trigger-quality-gate` is 10 of 10).
+- Without the Bash grader the case passes in 9 of 10 runs; the one failure is the trigger flake.
+- A trigger run needs up to 7 turns (`trigger-quality-gate`), so `max_turns` of the trigger cases is 10.
+- 10 of 10 means "at least about 72 %" (lower 95 % bound), not a rate of 100 %. A case that never fails may also be
+  insensitive: the next step is to weaken a skill on purpose and see the case turn red (see below).
 
 ## Reading and calibrating the result
 

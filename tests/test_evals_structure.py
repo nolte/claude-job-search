@@ -46,14 +46,14 @@ class EvalSuiteTests(unittest.TestCase):
                    "append_system_prompt", "env", "expected_outcome"}
 
     def test_prompt_frontmatter_uses_only_documented_keys_and_enough_turns(self):
-        # unknown keys are an error of the tool (docs/en/evals.md); a trigger run needs about five turns
+        # unknown keys are an error of the tool (docs/en/evals.md); a trigger run needs five to seven turns
         for case in CASES:
             head = read(os.path.join(case, "prompt.md")).split("---")[1]
             keys = set(re.findall(r"(?m)^([a-z_]+):", head))
             self.assertLessEqual(keys, self.PROMPT_KEYS, case)
             turns = int(re.search(r"(?m)^max_turns: (\d+)$", head).group(1))
             if os.path.basename(case).startswith("trigger-"):
-                self.assertGreaterEqual(turns, 6, case)
+                self.assertGreaterEqual(turns, 10, case)
 
     def test_regex_flags_are_known_and_every_negative_grader_has_a_positive_guard(self):
         # a "must not" grader passes when the run fails early; a positive grader in the same case proves that the thing happened
@@ -115,11 +115,11 @@ class EvalSuiteTests(unittest.TestCase):
             tags = set(re.findall(r"[\w-]+", re.search(r"(?m)^tags: \[(.*)\]$", head).group(1)))
             self.assertLessEqual(tags, {"trigger", "behavior", "precondition", "no-bash", "needs-bash", "bash-denied"}, case)
             if "bash-denied" in tags:
-                # run.sh runs these cases without Bash (--disallow-tools); a guard proves it, no grader may require Bash
+                # run.sh runs these cases without Bash (--disallow-tools); no grader may require a Bash call, and none may
+                # forbid one: the model still tries Bash in about 3 of 10 runs and the call is refused (calibration run)
                 self.assertEqual(tags, {"bash-denied"}, case)
                 texts = [read(g) for g in glob.glob(os.path.join(case, "graders", "*.md"))]
-                self.assertTrue(any(re.search(r"(?m)^tool: Bash$", x) and re.search(r"(?m)^max: 0$", x) for x in texts), f"{case}: no guard that Bash was absent")
-                self.assertFalse(any(re.search(r"(?m)^tool: Bash$", x) and not re.search(r"(?m)^max: 0$", x) for x in texts), case)
+                self.assertFalse(any(re.search(r"(?m)^tool:\s*[\"']?Bash", x) for x in texts), case)
                 continue
             if "behavior" not in tags:
                 self.assertFalse(tags & {"no-bash", "needs-bash"}, case)
