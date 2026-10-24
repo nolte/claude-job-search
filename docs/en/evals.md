@@ -46,7 +46,7 @@ task eval -- trigger                # the same through the Taskfile
 Reports are never published: the script always passes `--no-publish`. Without it, the HTML report is published to
 claude.ai by default when your account supports it.
 
-Results are in `evals/results/last-run.json` and, per run, in `evals/results/<timestamp>/` (`report.html` and the JSON).
+Results are in `evals/results/last-run.json` (behaviour; `last-run-trigger.json` for the trigger cases of `all`, `last-run-bash-denied.json` for the bash-denied ones) and, per run, in `evals/results/<timestamp>/` (`report.html` and the JSON).
 `evals/results/` is git-ignored.
 
 ## What the suite contains

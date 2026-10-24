@@ -155,6 +155,19 @@ class EvalSuiteTests(unittest.TestCase):
             case_yaml = read(os.path.join(os.path.dirname(script), "case.yaml"))
             self.assertIn("scaffold_script: fixture.sh", case_yaml, script)
 
+    def test_the_trigger_cases_of_all_run_without_scaffold_and_grants(self):
+        # With Bash, Write and Edit granted the model sometimes does the work itself instead of calling the skill or the
+        # agent (trigger-reviewer failed three full runs in a row, and passed 11 of 11 without the grants).
+        runner = read(os.path.join(EVALS, "run.sh"))
+        m = re.search(r"(?m)^trigger_args=\((.*)\)$", runner)
+        self.assertIsNotNone(m, "run.sh needs its own trigger invocation")
+        self.assertIn("--tag trigger", m.group(1))
+        self.assertNotIn("--scaffold", m.group(1))
+        self.assertNotIn("--allow-tools", m.group(1))
+        all_branch = re.search(r"(?m)^  all\).*\n.*\n", runner).group(0)
+        self.assertNotIn("--tag trigger", all_branch, "the main run of `all` must not carry the trigger cases")
+        self.assertIn("run_trigger=1", all_branch)
+
     def test_runner_never_publishes_and_caps_the_cost(self):
         runner = read(os.path.join(EVALS, "run.sh"))
         self.assertIn("--no-publish", runner)

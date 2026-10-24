@@ -3,7 +3,7 @@
 #
 #   evals/run.sh trigger            one natural request per skill and the reviewer (14 runs)
 #   evals/run.sh behavior           the behavioural cases (scaffolds a fictional Wurzel, grants Bash, Write, Edit)
-#   evals/run.sh all                both
+#   evals/run.sh all                both, in separate invocations (triggers, behaviour, bash-denied)
 #   evals/run.sh <case-glob>        one case or a glob, for example behavior-plan-gate
 #                                   (a case tagged bash-denied runs in its own invocation without Bash)
 #
@@ -85,23 +85,29 @@ main_args=("${common[@]}" ${grants[@]+"${grants[@]}"} --json "evals/results/last
 # Cases tagged bash-denied need a run in which Bash is removed for every case (--disallow-tools); the grant of Bash
 # cannot be taken back for one case. They get their own invocation and do not run in the main one.
 denied_args=("${common[@]}" --scaffold --allow-tools Write --allow-tools Edit --disallow-tools Bash --json "evals/results/last-run-bash-denied.json")
-if [ -n "${RUNS:-}" ]; then main_args+=(--runs "$RUNS"); denied_args+=(--runs "$RUNS"); fi
+# The trigger cases of `all` run in their own invocation without --scaffold and without grants: with Bash, Write and Edit
+# at hand the model sometimes does the work itself instead of calling the skill or agent (trigger-reviewer failed three
+# full runs in a row, and passed 11 of 11 as the trigger target).
+trigger_args=("${common[@]}" --json "evals/results/last-run-trigger.json" --tag trigger)
+if [ -n "${RUNS:-}" ]; then main_args+=(--runs "$RUNS"); denied_args+=(--runs "$RUNS"); trigger_args+=(--runs "$RUNS"); fi
 
 
-run_main=0; run_denied=0
+run_main=0; run_denied=0; run_trigger=0
 case "$TARGET" in
   trigger)  main_args+=(--tag trigger); run_main=1 ;;
   behavior) if [ "$bash_ok" = "1" ]; then main_args+=(--tag behavior); else main_args+=(--tag no-bash); fi
             run_main=1; run_denied=1; denied_args+=(--tag bash-denied) ;;
-  all)      if [ "$bash_ok" = "1" ]; then main_args+=(--tag trigger --tag behavior); else main_args+=(--tag trigger --tag no-bash); fi
-            run_main=1; run_denied=1; denied_args+=(--tag bash-denied) ;;
+  all)      if [ "$bash_ok" = "1" ]; then main_args+=(--tag behavior); else main_args+=(--tag no-bash); fi
+            run_trigger=1; run_main=1; run_denied=1; denied_args+=(--tag bash-denied) ;;
   *)        if is_denied_case "$TARGET"; then run_denied=1; denied_args+=(--case "$TARGET")
             else run_main=1; main_args+=(--case "$TARGET")
                  [ "$bash_ok" = "0" ] && echo "Note: a case tagged needs-bash that you selected by name will fail here." >&2
             fi ;;
 esac
 
-main_rc=0; denied_rc=0
+main_rc=0; denied_rc=0; trigger_rc=0
+[ "$run_trigger" = "1" ] && { echo "Run without scaffold and grants: trigger cases (results in evals/results/last-run-trigger.json)" >&2; claude "${trigger_args[@]}" "$@" || trigger_rc=$?; }
 [ "$run_main" = "1" ] && { claude "${main_args[@]}" "$@" || main_rc=$?; }
 [ "$run_denied" = "1" ] && { echo "Run without Bash: bash-denied cases (results in evals/results/last-run-bash-denied.json)" >&2; claude "${denied_args[@]}" "$@" || denied_rc=$?; }
-exit $(( main_rc > denied_rc ? main_rc : denied_rc ))
+rc=$main_rc; [ "$denied_rc" -gt "$rc" ] && rc=$denied_rc; [ "$trigger_rc" -gt "$rc" ] && rc=$trigger_rc
+exit "$rc"
