@@ -1,6 +1,6 @@
 ---
 description: Docker, Terraform and 5 years of cloud experience are wanted but not in the Grundlage; the CV must not claim them.
-tags: [behavior]
+tags: [behavior, no-bash]
 plugins: ["../.."]
 runs: 3
 max_turns: 30

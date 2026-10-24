@@ -8,7 +8,8 @@ run, what the cases mean, what the first exploratory run found.
 ```bash
 export ANTHROPIC_API_KEY=...
 evals/run.sh trigger      # one natural request per skill and the reviewer
-evals/run.sh behavior     # behavioural cases; the preconditions behavior-bash-works and behavior-python-works run first
+evals/run.sh behavior     # behavioural cases; the preconditions behavior-bash-works and behavior-python-works run first;
+                          # cases tagged bash-denied run in a second invocation without Bash
 task eval -- behavior     # the same through the Taskfile
 ```
 

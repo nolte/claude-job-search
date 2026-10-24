@@ -1,6 +1,6 @@
 ---
 description: The router presents a plan and waits for approval; no document exists before it.
-tags: [behavior]
+tags: [behavior, no-bash]
 plugins: ["../.."]
 runs: 3
 max_turns: 25

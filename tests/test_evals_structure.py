@@ -9,6 +9,8 @@ import glob
 import os
 import re
 import stat
+import subprocess
+import tempfile
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -30,13 +32,13 @@ class EvalSuiteTests(unittest.TestCase):
         self.assertIn("trigger-reviewer", names)
 
     def test_every_case_has_a_prompt_a_grader_and_the_plugin(self):
-        self.assertGreaterEqual(len(CASES), 21)
+        self.assertGreaterEqual(len(CASES), 22)
         for case in CASES:
             graders = glob.glob(os.path.join(case, "graders", "*.md"))
             self.assertTrue(graders, f"{case}: a case without a grader does not load")
             prompt = read(os.path.join(case, "prompt.md"))
             self.assertRegex(prompt, r'(?m)^plugins: \["\.\./\.\."\]$', case)
-            self.assertRegex(prompt, r"(?m)^tags: \[(trigger|behavior|precondition)", case)
+            self.assertRegex(prompt, r"(?m)^tags: \[(trigger|behavior|precondition|bash-denied)", case)
             for grader in graders:
                 self.assertRegex(read(grader), r"(?m)^type: (regex|tool_used|tool_order|file_exists|llm|baseline)$", grader)
 
@@ -105,6 +107,31 @@ class EvalSuiteTests(unittest.TestCase):
             head = text if path.endswith(".yaml") else text.split("---")[1]
             self.assertIsInstance(yaml.safe_load(head), dict, path)
 
+    def test_behavior_cases_say_whether_they_need_bash(self):
+        # run.sh leaves out the needs-bash cases when a precondition is red and runs the no-bash ones; a case that is
+        # tagged no-bash must not require a Bash call, a needs-bash case must
+        for case in CASES:
+            head = read(os.path.join(case, "prompt.md")).split("---")[1]
+            tags = set(re.findall(r"[\w-]+", re.search(r"(?m)^tags: \[(.*)\]$", head).group(1)))
+            self.assertLessEqual(tags, {"trigger", "behavior", "precondition", "no-bash", "needs-bash", "bash-denied"}, case)
+            if "bash-denied" in tags:
+                # run.sh runs these cases without Bash (--disallow-tools); a guard proves it, no grader may require Bash
+                self.assertEqual(tags, {"bash-denied"}, case)
+                texts = [read(g) for g in glob.glob(os.path.join(case, "graders", "*.md"))]
+                self.assertTrue(any(re.search(r"(?m)^tool: Bash$", x) and re.search(r"(?m)^max: 0$", x) for x in texts), f"{case}: no guard that Bash was absent")
+                self.assertFalse(any(re.search(r"(?m)^tool: Bash$", x) and not re.search(r"(?m)^max: 0$", x) for x in texts), case)
+                continue
+            if "behavior" not in tags:
+                self.assertFalse(tags & {"no-bash", "needs-bash"}, case)
+                continue
+            self.assertEqual(len(tags & {"no-bash", "needs-bash"}), 1, f"{case}: a behavior case is either no-bash or needs-bash")
+            requires_bash = False
+            for grader in glob.glob(os.path.join(case, "graders", "*.md")):
+                text = read(grader)
+                if re.search(r"(?m)^tool: Bash$", text) and not re.search(r"(?m)^max: 0$", text):
+                    requires_bash = True
+            self.assertEqual(requires_bash, "needs-bash" in tags, f"{case}: tags and graders disagree about Bash")
+
     def test_trigger_cases_check_the_skill_they_are_named_after(self):
         for case in CASES:
             name = os.path.basename(case)
@@ -129,6 +156,83 @@ class EvalSuiteTests(unittest.TestCase):
         for script in glob.glob(os.path.join(EVALS, "*", "fixture.sh")):
             case_yaml = read(os.path.join(os.path.dirname(script), "case.yaml"))
             self.assertIn("scaffold_script: fixture.sh", case_yaml, script)
+
+    def run_runner(self, *args, red=(), exit_codes=None, skip_precheck=True):
+        """Run evals/run.sh against a stub `claude` that logs its arguments; returns (exit code, list of argument lists)."""
+        exit_codes = exit_codes or {}
+        with tempfile.TemporaryDirectory() as tmp:
+            log = os.path.join(tmp, "calls.log")
+            stub = os.path.join(tmp, "claude")
+            with open(stub, "w") as fh:
+                fh.write(
+                    "#!/usr/bin/env bash\n"
+                    'echo "$*" >> "$STUB_LOG"\n'
+                    'for r in $STUB_RED; do case "$*" in *"--case $r "*|*"--case $r") exit 1 ;; esac; done\n'
+                    'case "$*" in *"--tag trigger"*) exit "${STUB_RC_TRIGGER:-0}" ;; *"--disallow-tools"*) exit "${STUB_RC_DENIED:-0}" ;; esac\n'
+                    'exit "${STUB_RC_MAIN:-0}"\n')
+            os.chmod(stub, 0o755)
+            env = dict(os.environ, PATH=tmp + os.pathsep + os.environ["PATH"], STUB_LOG=log, ANTHROPIC_API_KEY="x",
+                       STUB_RED=" ".join(red), **{"STUB_RC_" + k.upper(): str(v) for k, v in exit_codes.items()})
+            env.pop("SKIP_PRECHECK", None)
+            if skip_precheck:
+                env["SKIP_PRECHECK"] = "1"
+            proc = subprocess.run([os.path.join(EVALS, "run.sh"), *args], env=env, capture_output=True, text=True)
+            calls = []
+            if os.path.exists(log):
+                with open(log) as fh:
+                    calls = [l.split() for l in fh.read().splitlines()]
+        return proc.returncode, calls, proc.stderr
+
+    def test_all_runs_triggers_behaviour_and_bash_denied_in_three_invocations(self):
+        rc, calls, _ = self.run_runner("all")
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(calls), 3, calls)
+        trigger, main, denied = calls
+        # the trigger cases get no scaffold and no grants: with Bash, Write and Edit at hand the model sometimes does the
+        # work itself instead of calling the skill or the agent (trigger-reviewer failed three full runs in a row)
+        self.assertIn("trigger", trigger)
+        for flag in ("--scaffold", "--allow-tools"):
+            self.assertNotIn(flag, trigger)
+        self.assertNotIn("--tag trigger", " ".join(main))
+        self.assertIn("behavior", main)
+        self.assertIn("--scaffold", main)
+        # Bash is taken away for the bash-denied cases, and only there
+        self.assertIn("--disallow-tools", denied)
+        self.assertIn("bash-denied", denied)
+        self.assertNotIn("--disallow-tools", main + trigger)
+
+    def test_a_red_precondition_leaves_out_the_needs_bash_cases(self):
+        rc, calls, err = self.run_runner("all", red=["behavior-bash-works"], skip_precheck=False)
+        self.assertEqual(rc, 0)
+        pre = [c for c in calls if "--runs" in c and "1" == c[c.index("--runs") + 1] and "--case" in c]
+        self.assertEqual({c[c.index("--case") + 1] for c in pre}, {"behavior-bash-works", "behavior-python-works"})
+        def tags(call):
+            return [call[i + 1] for i, a in enumerate(call) if a == "--tag"]
+        main = [c for c in calls if "no-bash" in tags(c)]
+        self.assertEqual(len(main), 1, calls)
+        self.assertNotIn("behavior", tags(main[0]))
+        self.assertIn("behavior-gate-runs-script", err)
+
+    def test_the_cost_ceiling_stops_the_remaining_invocations(self):
+        rc, calls, _ = self.run_runner("all", exit_codes={"trigger": 2})
+        self.assertEqual(rc, 2)
+        self.assertEqual(len(calls), 1, calls)
+
+    def test_a_failed_threshold_does_not_hide_the_other_invocations(self):
+        rc, calls, _ = self.run_runner("all", exit_codes={"main": 1})
+        self.assertEqual(rc, 1)
+        self.assertEqual(len(calls), 3, calls)
+
+    def test_a_glob_that_mixes_bash_denied_and_other_cases_is_refused(self):
+        rc, calls, _ = self.run_runner("behavior-gate-*")
+        self.assertEqual(rc, 64)
+        self.assertEqual(calls, [])
+
+    def test_a_bash_denied_case_runs_alone_without_bash_and_without_preconditions(self):
+        rc, calls, _ = self.run_runner("behavior-gate-discloses-missing-script", skip_precheck=False)
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(calls), 1, calls)
+        self.assertIn("--disallow-tools", calls[0])
 
     def test_runner_never_publishes_and_caps_the_cost(self):
         runner = read(os.path.join(EVALS, "run.sh"))
