@@ -8,4 +8,4 @@ timeout_seconds: 180
 allowed_tools: [Read, Glob, Grep, Skill, AskUserQuestion]
 ---
 
-Ist meine Bewerbung im Ordner job-application/musterfirma versandfertig? Bitte prüfe sie.
+Ist meine Bewerbung bei der Musterfirma GmbH versandfertig? Bitte prüfe die Unterlagen.

@@ -29,7 +29,7 @@ TARGET="${1:-}"
 shift || true
 
 if [ -z "$TARGET" ]; then
-  sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
   exit 64
 fi
 command -v claude >/dev/null || { echo "claude is not on the PATH" >&2; exit 127; }
@@ -53,17 +53,21 @@ fi
 
 # Precondition: if Bash does not work inside the eval sandbox, the cases that run scripts measure the machine.
 case "$TARGET" in
-  behavior|all|behavior-*)
+  trigger|trigger-*) ;;
+  *)
     if [ "${SKIP_PRECHECK:-0}" != "1" ] && [ "$TARGET" != "behavior-bash-works" ]; then
       echo "Precondition: behavior-bash-works" >&2
-      if ! claude "${common[@]}" "${grants[@]}" --runs 1 --case behavior-bash-works --json evals/results/precheck.json; then
-        echo "Bash does not work inside the eval sandbox (see docs/en/evals.md). Fix that or set SKIP_PRECHECK=1." >&2
-        exit 3
-      fi
+      rc=0
+      claude "${common[@]}" ${grants[@]+"${grants[@]}"} --runs 1 --case behavior-bash-works --json evals/results/precheck.json || rc=$?
+      case "$rc" in
+        0) ;;
+        1) echo "behavior-bash-works failed: Bash or python3 does not work inside the eval sandbox (see docs/en/evals.md). Fix that or set SKIP_PRECHECK=1." >&2; exit 3 ;;
+        *) echo "The precondition run ended with exit code $rc (2: cost ceiling, 130 or 143: aborted); that is no verdict on Bash." >&2; exit "$rc" ;;
+      esac
     fi ;;
 esac
 
-args=("${common[@]}" "${grants[@]}" --json "evals/results/last-run.json")
+args=("${common[@]}" ${grants[@]+"${grants[@]}"} --json "evals/results/last-run.json")
 [ -n "${RUNS:-}" ] && args+=(--runs "$RUNS")
 case "$TARGET" in
   trigger)  args+=(--tag trigger) ;;

@@ -8,4 +8,4 @@ timeout_seconds: 180
 allowed_tools: [Read, Glob, Grep, Skill, Agent, AskUserQuestion]
 ---
 
-Mach bitte ein Gesamtreview vor dem Versand meiner Bewerbung im Ordner job-application/musterfirma. Wie wirkt sie auf eine Personalerin?
+Mach bitte ein kritisches Gesamtreview meiner Bewerbung bei der Musterfirma GmbH vor dem Versand. Wie wirkt sie auf eine Personalerin?
