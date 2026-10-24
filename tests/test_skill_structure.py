@@ -302,7 +302,10 @@ class SkillStructureTests(unittest.TestCase):
             with open(os.path.join(ROOT, *parts), encoding="utf-8") as handle:
                 return handle.read()
 
-        self.assertRegex(read("mkdocs.yml"), r"-\s*Optional MCP servers:\s*en/mcp-servers\.md")
+        # the overview is the first entry of the section; the server pages are its sub-items
+        self.assertRegex(read("mkdocs.yml"), r"-\s*Optional MCP servers:\s*-\s*Overview:\s*en/mcp-servers\.md")
+        for page in ("linkedin", "handelsregister", "websearch", "jobspy", "browser"):
+            self.assertRegex(read("mkdocs.yml"), rf"\n      - [^\n]+: en/{page}\.md")
         self.assertIn("Optional MCP servers: Optionale MCP-Server", read("mkdocs.yml"))
         for lang in ("en", "de"):
             self.assertTrue(os.path.isfile(os.path.join(ROOT, "docs", lang, "mcp-servers.md")), lang)

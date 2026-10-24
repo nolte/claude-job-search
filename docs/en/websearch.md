@@ -125,7 +125,7 @@ The record in `## Recherche` lists the route used and every search with engine, 
    dated, not the snippet (RC-5.5 rule 1).
 5. **No browser.** The research does not use Playwright or `renderMode: browser`. A page that is
    readable only with JavaScript is recorded as `nicht ermittelt` with the reason. You may paste
-   the text yourself. The one planned exception is a posting URL that you give yourself; see
+   the text yourself. The one exception is a posting URL that you give yourself; see
    [Browser MCP](browser.md).
 6. **Not for LinkedIn and not for registers.** A `linkedin.com` URL is never passed to the fetch
    tools (RC-5.4 rule 6). Use the [LinkedIn server](linkedin.md) or paste the text. Handelsregister,

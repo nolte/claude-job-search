@@ -54,7 +54,7 @@ check.
 
 | Field | Required | Default | Notes |
 |---|---|---|---|
-| `stellenanzeige` | yes | — | Posting text pasted by the user, or a file path. A URL is fetched only if the user asks; postings often block automated fetches. A `linkedin.com` URL is never fetched or searched: the user pastes the text, or the LinkedIn MCP server reads it after the consent of RC-5.4 rule 2. |
+| `stellenanzeige` | yes | — | Posting text pasted by the user, a file path, or one posting URL. A URL goes to the intake of `job-application-posting-analysis` (UE-1 to UE-13): the page is loaded, shown for confirmation and only then saved; if it cannot be read, the user pastes the text. A `linkedin.com` URL is never fetched or searched: the user pastes the text, or the LinkedIn MCP server reads it after the consent of RC-5.4 rule 2. |
 | `bewerbungsweg` | no | asked | `email`, `portal`, or `post`. Decides whether the E-Mail skill runs and whether the Anschreiben gets a portal copy (AS-8.1). |
 | `ausrichtung` | no | `ausschreibung` | `ausschreibung`, `initiativ`, `quereinstieg`, `berufseinstieg`, or `vermittler`. |
 | `ziel_ordner` | no | `<wurzel>/<firma-slug>-<stelle-slug>/` | The Vorgang folder (LS-3). A second Vorgang for the same company and role gets a numeric suffix (LS-6 rule 6). |
