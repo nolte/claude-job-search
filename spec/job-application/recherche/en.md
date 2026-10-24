@@ -347,7 +347,8 @@ open-webSearch server and the built-in tools alike (rule 4).
    (rule 1, RC-5.2 rule 2).
 9. **No browser mode.** Rendering with a browser or Playwright is not used. A page that is readable
    only with JavaScript is `nicht ermittelt` with the reason `nur mit JavaScript lesbar`; the user
-   may paste the text.
+   may paste the text. The one exception is the intake of a posting from a URL that the user gave
+   (`spec/job-application/stellenanzeige-url/en.md` UE-4 rule 7); it does not extend to the research.
 10. **Records.** Each search is listed with engine, query and date in the record (RC-9, block
     `### Suchen`), so that the query rules of UA-3.2 can be checked afterwards.
 11. **Terms.** The generic terms of the table above are the only terms; the server does not widen
