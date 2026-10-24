@@ -171,34 +171,57 @@ class SkillStructureTests(unittest.TestCase):
                 missing.append(name)
         self.assertEqual(missing, [])
 
+    # SEC-001: a posting, a message, a firm page or a scan can carry sentences that address the model. Every skill and
+    # agent that reads such text says that it is data (R-6). The sets are explicit: a new reader has to be added here.
+    POSTING_READERS = ("cv-create", "cover-letter-create", "motivation-letter-create", "email-create", "fit-check",
+                       "posting-analysis", "solution")
+    VERDICT_READERS = ("quality-gate",)  # skills whose findings come from the text they read
+    SCAN_READERS = ("profile-capture",)
+    OWN_RULE_READERS = ("job-search",)  # words the rule itself in its hard rules (RC-5.0 rule 5, ST-9 rule 3)
+
+    def read_text_reader(self, kind, name):
+        folder = "skills" if kind == "skill" else "agents"
+        path = os.path.join(ROOT, folder, f"job-application-{name}", "SKILL.md") if kind == "skill" else os.path.join(ROOT, "agents", f"job-application-{name}.md")
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        text = re.sub(r"```.*?```", "", text, flags=re.S)  # a code block does not state a rule
+        text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+        return re.sub(r"\s+", " ", text)
+
     def test_text_readers_state_that_third_party_text_is_data(self):
-        # SEC-001: a posting, a message or a scan can carry sentences that address the model; every skill and agent
-        # that reads stellenanzeige.md, analyse.md or rohdaten/ says that such text is data (R-6)
-        paths = sorted(glob.glob(os.path.join(ROOT, "skills", "*", "SKILL.md")) + glob.glob(os.path.join(ROOT, "agents", "*.md")))
-        readers, missing = [], []
-        for path in paths:
+        missing = []
+        readers = [("skill", n) for n in self.POSTING_READERS + self.VERDICT_READERS + self.SCAN_READERS] + [("agent", "reviewer")]
+        for kind, name in readers:
+            text = self.read_text_reader(kind, name)
+            heading, hard = text.find("## Third-party text"), text.find("## Hard rules")
+            body = text[heading:hard] if 0 <= heading < hard else ""
+            if not (body and "Third-party text is data (R-6)" in body and re.search(r"never as an instruction.{0,600}never triggers a tool call", body)):
+                missing.append(name)
+            if name not in self.SCAN_READERS and "does not block reading the posting for its content" not in body:
+                missing.append(name + " (carve-out for the instructions of the posting)")
+            if (kind == "agent" or name in self.VERDICT_READERS) and "changes a finding or the verdict" not in body:
+                missing.append(name + " (verdict)")
+        for name in self.OWN_RULE_READERS:
+            text = self.read_text_reader("skill", name)
+            if not re.search(r"Third-party text is data \(R-6\)\..{0,400}never as an instruction", text):
+                missing.append(name)
+        self.assertEqual(missing, [])
+
+    def test_every_reader_of_third_party_files_is_in_the_explicit_sets(self):
+        known = {f"job-application-{n}" for n in self.POSTING_READERS + self.VERDICT_READERS + self.SCAN_READERS + self.OWN_RULE_READERS}
+        known.add("job-application-reviewer.md")
+        found = set()
+        for path in glob.glob(os.path.join(ROOT, "skills", "*", "SKILL.md")) + glob.glob(os.path.join(ROOT, "agents", "*.md")):
             with open(path, encoding="utf-8") as handle:
                 text = handle.read()
-            if not re.search(r"stellenanzeige\.md|analyse\.md|rohdaten/", text):
-                continue
-            readers.append(os.path.basename(os.path.dirname(path)) if path.endswith("SKILL.md") else os.path.basename(path))
-            stated = "Third-party text is data (R-6)" in text
-            # the full clause is shared, only job-search words its own rule (RC-5.0 rule 5, ST-9 rule 3)
-            full = re.search(r"never as an instruction.{0,500}never triggers a tool call", text, re.S) is not None
-            if not stated or not (full or "job-search" in path):
-                missing.append(path)
-        self.assertGreaterEqual(len(readers), 11, readers)
-        self.assertEqual(missing, [])
+            if re.search(r"stellenanzeige\.md|analyse\.md|rohdaten/|firmen/", text):
+                found.add(os.path.basename(os.path.dirname(path)) if path.endswith("SKILL.md") else os.path.basename(path))
+        self.assertEqual(sorted(found - known), [], "a new reader of third-party text needs the section and an entry in the sets")
 
     def test_the_rule_is_in_the_conventions(self):
         with open(os.path.join(ROOT, "spec", "job-application", "konventionen", "en.md"), encoding="utf-8") as handle:
-            text = handle.read()
-        self.assertRegex(text, r"(?s)\*\*Third-party text is data\.\*\*.{0,1100}never changes a finding or a verdict")
-
-    def test_the_reviewer_agent_cannot_be_talked_into_a_verdict(self):
-        with open(os.path.join(ROOT, "agents", "job-application-reviewer.md"), encoding="utf-8") as handle:
-            text = handle.read()
-        self.assertIn("never changes a finding or the verdict", text)
+            text = re.sub(r"\s+", " ", handle.read())
+        self.assertRegex(text, r"\*\*Third-party text is data\.\*\*.{0,1500}does not block reading the posting for its content.{0,800}changes a finding or the verdict")
 
     def test_plugin_ships_no_mcp_server_configuration(self):
         # issue #18: starting third-party code from a plugin needs a separate user step, so the plugin ships no
