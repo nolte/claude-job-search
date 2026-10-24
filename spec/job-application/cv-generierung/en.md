@@ -50,8 +50,7 @@ Authority runs from the top down. A level may only use facts from the levels abo
      source or the user's confirmation) and `## Team` (team structure: size, roles around the
      candidate, reporting line, and whether the candidate led people).
    - Rules: a number in a CV bullet must appear in the note (CV-05). Leadership wording needs
-     `fuehrung: ja` in the note (CV-16; Warnung while `fuehrung` is `ungeklärt` or missing, Blocker
-     with `fuehrung: nein`). A year-only period is accepted in the note; the CV then shows the
+     `fuehrung: ja` in the note (CV-16; Blocker while `fuehrung` is `nein`, `ungeklärt` or missing). A year-only period is accepted in the note; the CV then shows the
      year-only header line unchanged and CV-02 reports a Warnung. No `[ERGÄNZEN: Monat]` placeholder
      is written, and the note does not have to be completed (CG-9). Title and employer in the CV
      equal the note's `titel` and `arbeitgeber` (CV-15).
@@ -188,9 +187,8 @@ The skill may reformulate verified content. It may not add facts.
   `vielfältig`, `Expertise in`, `sicher in`) are flagged as Warnung, because they hide the actual
   task or claim a quality without proof;
 - *automated* (CV-16): leadership wording (`geleitet`, `Teamleitung`, `führte`, `Personalverantwortung`
-  and similar) is a Warnung while the station note has `fuehrung: ungeklärt` or no `fuehrung`, and a
-  Blocker when the note records `fuehrung: nein`. With `fuehrung: ja` there is no finding (CG-7.2,
-  leadership);
+  and similar) is a Blocker unless the station note records `fuehrung: ja` (`nein`, `ungeklärt` and a missing entry
+  all block, CG-13.4.3). With `fuehrung: ja` there is no finding (CG-7.2, leadership);
 - *review*: the remaining semantic checks of CG-7.2 (ownership, expertise, proficiency) are made by
   the generating skill and the reviewer agent. They are not decided by the script.
 
@@ -398,22 +396,28 @@ and lets the user decide.
 3. **CV-16 severity.** Personnel-leadership wording is a Blocker unless the Grundlage records `fuehrung: ja`
    for the station (CG-7.3). `nein`, `ungeklärt` and a missing entry all block: leadership that is not
    evidenced is not written. The way to unlock a true claim is to record it: the station note key
-   `fuehrung: ja`, or the line `Führung: ja` in the block of a header-form station (R-9.3). The unfilled
-   template form `Führung: ja | nein | ungeklärt` is no answer.
+   `fuehrung: ja`, or the line `Führung: ja` in the block of a header-form station (R-9.3). The key stands at the start of the line or after `;`, `,` or `|`, so `Fachliche Führung: ja` is no answer, and the
+   value is read without regard to case. The unfilled template form `Führung: ja | nein | ungeklärt` is no answer.
 4. **CV-11 severity** is Warnung for every phrase of CG-8.2.3 (CG-7.3).
 5. **CV-17** reports sub-bullets as Hinweis (R-2.1: a station block has bullets, no sub-bullets).
 6. **CV-19 scope.** The list sections `IT- und Fachkenntnisse`, `Kenntnisse`, `Sprachkenntnisse`,
    `Weiterbildung und Zertifikate`, `Ausbildung und Studium`, `Ausbildung` and `Schulbildung` are checked entry by
    entry. An entry is `<Label>: <item>, <item>`; each item must stand in the Grundlage as whole words
    (case, punctuation and parentheses ignored). The label is checked only in `Sprachkenntnisse` (the language);
-   a period or a skill group label is not. A number in a parenthesis must stand in the Grundlage. An entry with a
+   a period or a skill group label is not. A language and its level must stand together on one line of the Grundlage (`Englisch (C2)` is blocked when
+   only `Englisch B2` stands there). A number in a parenthesis must stand in the Grundlage, not as part of a word
+   (`B2` does not carry a `2`). A leading period (`2014`, `09/2010 – 06/2014`) is dropped, `|` separates the parts of
+   an entry, `und` and `&` join two items, `ä ö ü ß` equal `ae oe ue ss`, Markdown emphasis is ignored. The match
+   covers the whole Grundlage: a skill named in a negation (`kein Kubernetes`) or a one-letter name (`R`, `Go`) can be
+   backed by an unrelated passage; that stays with the review. An entry with a
    placeholder is left to CV-01. The match is exact and makes no claim about meaning: a paraphrase
    (`Container-Orchestrierung` for `Kubernetes`) is a Blocker here and is cleared by using the Grundlage's word,
    and an entry that the Grundlage states in other words stays a judgement of the review. Free text (Kurzprofil,
    Relevante Projekte, Ehrenamt, Interessen) is not covered and stays with the review.
 7. **CV-05 unit.** When a number of a bullet stands in the station record, the word after it (a unit or a noun) must
    stand after the same number there, compared by its first four letters (`Entwickler`, `Entwicklern`). A different
-   unit is a Warnung. A year, and a number with no word after it, are not compared.
+   unit is a Warnung. `%` equals `Prozent`. Not compared: a year, a number with no word after it, a standard number (`ISO 27001`) and a
+   number that the record gives with no word after it. A year used as a quantity (`2000 Nutzer`) is not caught.
 8. **CV-20.** A station used in the Lebenslauf that the Grundlage records with `Bestätigt: nein` (header-form line
    `- Bestätigt: nein`, or the station note key `bestaetigt: nein`) is a Blocker: a station counts only once the user has confirmed it (R-9.5 point 5). A missing flag is no finding, so
    older Grundlagen keep working.

@@ -100,8 +100,10 @@ STANDARD_HEADINGS = (
 STANDARD_HEADING = re.compile(r"^(?:" + "|".join(re.escape(h) for h in STANDARD_HEADINGS) + r")( \(.*\))?$")
 # Station flags of a header-form Grundlage record (`- Team: …; Führung: ja`, `- Bestätigt: ja`). The unfilled
 # template form `ja | nein | ungeklärt` does not count as an answer.
-FUEHRUNG_LINE = re.compile(r"Führung:\s*(ja|nein|ungeklärt)\b(?!\s*\|)", re.IGNORECASE)
-BESTAETIGT_LINE = re.compile(r"Bestätigt:\s*(ja|nein)\b(?!\s*\|)", re.IGNORECASE)
+# `Fachliche Führung: ja` is no answer: the key stands at the start of the line or after `;`, `,` or `|`.
+FUEHRUNG_LINE = re.compile(r"(?:^[ \t]*-?[ \t]*|[;,|][ \t]*)Führung:[ \t]*(ja|nein|ungeklärt)\b(?![ \t]*\|)", re.IGNORECASE | re.MULTILINE)
+BESTAETIGT_LINE = re.compile(r"(?:^[ \t]*-?[ \t]*|[;,|][ \t]*)Bestätigt:[ \t]*(ja|nein)\b(?![ \t]*\|)", re.IGNORECASE | re.MULTILINE)
+FLAG_VALUES = {"ja": "ja", "true": "ja", "yes": "ja", "nein": "nein", "false": "nein", "no": "nein", "ungeklärt": "ungeklärt"}
 # List sections whose entries must stand in the Grundlage (CV-19). Free text (Kurzprofil, projects, Ehrenamt,
 # Interessen) is not covered; that stays in the review (CG-13.4.6).
 LIST_SECTIONS = (
@@ -109,6 +111,7 @@ LIST_SECTIONS = (
     "Ausbildung und Studium", "Ausbildung", "Schulbildung",
 )
 LABEL_IS_PERIOD = re.compile(r"^[\d/\s–.\-]*(?:heute)?$")
+PERIOD_PREFIX = re.compile(r"^(?:\d{1,2}/)?\d{4}(?:\s*[–-]\s*(?:(?:\d{1,2}/)?\d{4}|heute))?\s+(?=[A-Za-zÄÖÜäöü])")
 ANALYSIS_STATUS = ("erfüllt", "teilweise", "nicht belegt", "unklar")
 ANALYSIS_STRENGTH = ("stark", "mittel", "schwach", "—")
 MAX_BULLETS = 5
@@ -212,7 +215,7 @@ def cv_stations(lines):
 def flag(value, pattern, text):
     """A station flag from a frontmatter value or, failing that, from a labelled line of the note. '' when absent."""
     if value:
-        return value.strip().lower()
+        return FLAG_VALUES.get(value.strip().lower(), "")
     match = pattern.search(text)
     return match.group(1).lower() if match else ""
 
@@ -239,8 +242,8 @@ def grundlage_records(path):
                 "end_raw": meta.get("zeitraum_bis", ""),
                 "position": meta.get("titel", ""),
                 "employer": meta.get("arbeitgeber", ""),
-                "fuehrung": meta.get("fuehrung", "ungeklärt"),
-                "bestaetigt": flag(meta.get("bestaetigt") or meta.get("bestätigt"), BESTAETIGT_LINE, body),
+                "fuehrung": flag(meta.get("fuehrung"), FUEHRUNG_LINE, body) or "ungeklärt",
+                "bestaetigt": flag(meta.get("bestaetigt"), BESTAETIGT_LINE, body),
                 "team_groesse": meta.get("team_groesse", ""),
                 "text": text,
             })
@@ -431,7 +434,7 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
                     token = match.group(0)
                     pattern = number_pattern(token)
                     if record_text is not None and re.search(pattern, record_text):
-                        if not unit_in_record(token, bullet[match.end():], record_text):
+                        if not unit_in_record(token, bullet[match.end():], record_text, bullet[:match.start()]):
                             findings.append(finding("CV-05", "Warnung", file, number, f"Zahl „{token}“ steht im Stationseintrag, aber nicht mit dieser Einheit oder diesem Bezug (CV-05): " + bullet))
                         continue
                     if re.search(pattern, source_text):
@@ -462,7 +465,8 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
 
 def normalise(value):
     """Lower case, punctuation to spaces; `+`, `#` and inner dots stay (`C++`, `.NET`, `Node.js`)."""
-    value = re.sub(r"[^\w+#.]+", " ", value.lower())
+    value = value.lower().translate(str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"}))
+    value = re.sub(r"[^\w+#.]+", " ", value)
     return " ".join(token.rstrip(".") or token for token in value.split())
 
 
@@ -472,26 +476,44 @@ def in_text(item, normalised_source):
     return bool(item) and re.search(rf"(?<![\w+#.]){re.escape(item)}(?![\w+#])", normalised_source) is not None
 
 
-def unit_in_record(token, after, record_text):
+UNIT = re.compile(r"[\s-]*(%|[A-Za-zÄÖÜäöüß]+)")
+IDENTIFIER_BEFORE = re.compile(r"\b(?:ISO|IEC|DIN|RFC|PCI|SOC|BSI|EN)[\s-]*(?:/IEC[\s-]*)?$", re.IGNORECASE)
+
+
+def unit_stem(word):
+    """First four letters of a unit or noun; `%` equals `Prozent`."""
+    word = word.lower()
+    return "proz" if word == "%" else word[:4]
+
+
+def unit_in_record(token, after, record_text, before=""):
     """The number of a bullet stands in the station record with the same unit or noun (compared by its first four
-    letters, so `Entwickler` equals `Entwicklern`). A year, or a number with no word after it, is not compared."""
-    if re.fullmatch(r"(?:19|20)\d{2}", token):
+    letters, so `Entwickler` equals `Entwicklern`, `%` equals `Prozent`). Not compared: a year, a number with no word
+    after it, a standard number (`ISO 27001`), and a number that the record gives with no word after it."""
+    if re.fullmatch(r"(?:19|20)\d{2}", token) or IDENTIFIER_BEFORE.search(before):
         return True
-    match = re.match(r"\s*(%|[A-Za-zÄÖÜäöüß]+)", after)
+    match = UNIT.match(after)
     if not match:
         return True
-    unit = match.group(1).lower()[:4]
+    unit = unit_stem(match.group(1))
     for hit in re.finditer(number_pattern(token), record_text):
-        following = re.match(r"\s*(%|[A-Za-zÄÖÜäöüß]+)", record_text[hit.end():])
-        if following and following.group(1).lower()[:4] == unit:
+        following = UNIT.match(record_text[hit.end():])
+        if not following or unit_stem(following.group(1)) == unit:
             return True
     return False
 
 
+def level_pair_in_source(language, level, source_text):
+    """A language and its level stand together on one line of the Grundlage (`Englisch B2`, `Englisch (B2)`)."""
+    language, level = normalise(language), normalise(level)
+    return any(in_text(language, normalise(line)) and in_text(level, normalise(line)) for line in source_text.splitlines())
+
+
 def check_list_sections(lines, file, source_text):
-    """CV-19: every entry of a list section stands in the Grundlage. An entry is `<Label>: <item>, <item>`: the items
-    are checked, the label only in Sprachkenntnisse (the language) and when it is not a period or a skill group.
-    A number in a parenthesis must stand in the Grundlage."""
+    """CV-19: every entry of a list section stands in the Grundlage. An entry is `<Label>: <item>, <item>`; a leading
+    period (`2014`, `09/2010 – 06/2014`) is dropped, `|` separates parts, `und` and `&` join two items. The items are
+    checked, the label only in Sprachkenntnisse. A language and its level must stand together on one line. A number
+    in a parenthesis must stand in the Grundlage, not as part of a word (`B2` does not carry a `2`)."""
     findings = []
     normalised = normalise(source_text)
     section = None
@@ -501,19 +523,44 @@ def check_list_sections(lines, file, source_text):
             continue
         if section not in LIST_SECTIONS or not line.startswith("- ") or PLACEHOLDER.search(line):
             continue
-        entry = line[2:].strip()
-        label, sep, rest = entry.partition(":")
-        if not sep:
-            label, rest = "", entry
-        checks = [part for part in re.split(r"[,;]", re.sub(r"\([^)]*\)", "", rest)) if part.strip()]
-        if section == "Sprachkenntnisse" and label.strip():
-            checks.append(label)
-        for item in checks:
-            if not in_text(item, normalised):
-                findings.append(finding("CV-19", "Blocker", file, number, f"Eintrag „{item.strip()}“ steht nirgends in der Grundlage (CV-19): " + entry))
-        for qualifier in re.findall(r"\(([^)]*)\)", rest):
+        entry = re.sub(r"(?<!\w)[*_`]+|[*_`]+(?!\w)", "", line[2:].strip())
+
+        def missing(item):
+            item = item.strip()
+            if not item or in_text(item, normalised):
+                return False
+            parts = [part for part in re.split(r"\s+(?:und|&)\s+", item) if part.strip()]
+            return len(parts) < 2 or not all(in_text(part, normalised) for part in parts)
+
+        if section == "Sprachkenntnisse":
+            pair = re.match(r"^([^:(]+?)\s*(?::|\()\s*([^)]+?)\)?$", entry)
+            if pair:
+                language, levels = pair.group(1), [part for part in re.split(r"[,;/]", pair.group(2)) if part.strip()]
+                for item in [language] + levels:
+                    if missing(item):
+                        findings.append(finding("CV-19", "Blocker", file, number, f"Eintrag „{item.strip()}“ steht nirgends in der Grundlage (CV-19): " + entry))
+                if not any(missing(i) for i in [language] + levels):
+                    for level in levels:
+                        if not level_pair_in_source(language, level, source_text):
+                            findings.append(finding("CV-19", "Blocker", file, number, f"Niveau „{level.strip()}“ steht in der Grundlage nicht bei „{language.strip()}“ (CV-19): " + entry))
+                continue
+        qualifiers = re.findall(r"\(([^)]*)\)", entry)
+        items = []
+        for part in re.sub(r"\([^)]*\)", "", entry).split("|"):
+            colon = re.search(r":(?!\d)", part)
+            label, rest = (part[:colon.start()], part[colon.end():]) if colon else ("", part)
+            items += re.split(r"[,;]", rest)
+            if section == "Sprachkenntnisse" and label.strip():
+                items.append(label)
+        for item in items:
+            item = PERIOD_PREFIX.sub("", item.strip())
+            if not item or LABEL_IS_PERIOD.match(item):
+                continue
+            if missing(item):
+                findings.append(finding("CV-19", "Blocker", file, number, f"Eintrag „{item}“ steht nirgends in der Grundlage (CV-19): " + entry))
+        for qualifier in qualifiers:
             for token in NUMBER.findall(qualifier):
-                if not re.search(number_pattern(token), source_text):
+                if not re.search(rf"(?<![\w.,]){re.escape(token)}(?![\d])", source_text):
                     findings.append(finding("CV-19", "Blocker", file, number, f"Zahl „{token}“ nicht in der Grundlage belegt (CV-19): " + entry))
     return findings
 

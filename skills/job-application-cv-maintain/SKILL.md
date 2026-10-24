@@ -119,7 +119,7 @@ Each new or changed station is shown in full and confirmed by the user. Only the
 | Station | mindestens eine Aufgabe | Pflicht |
 | Station | Ergebnis, belegt durch Zahl oder qualitativ (`## Erfolge` in der Stationsnotiz, CG-2.4) | empfohlen für relevante Stationen |
 | Station | `## Team`: Teamgröße, Rollen um die Person, Berichtslinie (CG-2.4) | empfohlen |
-| Station | `fuehrung`: `ja`, `nein` oder `ungeklärt` (Personalführung, CG-2.4, CV-16) | empfohlen; fehlend oder `ungeklärt` ist ein Hinweis (R-9.8), blockiert aber jede Führungsformulierung im Lebenslauf (CV-16) |
+| Station | `fuehrung`: `ja`, `nein` oder `ungeklärt` (Personalführung, CG-2.4, CV-16) | empfohlen; fehlend oder `ungeklärt` ist hier ein Hinweis (R-9.8). Im Lebenslauf blockiert der Eintrag jede Führungsformulierung, solange er nicht `ja` ist (CV-16) |
 | Zeugnis | ein Eintrag je Zeugnis in der Sektion *Zeugnisse*: Datei, Datum, Aussteller, Wortlaut der Schlussbeurteilung (R-9.3, LS-4); die Station verweist nur darauf | Pflicht, wenn ein Zeugnis existiert |
 | Lücke | Zeitraum über zwei Monate ohne Station: Eintrag mit neutralem Grund (`Elternzeit`, `Pflege eines Angehörigen`, `Weiterbildung`, `Berufliche Neuorientierung`, `Bewerbungsphase`) | Pflicht, sonst `[ERGÄNZEN: Grund der Lücke]` |
 | Ausbildung | Abschluss, Ort, Zeitraum | Pflicht |

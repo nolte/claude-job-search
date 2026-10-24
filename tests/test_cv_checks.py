@@ -417,6 +417,54 @@ class GroundingTests(unittest.TestCase):
         cv = "## Berufserfahrung\n\n### 09/2018 – 03/2021 | Softwareentwickler | Beispiel AG, Hamburg\n- Mitarbeit an einer Plattform.\n"
         self.assertIn("CV-20", rules(run(cv, {"station.md": note}), "Blocker"))
 
+    def test_language_level_must_stand_with_its_language(self):
+        # review of PR 38: `Englisch (C2)` passed because a `2` stood somewhere, `B2` belonged to French
+        grundlage = GRUNDLAGE + "\n- Englisch B2, Team 2 Personen\n- Französisch C1\n"
+        for entry in ("Englisch (C2)", "Englisch: C1", "Französisch: B2"):
+            cv = self.cv_with(f"## Sprachkenntnisse (GER-Niveau)\n- {entry}\n")
+            self.assertIn("CV-19", rules(run(cv, grundlage), "Blocker"), entry)
+        for entry in ("Englisch: B2", "Englisch (B2)", "Französisch: C1", "Deutsch: Muttersprache"):
+            cv = self.cv_with(f"## Sprachkenntnisse (GER-Niveau)\n- {entry}\n")
+            self.assertNotIn("CV-19", rules(run(cv, grundlage)), entry)
+
+    def test_number_in_a_qualifier_is_not_part_of_a_word(self):
+        grundlage = GRUNDLAGE + "\n- Kenntnisse B2\n"
+        cv = self.cv_with("## IT- und Fachkenntnisse\n- Programmiersprachen: Python (2 Jahre)\n")
+        self.assertIn("CV-19", rules(run(cv, grundlage), "Blocker"))
+
+    def test_list_entries_in_other_forms_are_not_blocked(self):
+        grundlage = GRUNDLAGE + """
+## Ausbildung und Studium
+- 09/2010 – 06/2014 | B.Sc. Informatik | Uni Beispiel, Hamburg
+- Bachelor Informatik 2014
+- Java und Python
+- Büroorganisation
+"""
+        for entry in ("09/2010 – 06/2014 | B.Sc. Informatik | Uni Beispiel", "2014 Bachelor Informatik", "Python und Java",
+                      "_Java_", "Bueroorganisation", "**Python**", "2010 – 2014: Bachelor Informatik, Uni Beispiel"):
+            cv = self.cv_with(f"## Ausbildung und Studium\n- {entry}\n")
+            self.assertNotIn("CV-19", rules(run(cv, grundlage)), entry)
+        cv = self.cv_with("## Ausbildung und Studium\n- 09/2010 – 06/2014 | B.Sc. Physik | Uni Beispiel\n")
+        self.assertIn("CV-19", rules(run(cv, grundlage), "Blocker"))
+
+    def test_colon_inside_a_time_does_not_split_an_entry(self):
+        grundlage = GRUNDLAGE + "\n## Weiterbildung und Zertifikate\n- PMP\n"
+        cv = self.cv_with("## Weiterbildung und Zertifikate\n- 12:30 PMP\n")
+        found = [f["befund"] for f in run(cv, grundlage) if f["regel"] == "CV-19"]
+        self.assertTrue(found and found[0].startswith("Eintrag „12:30 PMP“"), found)
+
+    def test_unit_check_is_lenient_where_the_record_gives_no_unit(self):
+        grundlage = GRUNDLAGE.replace("Latenz von 800 ms auf 120 ms gesenkt.", "Latenz von 800 ms auf 120 ms gesenkt. ISO 27001. Team: 5, remote. Kosten 30 Prozent.")
+        for bullet in ("ISO 27001 eingeführt", "Team mit 5 Entwicklern betreut", "Kosten um 30 % gesenkt"):
+            cv = CLEAN_CV.replace("Einführung von Code-Reviews im Team mit fünf Entwicklern.", bullet + ".")
+            self.assertNotIn("CV-05", rules(run(cv, grundlage), "Warnung"), bullet)
+
+    def test_confirmation_flag_accepts_false_and_no(self):
+        for value in ("nein", "false", "no", "Nein"):
+            note = STATION_NOTE.replace("fuehrung: nein\n", f"fuehrung: nein\nbestaetigt: {value}\n")
+            cv = "## Berufserfahrung\n\n### 09/2018 – 03/2021 | Softwareentwickler | Beispiel AG, Hamburg\n- Mitarbeit an einer Plattform.\n"
+            self.assertIn("CV-20", rules(run(cv, {"station.md": note}), "Blocker"), value)
+
     def test_probe_cv_of_the_audit_is_blocked(self):
         # AUDIT-FF-001: an invented technology, certificate and budget used to pass with no finding
         cv = ("## Berufserfahrung\n\n### 04/2021 – heute | Senior Backend-Entwickler | Musterfirma GmbH, Berlin\n"
@@ -480,6 +528,16 @@ class StationNoteTests(unittest.TestCase):
             "- Einführung von Code-Reviews im Team mit fünf Entwicklern.",
             "- Team: Größe, Rollen; Führung: ja | nein | ungeklärt")
         self.assertIn("CV-16", rules(run(cv, template), "Blocker"))
+
+    def test_fuehrung_key_is_case_insensitive_and_anchored(self):
+        cv = "## Berufserfahrung\n\n### 09/2018 – 03/2021 | Softwareentwickler | Beispiel AG, Hamburg\n- Teamleitung für sieben Entwickler.\n"
+        self.assertNotIn("CV-16", rules(run(cv, {"station.md": STATION_NOTE.replace("fuehrung: nein", "fuehrung: Ja")})))
+        head = "## Berufserfahrung\n\n### 04/2021 – heute | Senior Backend-Entwickler | Musterfirma GmbH, Berlin\n- Teamleitung für fünf Entwickler.\n"
+        anchor = "- Einführung von Code-Reviews im Team mit fünf Entwicklern."
+        for line, blocks in (("- Team: 5 Entwickler; Fachliche Führung: ja", True),
+                             ("- Team: 5 Entwickler; Disziplinarische Führung: nein; Führung: ja", False),
+                             ("- Führung: ja", False)):
+            self.assertEqual("CV-16" in rules(run(head, GRUNDLAGE.replace(anchor, anchor + "\n" + line)), "Blocker"), blocks, line)
 
     def test_leadership_wording_allowed_with_recorded_leadership(self):
         note = STATION_NOTE.replace("fuehrung: nein", "fuehrung: ja")
