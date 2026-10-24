@@ -30,7 +30,7 @@ class EvalSuiteTests(unittest.TestCase):
         self.assertIn("trigger-reviewer", names)
 
     def test_every_case_has_a_prompt_a_grader_and_the_plugin(self):
-        self.assertGreaterEqual(len(CASES), 19)
+        self.assertGreaterEqual(len(CASES), 21)
         for case in CASES:
             graders = glob.glob(os.path.join(case, "graders", "*.md"))
             self.assertTrue(graders, f"{case}: a case without a grader does not load")
@@ -66,6 +66,44 @@ class EvalSuiteTests(unittest.TestCase):
             if negative:
                 positive = [p for p, t in graders.items() if p not in negative]
                 self.assertTrue(positive, f"{case}: only negative graders; a failed run would pass")
+
+    @staticmethod
+    def frontmatter_files():
+        return (glob.glob(os.path.join(EVALS, "*", "prompt.md")) + glob.glob(os.path.join(EVALS, "*", "graders", "*.md"))
+                + glob.glob(os.path.join(EVALS, "*", "case.yaml")))
+
+    def test_frontmatter_is_valid_yaml_for_plain_scalars(self):
+        # found by the first run of the committed suite: `description: ... graded: a gate ...` is invalid YAML (a ": " inside
+        # a plain scalar) and the whole case failed to load. The suite is stdlib-only, so this checks the rules that bit;
+        # test_frontmatter_parses_with_pyyaml parses for real where PyYAML is installed.
+        for path in self.frontmatter_files():
+            text = read(path)
+            head = text if path.endswith(".yaml") else text.split("---")[1]
+            for number, line in enumerate(head.splitlines(), 1):
+                match = re.match(r"^([A-Za-z_][\w-]*):[ ]+(.*)$", line)
+                if not match:
+                    continue
+                value = match.group(2).strip()
+                where = f"{path}:{number}"
+                self.assertNotIn("\t", line, where)
+                if value[:1] in ("'", '"'):
+                    self.assertEqual(value[-1], value[0], f"{where}: a quoted value must close with the same quote")
+                    continue
+                if not value or value[0] in "[{|>&*!%@`":
+                    continue
+                self.assertNotIn(": ", value, f"{where}: a plain YAML scalar must not contain ': ' (quote it)")
+                self.assertNotIn(" #", value, f"{where}: a plain YAML scalar must not contain ' #'")
+                self.assertFalse(value.endswith(":"), f"{where}: a plain YAML scalar must not end with ':'")
+
+    def test_frontmatter_parses_with_pyyaml(self):
+        try:
+            import yaml
+        except ImportError:
+            self.skipTest("PyYAML is not installed (the repository .venv of the docs build has it)")
+        for path in self.frontmatter_files():
+            text = read(path)
+            head = text if path.endswith(".yaml") else text.split("---")[1]
+            self.assertIsInstance(yaml.safe_load(head), dict, path)
 
     def test_trigger_cases_check_the_skill_they_are_named_after(self):
         for case in CASES:

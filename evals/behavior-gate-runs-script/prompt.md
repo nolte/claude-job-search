@@ -1,5 +1,5 @@
 ---
-description: The quality gate runs scripts/cv_checks.py before it writes the report (skill step "Automated checks"). The fixture holds only a Lebenslauf, so the verdict itself is not graded: a gate may block on missing documents.
+description: The quality gate runs scripts/cv_checks.py before it writes the report. The fixture holds only a Lebenslauf, so the verdict is not graded, because a gate may legitimately block on missing documents.
 tags: [behavior]
 plugins: ["../.."]
 runs: 3
