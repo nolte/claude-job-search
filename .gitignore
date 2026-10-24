@@ -51,3 +51,6 @@ desktop.ini
 
 # Logs
 *.log
+
+# Eval results hold model output and costs; they are local
+evals/results/

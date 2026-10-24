@@ -58,6 +58,13 @@ tasks:
     cmds:
       - python3 skills/job-application-export/scripts/export_document.py {{.CLI_ARGS}}
 
+  eval:
+    desc: |
+      Run the model-in-the-loop evals (costs money, uses your credentials; see docs/en/evals.md).
+      Usage: task eval -- <trigger|behavior|all|case-glob>   (env: MODEL, JUDGE, MAX_COST_USD, THRESHOLD, RUNS, ABLATION, TRUST)
+    cmds:
+      - evals/run.sh {{.CLI_ARGS}}
+
   plugin:reload:
     desc: Start Claude Code with this repo loaded as a plugin (dogfooding)
     cmds:
