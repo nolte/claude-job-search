@@ -117,9 +117,13 @@ Severity of code 4 is set by the quality gate: Blocker for `cv` (LB-13) and `let
 4. On exit 4, report the page overrun with the limit and say that the severity is decided by the quality gate
    (Blocker for Lebenslauf and Anschreiben). Do not shorten the document here: the owning skill does that. On exit 2,
    report the difference and do not call the export ready.
-5. If the report says `grundlage_hash: fehlt`, tell the user that the output cannot be checked against the Grundlage
+5. If the output has the line `Platzhalter: n offen`, tell the user that the document still holds open `[ERGÄNZEN …]` or
+   `[KLÄREN …]` placeholders: they stand visibly in the export, the export is not ready to send, and the quality gate
+   reports them as a Blocker (CV-01, BR-01). The export does not block and the exit code stays 0 (R-6: export only on
+   request, no hidden refusal).
+6. If the report says `grundlage_hash: fehlt`, tell the user that the output cannot be checked against the Grundlage
    (R-10.3) and that the quality gate cannot compare it.
-6. Report the reproduction level from the manifest (`byte_reproduzierbar`, spec `lebenslauf-versionen` LV-5). Export a
+7. Report the reproduction level from the manifest (`byte_reproduzierbar`, spec `lebenslauf-versionen` LV-5). Export a
    frozen Version (frontmatter `version_datum`) when the PDF is to be sent, then make the sent copy
    `Vorname_Nachname_Lebenslauf.<ext>` (LV-2.3). Only the PDF that was actually sent goes into a private Git
    repository, with its manifest; Arbeitsstand and test exports stay out (LV-4).

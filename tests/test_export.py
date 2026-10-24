@@ -104,6 +104,24 @@ class ExportTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_open_placeholders_are_reported_and_stay_visible_without_blocking(self):
+        # audit finding EXP-001: the export used to say "Inhaltsprüfung: ok" and nothing else
+        with open(self.source, "a", encoding="utf-8") as handle:
+            handle.write("\n- [ERGÄNZEN: Aufgaben]\n- [KLÄREN: Titel laut Zeugnis]\n")
+        for fmt in ("md", "html"):
+            result = self.export(fmt)
+            self.assertEqual(result.returncode, 0, f"{fmt}: {result.stderr}")
+            self.assertIn("Platzhalter: 2 offen", result.stdout, fmt)
+            self.assertIn("2 offene Platzhalter", result.stderr, fmt)
+        with open(os.path.join(self.out, "Test_Lebenslauf.html"), encoding="utf-8") as handle:
+            self.assertIn("ERGÄNZEN", handle.read())
+
+    def test_a_document_without_placeholders_prints_no_placeholder_line(self):
+        result = self.export("md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("Platzhalter", result.stdout)
+        self.assertNotIn("Platzhalter", result.stderr)
+
     def test_email_doc_type_only_exports_markdown(self):
         # R-10.2: the e-mail text exists only as Markdown
         for fmt in ("pdf", "docx", "html", "tex"):

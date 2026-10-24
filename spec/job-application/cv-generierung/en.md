@@ -334,7 +334,11 @@ The skill may reformulate verified content. It may not add facts.
    Warnung for `motivation`. The limit for `cv` with the format `einseitig` is one page. A PDF without
    extractable text is a Blocker. Where LuaLaTeX is not installed, this check is *not run* and the
    report says so.
-5. **Further export findings.** A missing manifest for a file in `export/` is a Warnung. An export
+5. **Open placeholders.** The export does not block on an open `[ERGÄNZEN …]` or `[KLÄREN …]` (R-6: the user asked
+   for the export, and a preview with the gaps visible is useful). It keeps them visible in the output, reports
+   `Platzhalter: n offen` on stdout and a Warnung on stderr, and leaves the exit code unchanged. The set is not ready
+   to send; the quality gate reports the placeholder as a Blocker (CV-01, BR-01).
+6. **Further export findings.** A missing manifest for a file in `export/` is a Warnung. An export
    file changed after its manifest was written is a Warnung (LV-6.4).
 
 ## CG-13 Quality gate: severities and criteria
