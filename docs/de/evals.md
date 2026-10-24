@@ -37,17 +37,17 @@ task eval -- trigger                # dasselbe über das Taskfile
 |---|---|---|
 | `MODEL` | `claude-sonnet-5-5` | Haiku hat die Skills im Spike nicht aufgerufen (siehe unten) |
 | `JUDGE` | `claude-opus-5-5` | Ein anderes, stärkeres Modell für die wenigen `llm`-Grader; die meisten Grader sind Regex-Grader |
-| `MAX_COST_USD` | `10` | Harte Obergrenze; der Lauf endet mit Exit-Code 2 und Teilergebnissen |
+| `MAX_COST_USD` | `10` | Harte Obergrenze je Aufruf von `claude plugin eval` (`all` macht bis zu drei plus die Vorbedingungen); der erste Aufruf, der sie erreicht, beendet den Lauf mit Exit-Code 2 und Teilergebnissen |
 | `THRESHOLD` | `0.8` | Ein Case unter diesem Wert lässt den Lauf scheitern (Exit-Code 1). Der Standard des Werkzeugs, 1.0, ist für Modellverhalten zu streng |
 | `ABLATION` | `none` | Läuft nur mit dem Plugin. `with-without` führt jeden Case zusätzlich ohne Plugin aus: doppelte Kosten, zeigt aber, was das Plugin beiträgt |
 | `SKIP_PRECHECK` | aus | Jedes Ziel außer den Trigger-Cases führt zuerst die zwei Vorbedingungen `behavior-bash-works` und `behavior-python-works` aus. Ist eine rot, lassen `behavior` und `all` die Cases mit Tag `needs-bash` aus (heute `behavior-gate-runs-script`), führen den Rest aus (Tag `no-bash`) und sagen, was ausgelassen wurde. Ein Case, den du namentlich wählst, läuft trotzdem und scheitert. Der Lauf ist dann nicht vollständig: Hole die ausgelassenen Cases auf einem Rechner mit grünen Vorbedingungen nach |
-| (Vorbedingungen) | | Die zwei Vorbedingungen sind zwei kurze Zusatzläufe vor `behavior`, `all` und vor jedem einzelnen Verhaltens-Case oder Glob (auch `behavior-plan-gate`); `all` führt danach nur die Cases mit Tag `trigger` oder `behavior` aus, sie laufen also nicht doppelt. Das Ergebnis jeder Vorbedingung steht in `evals/results/<Case>.json` |
+| (Vorbedingungen) | | Die zwei Vorbedingungen sind zwei kurze Zusatzläufe vor `behavior`, `all` und vor jedem einzelnen Verhaltens-Case oder Glob (auch `behavior-plan-gate`); `all` führt danach drei Aufrufe aus (die Cases mit Tag `trigger` ohne Scaffold und Rechte, die Verhaltens-Cases und die `bash-denied`-Cases ohne Bash), die Vorbedingungen laufen also nicht doppelt. Ein Glob, der `bash-denied`-Cases mit anderen mischt, wird abgelehnt (Exit-Code 64); ein `bash-denied`-Case, der per Namen gewählt wird, läuft ohne Vorbedingungen. Das Ergebnis jeder Vorbedingung steht in `evals/results/<Case>.json` |
 | `TRUST` | aus | `TRUST=1` übergibt `--trust-plugin`; ohne fragt Claude Code einmal, ob du diesem Plugin vertraust |
 
 Berichte werden nie veröffentlicht: Das Skript übergibt immer `--no-publish`. Ohne diese Option wird der HTML-Bericht
 standardmäßig auf claude.ai veröffentlicht, wenn dein Konto das unterstützt.
 
-Die Ergebnisse liegen in `evals/results/last-run.json` (Verhalten; `last-run-trigger.json` für die Trigger-Cases von `all`, `last-run-bash-denied.json` für die Cases ohne Bash) und je Lauf in `evals/results/<Zeitstempel>/` (`report.html` und
+Die Ergebnisse liegen in `evals/results/last-run.json` (Verhalten oder die Cases des Ziels `trigger`; `last-run-trigger.json` für die Trigger-Cases von `all`, `last-run-bash-denied.json` für die Cases ohne Bash) und je Lauf in `evals/results/<Zeitstempel>/` (`report.html` und
 JSON). `evals/results/` ist git-ignoriert.
 
 ## Was die Suite enthält

@@ -10,7 +10,8 @@
 # Environment (all optional):
 #   MODEL=claude-sonnet-5-5         model of the agent under test (haiku does not trigger the skills, see the docs)
 #   JUDGE=claude-opus-5-5           model of the llm graders (the suite uses regex graders only)
-#   MAX_COST_USD=10                 hard ceiling for the whole run (exit 2 with partial results)
+#   MAX_COST_USD=10                 hard ceiling of each invocation of `claude plugin eval` (exit 2 with partial results; `all`
+#                                   makes up to three of them plus the preconditions and stops at the first that hits it)
 #   THRESHOLD=0.8                   a case below this score fails the run (exit 1)
 #   RUNS=                           override the runs per case (default: the value in each case)
 #   ABLATION=none                   none | with-without (with-without also runs every case without the plugin: double cost)
@@ -52,8 +53,20 @@ if [ "$needs_scaffold" = "1" ]; then
   echo "Note: --scaffold runs the fixture.sh of each case as you. They are in this repository (evals/*/fixture.sh)." >&2
 fi
 
-# True if the target names a case tagged bash-denied: it runs without Bash and needs no precondition.
-is_denied_case() { local d; for d in evals/$1; do [ -f "$d/prompt.md" ] && grep -q '^tags: .*bash-denied' "$d/prompt.md" && return 0; done; return 1; }
+# Does the target (a case name or a glob) name cases tagged bash-denied? Those run without Bash and need no precondition.
+# A glob that mixes both kinds is refused: one invocation cannot take Bash away for some cases only.
+denied=0; plain=0
+if [ "$TARGET" != "trigger" ] && [ "$TARGET" != "behavior" ] && [ "$TARGET" != "all" ]; then
+  for d in evals/$TARGET; do
+    [ -f "$d/prompt.md" ] || continue
+    if grep -q '^tags: .*bash-denied' "$d/prompt.md"; then denied=$((denied + 1)); else plain=$((plain + 1)); fi
+  done
+fi
+if [ "$denied" -gt 0 ] && [ "$plain" -gt 0 ]; then
+  echo "The target '$TARGET' mixes cases that run without Bash (bash-denied) with cases that need it. Name them separately." >&2
+  exit 64
+fi
+is_denied_case() { [ "$denied" -gt 0 ]; }
 
 # Preconditions: if Bash or python3 does not work inside the eval sandbox, the cases that run commands measure the machine.
 # A red precondition no longer stops the run: the cases tagged needs-bash are left out and the rest runs.
@@ -76,8 +89,9 @@ case "$TARGET" in
 esac
 
 # Cases that need Bash (tag needs-bash). Left out of the suite targets when a precondition is red.
-if [ "$bash_ok" = "0" ] && [ "$TARGET" = "behavior" -o "$TARGET" = "all" ]; then
-  skipped=$(grep -l '^tags: .*needs-bash' evals/*/prompt.md 2>/dev/null | xargs -n1 dirname 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')
+if [ "$bash_ok" = "0" ] && { [ "$TARGET" = "behavior" ] || [ "$TARGET" = "all" ]; }; then
+  skipped=""
+  for f in evals/*/prompt.md; do grep -q '^tags: .*needs-bash' "$f" && skipped="$skipped$(basename "$(dirname "$f")") "; done
   echo "Left out because Bash does not work here: ${skipped:-none}. Run them on a machine where the preconditions are green." >&2
 fi
 
@@ -101,13 +115,18 @@ case "$TARGET" in
             run_trigger=1; run_main=1; run_denied=1; denied_args+=(--tag bash-denied) ;;
   *)        if is_denied_case "$TARGET"; then run_denied=1; denied_args+=(--case "$TARGET")
             else run_main=1; main_args+=(--case "$TARGET")
-                 [ "$bash_ok" = "0" ] && echo "Note: a case tagged needs-bash that you selected by name will fail here." >&2
+                 if [ "$bash_ok" = "0" ]; then
+                   for f in evals/$TARGET/prompt.md; do
+                     grep -q '^tags: .*needs-bash' "$f" 2>/dev/null && echo "Note: $(basename "$(dirname "$f")") needs Bash and will fail here." >&2
+                   done
+                 fi
             fi ;;
 esac
 
-main_rc=0; denied_rc=0; trigger_rc=0
-[ "$run_trigger" = "1" ] && { echo "Run without scaffold and grants: trigger cases (results in evals/results/last-run-trigger.json)" >&2; claude "${trigger_args[@]}" "$@" || trigger_rc=$?; }
-[ "$run_main" = "1" ] && { claude "${main_args[@]}" "$@" || main_rc=$?; }
-[ "$run_denied" = "1" ] && { echo "Run without Bash: bash-denied cases (results in evals/results/last-run-bash-denied.json)" >&2; claude "${denied_args[@]}" "$@" || denied_rc=$?; }
-rc=$main_rc; [ "$denied_rc" -gt "$rc" ] && rc=$denied_rc; [ "$trigger_rc" -gt "$rc" ] && rc=$trigger_rc
+# Exit code of the run: the highest of the invocations, except that the cost ceiling (2) or an abort (130, 143) stops the rest.
+rc=0
+invoke() { local r=0; claude "$@" || r=$?; case "$r" in 2|130|143) exit "$r" ;; esac; [ "$r" -gt "$rc" ] && rc=$r; return 0; }
+[ "$run_trigger" = "1" ] && { echo "Run without scaffold and grants: trigger cases (results in evals/results/last-run-trigger.json)" >&2; invoke "${trigger_args[@]}" "$@"; }
+[ "$run_main" = "1" ] && invoke "${main_args[@]}" "$@"
+[ "$run_denied" = "1" ] && { echo "Run without Bash: bash-denied cases (results in evals/results/last-run-bash-denied.json)" >&2; invoke "${denied_args[@]}" "$@"; }
 exit "$rc"

@@ -36,17 +36,17 @@ task eval -- trigger                # the same through the Taskfile
 |---|---|---|
 | `MODEL` | `claude-sonnet-5-5` | Haiku did not invoke the skills in the spike (see below) |
 | `JUDGE` | `claude-opus-5-5` | A different, stronger model for the few `llm` graders; most graders are regex graders |
-| `MAX_COST_USD` | `10` | Hard ceiling; the run stops with exit code 2 and partial results |
+| `MAX_COST_USD` | `10` | Hard ceiling of each `claude plugin eval` invocation (`all` makes up to three plus the preconditions); the first invocation that hits it ends the run with exit code 2 and partial results |
 | `THRESHOLD` | `0.8` | A case below this score fails the run (exit code 1). The default of the tool, 1.0, is too strict for model behaviour |
 | `ABLATION` | `none` | Runs only with the plugin. `with-without` also runs every case without it: double cost, and it shows what the plugin adds |
 | `SKIP_PRECHECK` | off | Every target except the trigger cases first runs the two preconditions `behavior-bash-works` and `behavior-python-works`. If one is red, `behavior` and `all` leave out the cases tagged `needs-bash` (today `behavior-gate-runs-script`), run the rest (tag `no-bash`) and say what was left out. A case that you select by name still runs and will fail. The run is then not complete: do the left-out cases on a machine where the preconditions are green |
-| (preconditions) | | The two preconditions are two short extra runs before `behavior`, `all` and every single behavioural case or glob (also `behavior-plan-gate`); `all` then runs only the cases tagged `trigger` or `behavior`, so they are not run twice. Results of each precondition are in `evals/results/<case>.json` |
+| (preconditions) | | The two preconditions are two short extra runs before `behavior`, `all` and every single behavioural case or glob (also `behavior-plan-gate`); `all` then runs three invocations (the cases tagged `trigger` without scaffold and grants, the behavioural cases, and the `bash-denied` cases without Bash), so the preconditions are not run twice. A glob that mixes `bash-denied` cases with others is refused (exit code 64); a `bash-denied` case selected by name runs without preconditions. Results of each precondition are in `evals/results/<case>.json` |
 | `TRUST` | off | `TRUST=1` passes `--trust-plugin`; without it Claude Code asks once whether you trust this plugin |
 
 Reports are never published: the script always passes `--no-publish`. Without it, the HTML report is published to
 claude.ai by default when your account supports it.
 
-Results are in `evals/results/last-run.json` (behaviour; `last-run-trigger.json` for the trigger cases of `all`, `last-run-bash-denied.json` for the bash-denied ones) and, per run, in `evals/results/<timestamp>/` (`report.html` and the JSON).
+Results are in `evals/results/last-run.json` (behaviour, or the cases of the target `trigger`; `last-run-trigger.json` for the trigger cases of `all`, `last-run-bash-denied.json` for the bash-denied ones) and, per run, in `evals/results/<timestamp>/` (`report.html` and the JSON).
 `evals/results/` is git-ignored.
 
 ## What the suite contains

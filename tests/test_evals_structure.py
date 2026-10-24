@@ -9,6 +9,8 @@ import glob
 import os
 import re
 import stat
+import subprocess
+import tempfile
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -155,18 +157,82 @@ class EvalSuiteTests(unittest.TestCase):
             case_yaml = read(os.path.join(os.path.dirname(script), "case.yaml"))
             self.assertIn("scaffold_script: fixture.sh", case_yaml, script)
 
-    def test_the_trigger_cases_of_all_run_without_scaffold_and_grants(self):
-        # With Bash, Write and Edit granted the model sometimes does the work itself instead of calling the skill or the
-        # agent (trigger-reviewer failed three full runs in a row, and passed 11 of 11 without the grants).
-        runner = read(os.path.join(EVALS, "run.sh"))
-        m = re.search(r"(?m)^trigger_args=\((.*)\)$", runner)
-        self.assertIsNotNone(m, "run.sh needs its own trigger invocation")
-        self.assertIn("--tag trigger", m.group(1))
-        self.assertNotIn("--scaffold", m.group(1))
-        self.assertNotIn("--allow-tools", m.group(1))
-        all_branch = re.search(r"(?m)^  all\).*\n.*\n", runner).group(0)
-        self.assertNotIn("--tag trigger", all_branch, "the main run of `all` must not carry the trigger cases")
-        self.assertIn("run_trigger=1", all_branch)
+    def run_runner(self, *args, red=(), exit_codes=None, skip_precheck=True):
+        """Run evals/run.sh against a stub `claude` that logs its arguments; returns (exit code, list of argument lists)."""
+        exit_codes = exit_codes or {}
+        with tempfile.TemporaryDirectory() as tmp:
+            log = os.path.join(tmp, "calls.log")
+            stub = os.path.join(tmp, "claude")
+            with open(stub, "w") as fh:
+                fh.write(
+                    "#!/usr/bin/env bash\n"
+                    'echo "$*" >> "$STUB_LOG"\n'
+                    'for r in $STUB_RED; do case "$*" in *"--case $r "*|*"--case $r") exit 1 ;; esac; done\n'
+                    'case "$*" in *"--tag trigger"*) exit "${STUB_RC_TRIGGER:-0}" ;; *"--disallow-tools"*) exit "${STUB_RC_DENIED:-0}" ;; esac\n'
+                    'exit "${STUB_RC_MAIN:-0}"\n')
+            os.chmod(stub, 0o755)
+            env = dict(os.environ, PATH=tmp + os.pathsep + os.environ["PATH"], STUB_LOG=log, ANTHROPIC_API_KEY="x",
+                       STUB_RED=" ".join(red), **{"STUB_RC_" + k.upper(): str(v) for k, v in exit_codes.items()})
+            env.pop("SKIP_PRECHECK", None)
+            if skip_precheck:
+                env["SKIP_PRECHECK"] = "1"
+            proc = subprocess.run([os.path.join(EVALS, "run.sh"), *args], env=env, capture_output=True, text=True)
+            calls = []
+            if os.path.exists(log):
+                with open(log) as fh:
+                    calls = [l.split() for l in fh.read().splitlines()]
+        return proc.returncode, calls, proc.stderr
+
+    def test_all_runs_triggers_behaviour_and_bash_denied_in_three_invocations(self):
+        rc, calls, _ = self.run_runner("all")
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(calls), 3, calls)
+        trigger, main, denied = calls
+        # the trigger cases get no scaffold and no grants: with Bash, Write and Edit at hand the model sometimes does the
+        # work itself instead of calling the skill or the agent (trigger-reviewer failed three full runs in a row)
+        self.assertIn("trigger", trigger)
+        for flag in ("--scaffold", "--allow-tools"):
+            self.assertNotIn(flag, trigger)
+        self.assertNotIn("--tag trigger", " ".join(main))
+        self.assertIn("behavior", main)
+        self.assertIn("--scaffold", main)
+        # Bash is taken away for the bash-denied cases, and only there
+        self.assertIn("--disallow-tools", denied)
+        self.assertIn("bash-denied", denied)
+        self.assertNotIn("--disallow-tools", main + trigger)
+
+    def test_a_red_precondition_leaves_out_the_needs_bash_cases(self):
+        rc, calls, err = self.run_runner("all", red=["behavior-bash-works"], skip_precheck=False)
+        self.assertEqual(rc, 0)
+        pre = [c for c in calls if "--runs" in c and "1" == c[c.index("--runs") + 1] and "--case" in c]
+        self.assertEqual({c[c.index("--case") + 1] for c in pre}, {"behavior-bash-works", "behavior-python-works"})
+        def tags(call):
+            return [call[i + 1] for i, a in enumerate(call) if a == "--tag"]
+        main = [c for c in calls if "no-bash" in tags(c)]
+        self.assertEqual(len(main), 1, calls)
+        self.assertNotIn("behavior", tags(main[0]))
+        self.assertIn("behavior-gate-runs-script", err)
+
+    def test_the_cost_ceiling_stops_the_remaining_invocations(self):
+        rc, calls, _ = self.run_runner("all", exit_codes={"trigger": 2})
+        self.assertEqual(rc, 2)
+        self.assertEqual(len(calls), 1, calls)
+
+    def test_a_failed_threshold_does_not_hide_the_other_invocations(self):
+        rc, calls, _ = self.run_runner("all", exit_codes={"main": 1})
+        self.assertEqual(rc, 1)
+        self.assertEqual(len(calls), 3, calls)
+
+    def test_a_glob_that_mixes_bash_denied_and_other_cases_is_refused(self):
+        rc, calls, _ = self.run_runner("behavior-gate-*")
+        self.assertEqual(rc, 64)
+        self.assertEqual(calls, [])
+
+    def test_a_bash_denied_case_runs_alone_without_bash_and_without_preconditions(self):
+        rc, calls, _ = self.run_runner("behavior-gate-discloses-missing-script", skip_precheck=False)
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(calls), 1, calls)
+        self.assertIn("--disallow-tools", calls[0])
 
     def test_runner_never_publishes_and_caps_the_cost(self):
         runner = read(os.path.join(EVALS, "run.sh"))
