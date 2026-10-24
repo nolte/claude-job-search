@@ -316,6 +316,14 @@ def check_period(cv, source, file):
     if cv_end == "heute" or src_end == "heute":
         if cv_end != src_end:
             findings.append(finding("CV-06", "Blocker", file, cv["line"], f"Zeitraum weicht von der Grundlage ab (CV-06): {label} statt {source_label}"))
+        else:
+            # both stations run: the end is equal, the start is still compared (a year on one side: by year, so a
+            # year-only Grundlage start gives no CV-02 here)
+            cv_start, src_start = cv["start"], source["start"]
+            if cv_start and src_start:
+                same = cv_start == src_start if cv_start[1] and src_start[1] else cv_start[0] == src_start[0]
+                if not same:
+                    findings.append(finding("CV-06", "Blocker", file, cv["line"], f"Beginn weicht von der Grundlage ab (CV-06): {label} statt {source_label}"))
         return findings
     cv_start, src_start = cv["start"], source["start"]
     months_known = all(p and p[1] for p in (cv_start, cv_end, src_start, src_end))
@@ -705,7 +713,7 @@ YEARS_OF_EXPERIENCE = re.compile(
     r"\b(\d{1,2}|[a-zäöüß]+)\+?\s+Jahre?n?\s+(?:[A-Za-zäöüß]+-?)?[Ee]rfahrung"
     r"|\b[Ee]rfahrung\s+(?:von|seit)\s+(\d{1,2}|[a-zäöüß]+)\+?\s+Jahre?n?\b"
     r"|\bseit\s+(\d{1,2}|[a-zäöüß]+)\+?\s+Jahren\b", re.IGNORECASE)
-NOT_WORK = re.compile(r"Studium|Student|Ausbildung|Auszubildend|Schüler|Praktik", re.IGNORECASE)
+NOT_WORK = re.compile(r"Studium|Student|Ausbildung|Umschul|Auszubildend|Schüler|Praktik", re.IGNORECASE)
 NUMBER_WORDS = {
     "ein": 1, "einem": 1, "einer": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7,
     "acht": 8, "neun": 9, "zehn": 10, "elf": 11, "zwölf": 12, "dreizehn": 13, "vierzehn": 14, "fünfzehn": 15,

@@ -740,6 +740,16 @@ class StationNoteTests(unittest.TestCase):
         self.assertNotIn("CV-06", rules(findings, "Blocker"))
         self.assertIn("CV-15", rules(findings, "Blocker"))  # the other CV station is not in this note
 
+    def test_start_of_a_running_station_is_compared(self):
+        # found by scenario F: two running stations with the same end passed whatever their start
+        for start in ("01/2021", "04/2020"):
+            cv = CLEAN_CV.replace("### 04/2021 – heute", f"### {start} – heute")
+            self.assertIn("CV-06", rules(run(cv, GRUNDLAGE), "Blocker"), start)
+        self.assertNotIn("CV-06", rules(run(CLEAN_CV, GRUNDLAGE)))
+        year_only = CLEAN_CV.replace("### 04/2021 – heute", "### 2021 – heute")
+        self.assertNotIn("CV-06", rules(run(year_only, GRUNDLAGE), "Blocker"))
+        self.assertIn("CV-06", rules(run(CLEAN_CV.replace("### 04/2021 – heute", "### 2019 – heute"), GRUNDLAGE), "Blocker"))
+
     def test_year_mismatch_blocks(self):
         cv = CLEAN_CV.replace("09/2018 – 03/2021", "09/2017 – 03/2021").replace(
             "### 04/2021 – heute | Senior Backend-Entwickler | Musterfirma GmbH, Berlin\n", ""
