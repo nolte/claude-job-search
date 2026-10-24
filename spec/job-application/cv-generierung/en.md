@@ -50,8 +50,7 @@ Authority runs from the top down. A level may only use facts from the levels abo
      source or the user's confirmation) and `## Team` (team structure: size, roles around the
      candidate, reporting line, and whether the candidate led people).
    - Rules: a number in a CV bullet must appear in the note (CV-05). Leadership wording needs
-     `fuehrung: ja` in the note (CV-16; Warnung while `fuehrung` is `ungeklärt` or missing, Blocker
-     with `fuehrung: nein`). A year-only period is accepted in the note; the CV then shows the
+     `fuehrung: ja` in the note (CV-16; Blocker while `fuehrung` is `nein`, `ungeklärt` or missing). A year-only period is accepted in the note; the CV then shows the
      year-only header line unchanged and CV-02 reports a Warnung. No `[ERGÄNZEN: Monat]` placeholder
      is written, and the note does not have to be completed (CG-9). Title and employer in the CV
      equal the note's `titel` and `arbeitgeber` (CV-15).
@@ -188,9 +187,8 @@ The skill may reformulate verified content. It may not add facts.
   `vielfältig`, `Expertise in`, `sicher in`) are flagged as Warnung, because they hide the actual
   task or claim a quality without proof;
 - *automated* (CV-16): leadership wording (`geleitet`, `Teamleitung`, `führte`, `Personalverantwortung`
-  and similar) is a Warnung while the station note has `fuehrung: ungeklärt` or no `fuehrung`, and a
-  Blocker when the note records `fuehrung: nein`. With `fuehrung: ja` there is no finding (CG-7.2,
-  leadership);
+  and similar) is a Blocker unless the station note records `fuehrung: ja` (`nein`, `ungeklärt` and a missing entry
+  all block, CG-13.4.3). With `fuehrung: ja` there is no finding (CG-7.2, leadership);
 - *review*: the remaining semantic checks of CG-7.2 (ownership, expertise, proficiency) are made by
   the generating skill and the reviewer agent. They are not decided by the script.
 
@@ -361,13 +359,13 @@ and lets the user decide.
 
 | # | Dimension | Check | Kind | Rule |
 |---|---|---|---|---|
-| 1 | Factual integrity | Numbers traceable to the Grundlage | automated | CV-05 |
+| 1 | Factual integrity | Numbers traceable to the Grundlage, with their unit or noun; entries of the list sections (skills, languages, certificates, education) present in the Grundlage; stations confirmed | automated | CV-05, CV-19, CV-20 |
 | 2 | Source traceability | Entry references in `pruefbericht.md` | review | CG-2.3 |
 | 3 | Target-role relevance | Selection follows CG-5 | review | CG-5 |
 | 4 | Muss coverage | Muss rows not marked `erfüllt` without evidence | automated | CV-07 |
 | 5 | Wunsch coverage | Wunsch gaps reported | review | CG-4.2, report |
 | 6 | Evidence strength | Stärke of rows used in the CV | review | CG-4 |
-| 7 | Seniority and role positioning | Titles as in the Grundlage; leadership only with `fuehrung: ja` (Warnung with `ungeklärt` or missing, Blocker with `nein`) | automated and review | CV-15, CV-16; CG-7.2 |
+| 7 | Seniority and role positioning | Titles as in the Grundlage; leadership only with `fuehrung: ja` (Blocker with `nein`, `ungeklärt` or missing) | automated and review | CV-15, CV-16; CG-7.2 |
 | 8 | Relevance of entries | Stations and projects per CG-5 | review | CG-5 |
 | 9 | Skills ordering | Skills appear with posting relevance and evidence | review | CG-5 |
 | 10 | Conciseness and redundancy | Duplicate bullets; sub-bullets below a bullet (Hinweis) | automated | CV-09, CV-17 |
@@ -395,10 +393,34 @@ and lets the user decide.
    reports the header; the bullets are checked as in any other station.
 2. **CV-13 is position-based.** A gap entry counts only when it stands between the two stations whose
    periods leave the gap. A neutral entry elsewhere in the document does not close the gap.
-3. **CV-16 severity** follows the station note: Warnung while `fuehrung` is `ungeklärt` or missing,
-   Blocker with `fuehrung: nein`, no finding with `fuehrung: ja` (CG-7.3).
+3. **CV-16 severity.** Personnel-leadership wording is a Blocker unless the Grundlage records `fuehrung: ja`
+   for the station (CG-7.3). `nein`, `ungeklärt` and a missing entry all block: leadership that is not
+   evidenced is not written. The way to unlock a true claim is to record it: the station note key
+   `fuehrung: ja`, or the line `Führung: ja` in the block of a header-form station (R-9.3). The key stands at the start of the line or after `;`, `,` or `|`, so `Fachliche Führung: ja` is no answer, and the
+   value is read without regard to case. The unfilled template form `Führung: ja | nein | ungeklärt` is no answer.
 4. **CV-11 severity** is Warnung for every phrase of CG-8.2.3 (CG-7.3).
 5. **CV-17** reports sub-bullets as Hinweis (R-2.1: a station block has bullets, no sub-bullets).
+6. **CV-19 scope.** The list sections `IT- und Fachkenntnisse`, `Kenntnisse`, `Sprachkenntnisse`,
+   `Weiterbildung und Zertifikate`, `Ausbildung und Studium`, `Ausbildung` and `Schulbildung` are checked entry by
+   entry. An entry is `<Label>: <item>, <item>`; each item must stand in the Grundlage as whole words
+   (case, punctuation and parentheses ignored). The label is checked only in `Sprachkenntnisse` (the language);
+   a period or a skill group label is not. A language and its level must stand together on one line of the Grundlage (`Englisch (C2)` is blocked when
+   only `Englisch B2` stands there). A number in a parenthesis must stand in the Grundlage, not as part of a word
+   (`B2` does not carry a `2`). A leading period (`2014`, `09/2010 – 06/2014`) is dropped, `|` separates the parts of
+   an entry, `und` and `&` join two items, `ä ö ü ß` equal `ae oe ue ss`, Markdown emphasis is ignored. The match
+   covers the whole Grundlage: a skill named in a negation (`kein Kubernetes`) or a one-letter name (`R`, `Go`) can be
+   backed by an unrelated passage; that stays with the review. An entry with a
+   placeholder is left to CV-01. The match is exact and makes no claim about meaning: a paraphrase
+   (`Container-Orchestrierung` for `Kubernetes`) is a Blocker here and is cleared by using the Grundlage's word,
+   and an entry that the Grundlage states in other words stays a judgement of the review. Free text (Kurzprofil,
+   Relevante Projekte, Ehrenamt, Interessen) is not covered and stays with the review.
+7. **CV-05 unit.** When a number of a bullet stands in the station record, the word after it (a unit or a noun) must
+   stand after the same number there, compared by its first four letters (`Entwickler`, `Entwicklern`). A different
+   unit is a Warnung. `%` equals `Prozent`. Not compared: a year, a number with no word after it, a standard number (`ISO 27001`) and a
+   number that the record gives with no word after it. A year used as a quantity (`2000 Nutzer`) is not caught.
+8. **CV-20.** A station used in the Lebenslauf that the Grundlage records with `Bestätigt: nein` (header-form line
+   `- Bestätigt: nein`, or the station note key `bestaetigt: nein`) is a Blocker: a station counts only once the user has confirmed it (R-9.5 point 5). A missing flag is no finding, so
+   older Grundlagen keep working.
 
 ### CG-13.5 Severities of the further gate checks
 
@@ -424,8 +446,8 @@ Each scenario states the expected behaviour. The column *Verification* tells how
 
 | ID | Scenario | Expected behaviour | Verification |
 |---|---|---|---|
-| A | Experienced specialist | Relevant technical evidence first; unsupported technology absent | review; CV-05 keeps technology claims tied to the Grundlage |
-| B | Leadership role without evidence | No team size, direct reports or management title | CV-05 for numbers; CV-16 for leadership wording; CV-15 for titles; `tests/test_cv_checks.py` |
+| A | Experienced specialist | Relevant technical evidence first; unsupported technology absent | review; CV-19 blocks a skill or certificate that the Grundlage does not hold; CV-05 keeps numbers tied to it |
+| B | Leadership role without evidence | No team size, direct reports or management title | CV-05 for numbers; CV-16 for leadership wording (Blocker without `fuehrung: ja`); CV-15 for titles; `tests/test_cv_checks.py` |
 | C | Career change | Transferable evidence highlighted; history not altered | review; CG-2 and CV-06 |
 | D | Entry-level | *einseitig*, education and projects first | review; CG-6.1 default length |
 | E | Older strong evidence | Older stations' bullets selected by relevance; order stays reverse chronological | `tests/test_cv_checks.py` (order check); selection review |
@@ -446,12 +468,13 @@ example, not by a script.
 | Area | Point | Status |
 |---|---|---|
 | CV-11 severity | `cv_checks.py` reports Warnung for the whole phrase set (CG-7.3) | done (script, 0.2.0) |
-| CV-16 severity | `cv_checks.py` distinguishes Warnung (`ungeklärt`, missing) and Blocker (`nein`) (CG-13.4.3); lead verbs count only with a people object | done (script, 0.2.0) |
+| CV-16 severity | `cv_checks.py` reports a Blocker for `nein`, `ungeklärt` and missing (CG-13.4.3, audit finding FF-004); lead verbs count only with a people object | done (script) |
 | CV-13 position | The gap entry must stand between the two affected stations (CG-13.4.2); the script checks the position | done (script, 0.2.0) |
 | CV-02 scope | Stations with a non-conformant header line are still checked for CV-05, CV-09, CV-11, CV-12, CV-15, CV-16 (CG-13.4.1) | done (script, 0.2.0) |
 | Year-only periods | No `[ERGÄNZEN: Monat]` placeholder, no completion of the station note required (CG-2.4, CG-9) | done (decision) |
 | Gap wording | Neutral wording chosen by the user from the list in CG-9; `Auszeit` is not a default | done (decision) |
 | DOCX metadata | The DOCX export clears the author fields (`dc:creator`, `cp:lastModifiedBy`) in `export_document.py` (CG-11.5); a fresh pandoc DOCX carries no revisions or comments | done (export, 0.2.0) |
-| CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-18 are the whole automated set (R-7, CG-13.4.5) | done (script) |
+| CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-20 are the whole automated set (R-7, CG-13.4.5) | done (script) |
+| CV-19, CV-20, CV-05 unit | List-entry grounding, unconfirmed stations and unit comparison (CG-13.4.6 to 13.4.8, audit findings FF-001, FF-003) | done (script) |
 | Page limit | Exit code 4 of `export_document.py` (R-10.10); the gate sets the severity (CG-12.4, CG-13.5) | done (export) |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

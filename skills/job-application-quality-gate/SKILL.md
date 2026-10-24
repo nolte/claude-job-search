@@ -80,7 +80,7 @@ a Blocker exists. Its rule IDs:
 | CV-02 | Station header not in form `MM/JJJJ – MM/JJJJ \| Position \| Arbeitgeber, Ort`, or a month missing (years only) | Warnung |
 | CV-03 | More than 5 bullets, or a station without bullets | Warnung, Hinweis |
 | CV-04 | Stations not reverse chronological; end before start | Warnung, Blocker |
-| CV-05 | Number in a bullet not in the station record: Hinweis when it is elsewhere in the Grundlage, Blocker when nowhere | Hinweis, Blocker |
+| CV-05 | Number in a bullet not in the station record: Hinweis when it is elsewhere in the Grundlage, Blocker when nowhere | Hinweis, Blocker; Warnung when the station holds the number with another unit or noun |
 | CV-06 | Station period differs from the Grundlage | Blocker |
 | CV-07 | *Muss* row marked *erfüllt* without evidence; *Muss* gap as report | Blocker, Warnung |
 | CV-08 | Table in the Lebenslauf | Warnung (Blocker with `--ats`) |
@@ -92,9 +92,11 @@ a Blocker exists. Its rule IDs:
 | CV-13 | Employment gap over two months without a neutral entry between the two stations | Blocker |
 | CV-14 | Invalid status or strength in the analysis (e.g. `fehlt`) | Warnung |
 | CV-15 | Station title or employer not in the Grundlage (note `titel` and `arbeitgeber`, or an R-2.1 header) | Blocker (Warnung if the Grundlage has no station records) |
-| CV-16 | Personnel-leadership wording (`Teamleitung`, `Personalverantwortung`, `disziplinarisch`, `geleitet` with Team, Mitarbeiter or Abteilung) without `fuehrung: ja` | Blocker with `fuehrung: nein`; Warnung when `ungeklärt` or missing (CG-13.4) |
+| CV-16 | Personnel-leadership wording (`Teamleitung`, `Personalverantwortung`, `disziplinarisch`, `geleitet` with Team, Mitarbeiter or Abteilung) without `fuehrung: ja` (`nein`, `ungeklärt` or missing; the Grundlage records it as the station note key or the line `Führung: ja`) | Blocker (CG-13.4.3) |
 | CV-17 | Sub-bullets below a bullet (R-2.1) | Hinweis |
 | CV-18 | Birthdate of a person (`Geburtsdatum`, `geb.`, `geboren` or `*` with a date) in `analyse.md` or a firm file passed with `--firma` (RC-5.3 rule 5, RC-11 rule 4) | Warnung |
+| CV-19 | Entry of a list section (skills, languages, certificates, education) that stands nowhere in the Grundlage, or a number in its parenthesis that stands nowhere (CG-13.4.6) | Blocker |
+| CV-20 | Station used in the Lebenslauf that the Grundlage records with `Bestätigt: nein` (R-9.5 point 5, CG-13.4.8) | Blocker |
 
 Checks that need judgement stay in the review: ownership, leadership, expertise and proficiency
 wording (CG-7.2), relevance of selection (CG-5), seniority and role positioning, language and

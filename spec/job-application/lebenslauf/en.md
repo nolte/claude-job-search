@@ -273,7 +273,7 @@ mandatory instruction that is not met is a Blocker.
 
 ## LB-13 Quality checks
 
-The automated rules of `scripts/cv_checks.py` (CV-01 to CV-18) apply to this document. This table adds the
+The automated rules of `scripts/cv_checks.py` (CV-01 to CV-20) apply to this document. This table adds the
 document-level checks and shows which are automated.
 
 | Check | Rule | Kind | Severity |
@@ -286,7 +286,7 @@ document-level checks and shows which are automated.
 | A station is not in the Grundlage | LB-5 | automated (CV-15) | Blocker |
 | A gap over two months has no entry | LB-10.4 | automated (CV-13) | Blocker |
 | A number that the Grundlage does not state | CG-8.3 | automated (CV-05) | Blocker |
-| A leadership word while `fuehrung` is `ungeklärt` or missing in the station note | CG-8.2 | automated (CV-16) | Warnung |
+| A leadership word while `fuehrung` is `ungeklärt` or missing in the station note | CG-8.2 | automated (CV-16) | Blocker |
 | A leadership word while the station note says `fuehrung: nein` | CG-8.2 | automated (CV-16) | Blocker |
 | A table in the document | LB-11.1 | automated (CV-08) | Warnung, Blocker with ATS |
 | More than five bullets, or a bullet longer than two lines | CG-6 | automated (CV-03, CV-12) | Warnung, Hinweis |
@@ -306,7 +306,7 @@ document-level checks and shows which are automated.
 | Kurzprofil | No source found for a Kurzprofil as usual in Germany. Decision: required in `kombiniert`, opt-in elsewhere, at most three sentences (LB-4.2) | done (decision of this plugin) |
 | Photo | Sources call the photo still common in practice. The default of R-8.2 is none. The user's choice decides; no change proposed | open |
 | Automation | Checks for list-entry form (LB-6), skill group size (LB-7.6), and the closing date (LB-9.4) are not in `cv_checks.py` | open |
-| CV-16 severity | `cv_checks.py` distinguishes Warnung (`ungeklärt`, missing) and Blocker (`nein`) | done (script, 0.2.0) |
+| CV-16 severity | `cv_checks.py` reports a Blocker for `nein`, `ungeklärt` and missing (CG-13.4.3) | done (script) |
 | Photo in the export | The Markdown source carries the photo as an image link (LB-4.1.2). The PDF template (`cv.lua`, `document.tex`) has no photo layout, and no test covers an image in any format; the word check (CG-12.2) is not specified for the alternative text | open (export) |
 | Signature image | Not supported in Phase 1 (LB-9.3). An image-capable export is a later requirement | open, deliberate |
 | Deckblatt | Not generated (LB-2.2). No requirement known | closed |
