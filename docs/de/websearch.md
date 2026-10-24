@@ -128,7 +128,7 @@ Datum (RC-9). So kannst du hinterher prüfen, was deinen Rechner verlassen hat.
    selbst, gelesen und datiert, nicht den Textauszug (RC-5.5 Regel 1).
 5. **Kein Browser.** Die Recherche nutzt weder Playwright noch `renderMode: browser`. Eine Seite,
    die nur mit JavaScript lesbar ist, wird mit Grund als `nicht ermittelt` festgehalten. Du kannst
-   den Text selbst einfügen. Die eine geplante Ausnahme ist eine Anzeigen-URL, die du selbst
+   den Text selbst einfügen. Die eine Ausnahme ist eine Anzeigen-URL, die du selbst
    nennst; siehe [Browser-MCP](browser.md).
 6. **Nicht für LinkedIn und nicht für Register.** Eine `linkedin.com`-URL wird nie an die
    Abruf-Tools übergeben (RC-5.4 Regel 6). Nutze den [LinkedIn-Server](linkedin.md) oder füge den

@@ -13,7 +13,8 @@ and 9 page fetches and redirect check, RC-5.4 rule 6 LinkedIn, RC-5.5 rule 9 no 
 (UA-3 source ranks), `spec/job-application/stellensuche/en.md` (ST-7 hand-off of a chosen posting) and
 `spec/job-application/konventionen/en.md` (R-1 facts, R-6 data protection).
 
-**Status:** draft. No skill implements it yet; the intake belongs to `job-application-posting-analysis` (S1).
+**Status:** implemented by `job-application-posting-analysis` (S1, section *Intake from a URL*) and `scripts/posting_url.py`
+(UE-2 rules 3 and 5), with the Browserroute switched off in practice until UE-12 point 1 is settled.
 
 **Provenance.** The READMEs of Playwright MCP (`@playwright/mcp`, npm 0.0.83) and webpage-mcp (`webpage-mcp`,
 npm 0.10.2) were read on 2026-10-24 on their main branches, not at the tagged versions. Established by that
@@ -213,8 +214,7 @@ adds the loading of the page and nothing else to the later steps.
    snapshot of `browser_snapshot` names the page URL), no server counts as meeting rule 5, UE-3 rule 4 does not apply,
    and the docs say so. Scenario UE-C holds from the moment a server is shown to report it.
 2. **Which server.** By the READMEs, only Playwright MCP can meet UE-4 rule 3 (`--isolated`, `--headless`).
-   webpage-mcp cannot: it uses the user's own Chrome profile with its sessions. It is documented in the docs page
-   *Browser MCP* as not suitable for this intake. Playwright MCP also states that it is "not a security
+   webpage-mcp cannot: it uses the user's own Chrome profile with its sessions. It is not suitable for this intake. Playwright MCP also states that it is "not a security
    boundary" and has tools that UE-4 rule 2 forbids (`browser_click`, `browser_evaluate`, `browser_file_upload`,
    `browser_run_code_unsafe`); the plugin cannot remove them, so the permission settings must deny them (docs page).
 3. **Recognising a script shell.** UE-3 rule 3 names the signs (asks for JavaScript, empty mount point). They are
@@ -225,8 +225,8 @@ adds the loading of the page and nothing else to the later steps.
 6. **Resolved addresses.** Whether open-webSearch and Playwright MCP refuse a public name that resolves to a private
    address is not shown by their READMEs. UE-2 rule 5 relies on it; until shown, the user is told that the check
    covers the typed host only.
-7. **Skill and docs.** `job-application-posting-analysis` (Inputs) and the pages *Optional MCP servers* and *Web
-   search* are changed after the spec is accepted; until then they describe a pasted text and the fetch on request.
+7. **Skill and docs.** Done: `job-application-posting-analysis` (*Intake from a URL*), `job-application-solution` (Inputs)
+   and the pages *Optional MCP servers*, *Web search*, *Browser MCP*, *Skills* and *Getting started* describe the intake.
 
 ## UE-13 Acceptance scenarios
 

@@ -5,50 +5,55 @@ Some posting pages show their text only after a browser has run their scripts. A
 page. It is meant for one purpose: when you give only the URL of a posting, the plugin should
 still be able to read it.
 
-!!! warning "Specified, not yet used by a skill"
-    This page covers the planned intake of a posting from a URL
-    (`spec/job-application/stellenanzeige-url/en.md`, status draft). No skill uses a browser server
-    yet, and the plugin ships no `.mcp.json`. The rules all optional servers share (consent, one
+!!! warning "Browser route switched off until redirects are shown"
+    This page covers the intake of a posting from a URL
+    (`spec/job-application/stellenanzeige-url/en.md`), implemented in
+    `job-application-posting-analysis`. The route through the open-webSearch server works. The
+    browser route stays switched off in practice: it needs a server that is shown to report the
+    final URL of the loaded page, and none is (see "Limits you should know"). The plugin ships no
+    `.mcp.json`. The rules all optional servers share (consent, one
     route per source, budget, no evasion) are on [Optional MCP servers](mcp-servers.md). The
-    servers are independent projects, not affiliated with this plugin. No skill requires one:
+    server is an independent project, not affiliated with this plugin. No skill requires one:
     without a server you paste the posting text, as described in
     [Getting started](getting-started.md).
 
-Every statement about the two servers is the project's own, as its README says it. The READMEs
-were read on 24 October 2026 on their main branches, not at a tagged version. The latest npm
-versions on that day were `@playwright/mcp` 0.0.83 and `webpage-mcp` 0.10.2. The plugin has not run
-either server and does not confirm these statements. Check the README for anything newer.
+Every statement about the server is the project's own, as its README says it. The README
+was read on 24 October 2026 on its main branch, not at a tagged version. The latest npm
+version on that day was `@playwright/mcp` 0.0.83. The plugin has not run
+the server and does not confirm these statements. Check the README for anything newer.
 
-## How the plugin would use a browser
+## How the plugin uses a URL
 
 1. You give a URL. Tracking parameters such as `utm_source` are removed first.
 2. The plugin first fetches the page without a browser through the open-webSearch server.
-3. Only if that returns no posting text does it offer the browser, name the server and the risk,
-   and wait for your yes.
+3. Only if that returns a page that is just a script shell does it offer the browser, name the
+   server and the risk, and wait for your yes. A removed posting, a log-in wall or a bot check never
+   leads to the browser; you are asked to paste the text. While no server is shown to report the
+   final URL, this step does not happen and you are asked to paste the text.
 4. The browser opens the one URL, reads the page text and closes. It does not click, type, fill
    forms, upload or download, and it keeps no profile, cookies or logins.
-5. You see the extracted posting and its fields before anything is written to your Wurzel.
+5. You see the extracted posting and its fields before anything is written to your Wurzel. A URL
+   that lists several postings is not a posting: you name one entry. `linkedin.com` links and
+   internal addresses are refused before any request.
 
 A page behind a log-in or a CAPTCHA is not read, and no workaround is tried. A `linkedin.com` URL
 is never loaded this way; see [LinkedIn access](linkedin.md). The research of a firm (levels 1
 and 2) never uses a browser.
 
-## The two candidates
+## The server
 
-| | Playwright MCP | webpage-mcp |
-|---|---|---|
-| Project | [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp) | [mcpland/webpage-mcp](https://github.com/mcpland/webpage-mcp) |
-| Package, licence | `@playwright/mcp`, Apache-2.0 | `webpage-mcp`, MIT |
-| Needs | Node.js 18 or newer | Node.js 22 or newer, Chrome 135 or newer, the "Webpage MCP Connector" Chrome extension |
-| Browser | Starts its own browser | Drives **your own Chrome** through the extension |
-| Profile and logins | `--isolated` keeps the profile in memory and saves nothing | "Reuses existing profile session/cookies"; no isolated mode is stated |
-| Headless | `--headless` | Not stated |
-| Suitable for this plugin | **Yes, with the settings below** | **No** |
+| | Playwright MCP |
+|---|---|
+| Project | [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp) |
+| Package, licence | `@playwright/mcp`, Apache-2.0 |
+| Needs | Node.js 18 or newer |
+| Browser | Starts its own browser |
+| Profile and logins | `--isolated` keeps the profile in memory and saves nothing |
+| Headless | `--headless` |
 
-**Why webpage-mcp is not suitable.** The plugin reads a posting without your logins and without
-your history. webpage-mcp works in your real browser session, with your cookies, bookmarks and
-history in reach. Its README calls an enabled client "a privileged browser operator". That is the
-opposite of what the intake needs. It is listed here so you can see why it is not recommended.
+The plugin reads a posting without your logins and without your history. Use only a server that can
+run in an isolated, non-persistent browser context; a server that works in your own browser session
+does not fit this intake.
 
 ## Set up Playwright MCP
 
@@ -103,7 +108,7 @@ installed version; a name that is missing from the list above is not denied. The
   `--allowed-origins` "does not affect redirects", so it cannot stop a page from sending the
   browser somewhere else.
 - **Redirects are not confirmed.** The plugin must check where a page ended up, because a posting
-  link can redirect to a page it must not read (RC-5.2 rule 9). Neither README says that a tool
+  link can redirect to a page it must not read (RC-5.2 rule 9). The README does not say that a tool
   reports the final URL. Until a run of the installed version shows it, the browser route stays
   switched off in practice. This is an open point in the specification (UE-12).
 - **Scripts run on your machine.** A browser executes the scripts of whatever site the URL points

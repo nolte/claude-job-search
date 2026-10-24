@@ -16,9 +16,9 @@ The conventions are in `spec/job-application/konventionen/en.md`.
 - `.claude-plugin/plugin.json` — plugin manifest (name, version, author)
 - `.claude-plugin/marketplace.json` — marketplace catalog (downstream install source)
 - `skills/<name>/SKILL.md` — reusable skills; each folder is one skill
-- `scripts/` — helper scripts shared by skills, for example `grundlage_hash.py` (Datengrundlage hash and `stand`, spec R-9.5)
+- `scripts/` — helper scripts shared by skills, for example `grundlage_hash.py` (Datengrundlage hash and `stand`, spec R-9.5) and `posting_url.py` (URL cleaning and refused targets of the posting intake, spec UE-2)
 - `agents/<name>.md` — reusable sub-agents
-- `spec/` — specifications (EN canonical; DE translation pending). Fourteen specs under `spec/job-application/`: `konventionen`, `cv-generierung`, `lebenslauf`, `lebenslauf-versionen`, `anschreiben`, `motivationsschreiben`, `kontaktklassifikation`, `unternehmensanalyse`, `recherche`, `traumjob-interview`, `lokale-struktur`, `stellensuche`, `stellenanzeige-url` (draft, no skill yet), `mail-verwaltung` (specification only, no skill yet). Index with one line per spec: `spec/README.md`
+- `spec/` — specifications (EN canonical; DE translation pending). Fourteen specs under `spec/job-application/`: `konventionen`, `cv-generierung`, `lebenslauf`, `lebenslauf-versionen`, `anschreiben`, `motivationsschreiben`, `kontaktklassifikation`, `unternehmensanalyse`, `recherche`, `traumjob-interview`, `lokale-struktur`, `stellensuche`, `stellenanzeige-url`, `mail-verwaltung` (specification only, no skill yet). Index with one line per spec: `spec/README.md`
 - `docs/` — MkDocs source (EN and DE)
 - `project/` — mission, roadmap, requirements
 - `tests/` — stdlib unittest suite: CV checks, export, skill structure, spec index (`task test`)

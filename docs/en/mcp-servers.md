@@ -17,7 +17,7 @@ they share once. The detail pages add only what is specific to one server.
 | [handelsregister-mcp](https://github.com/lexdoudkin/handelsregister-mcp) | Identity check of a firm against the Handelsregister | Documented: [Handelsregister access](handelsregister.md) |
 | [open-webSearch](https://github.com/Aas-ee/open-webSearch) | Web search and fetches of known public pages | Documented: [Web search](websearch.md) |
 | [JobSpy](https://github.com/speedyapply/JobSpy) | Job discovery on job boards | Documented: [JobSpy](jobspy.md) |
-| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | Reading a posting page from a URL that needs a browser | Documented: [Browser MCP](browser.md); planned, no skill uses it yet. [webpage-mcp](https://github.com/mcpland/webpage-mcp) is described there as not suitable |
+| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | Reading a posting page from a URL that needs a browser | Documented: [Browser MCP](browser.md); used by the posting intake only once a server is shown to report the final URL. |
 
 ## Rules for every server
 

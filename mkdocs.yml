@@ -108,9 +108,10 @@ nav:
   - Counterparts: en/counterparts.md
   - Glossary: en/glossary.md
   - Export: en/export.md
-  - Optional MCP servers: en/mcp-servers.md
-  - LinkedIn: en/linkedin.md
-  - Handelsregister: en/handelsregister.md
-  - Web search: en/websearch.md
-  - JobSpy: en/jobspy.md
-  - Browser MCP: en/browser.md
+  - Optional MCP servers:
+      - Overview: en/mcp-servers.md
+      - LinkedIn: en/linkedin.md
+      - Handelsregister: en/handelsregister.md
+      - Web search: en/websearch.md
+      - JobSpy: en/jobspy.md
+      - Browser MCP: en/browser.md

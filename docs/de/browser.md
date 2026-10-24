@@ -5,53 +5,58 @@ einfacher Seitenabruf (siehe [Websuche](websearch.md)) liefert dann nur eine lee
 Browser-MCP-Server kann eine solche Seite laden. Er ist für genau einen Zweck gedacht: Wenn du nur
 die URL einer Anzeige nennst, soll das Plugin sie trotzdem lesen können.
 
-!!! warning "Festgelegt, aber noch von keinem Skill genutzt"
-    Diese Seite behandelt den geplanten Intake einer Anzeige aus einer URL
-    (`spec/job-application/stellenanzeige-url/en.md`, Status Entwurf). Noch kein Skill nutzt einen
-    Browser-Server, und das Plugin liefert keine `.mcp.json`. Die Regeln, die für alle optionalen
+!!! warning "Browser-Weg abgeschaltet, bis Weiterleitungen belegt sind"
+    Diese Seite behandelt den Intake einer Anzeige aus einer URL
+    (`spec/job-application/stellenanzeige-url/en.md`), umgesetzt in
+    `job-application-posting-analysis`. Der Weg über den open-webSearch-Server funktioniert. Der
+    Browser-Weg bleibt praktisch abgeschaltet: Er braucht einen Server, von dem belegt ist, dass er
+    die endgültige URL der geladenen Seite meldet, und das ist bei keinem belegt (siehe
+    „Grenzen, die du kennen solltest“). Das Plugin liefert keine `.mcp.json`. Die Regeln, die für alle optionalen
     Server gelten (Zustimmung, ein Weg je Quelle, Budget, keine Umgehung), stehen auf
-    [Optionale MCP-Server](mcp-servers.md). Die Server sind eigenständige Projekte und stehen in
+    [Optionale MCP-Server](mcp-servers.md). Der Server ist ein eigenständiges Projekt und steht in
     keiner Verbindung zu diesem Plugin. Kein Skill braucht einen: Ohne Server fügst du den
     Anzeigentext ein, wie in [Erste Schritte](getting-started.md) beschrieben.
 
-Jede Aussage über die beiden Server ist die des Projekts selbst, wie seine README sie nennt. Die
-READMEs wurden am 24. Oktober 2026 im Hauptzweig gelesen, nicht an einer getaggten Version. Die
-jüngsten npm-Versionen an diesem Tag waren `@playwright/mcp` 0.0.83 und `webpage-mcp` 0.10.2. Das
-Plugin hat keinen der Server ausgeführt und bestätigt diese Aussagen nicht. Prüfe die README auf
+Jede Aussage über den Server ist die des Projekts selbst, wie seine README sie nennt. Die
+README wurde am 24. Oktober 2026 im Hauptzweig gelesen, nicht an einer getaggten Version. Die
+jüngste npm-Version an diesem Tag war `@playwright/mcp` 0.0.83. Das
+Plugin hat den Server nicht ausgeführt und bestätigt diese Aussagen nicht. Prüfe die README auf
 Neueres.
 
-## Wie das Plugin einen Browser nutzen würde
+## Wie das Plugin eine URL nutzt
 
 1. Du nennst eine URL. Tracking-Parameter wie `utm_source` werden zuerst entfernt.
 2. Das Plugin ruft die Seite zuerst ohne Browser über den open-webSearch-Server ab.
-3. Nur wenn dabei kein Anzeigentext herauskommt, bietet es den Browser an, nennt Server und Risiko
-   und wartet auf dein Ja.
+3. Nur wenn dabei eine Seite herauskommt, die bloß eine Skript-Hülle ist, bietet es den Browser an,
+   nennt Server und Risiko und wartet auf dein Ja. Eine entfernte Anzeige, eine Anmeldung oder eine
+   Bot-Prüfung führt nie zum Browser; du wirst gebeten, den Text einzufügen. Solange von keinem
+   Server belegt ist, dass er die endgültige URL meldet, findet dieser Schritt nicht statt, und du
+   wirst gebeten, den Text einzufügen.
 4. Der Browser öffnet die eine URL, liest den Seitentext und schließt sich. Er klickt nicht, tippt
    nicht, füllt keine Formulare aus, lädt nichts hoch oder herunter und behält kein Profil, keine
    Cookies und keine Anmeldungen.
 5. Du siehst die erkannte Anzeige und ihre Felder, bevor etwas in deine Wurzel geschrieben wird.
+   Eine URL, die mehrere Anzeigen auflistet, ist keine Anzeige: Du nennst einen Eintrag.
+   `linkedin.com`-Links und interne Adressen werden vor jeder Anfrage abgelehnt.
 
 Eine Seite hinter einer Anmeldung oder einem CAPTCHA wird nicht gelesen, und es wird kein Umweg
 versucht. Eine `linkedin.com`-URL wird so nie geladen; siehe [LinkedIn-Zugriff](linkedin.md). Die
 Recherche zu einer Firma (Stufen 1 und 2) nutzt nie einen Browser.
 
-## Die zwei Kandidaten
+## Der Server
 
-| | Playwright MCP | webpage-mcp |
-|---|---|---|
-| Projekt | [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp) | [mcpland/webpage-mcp](https://github.com/mcpland/webpage-mcp) |
-| Paket, Lizenz | `@playwright/mcp`, Apache-2.0 | `webpage-mcp`, MIT |
-| Voraussetzung | Node.js 18 oder neuer | Node.js 22 oder neuer, Chrome 135 oder neuer, die Chrome-Erweiterung „Webpage MCP Connector“ |
-| Browser | Startet einen eigenen Browser | Steuert **deinen eigenen Chrome** über die Erweiterung |
-| Profil und Anmeldungen | `--isolated` hält das Profil im Speicher und speichert nichts | „Reuses existing profile session/cookies“; ein isolierter Modus ist nicht genannt |
-| Headless | `--headless` | Nicht genannt |
-| Geeignet für dieses Plugin | **Ja, mit den Einstellungen unten** | **Nein** |
+| | Playwright MCP |
+|---|---|
+| Projekt | [microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp) |
+| Paket, Lizenz | `@playwright/mcp`, Apache-2.0 |
+| Voraussetzung | Node.js 18 oder neuer |
+| Browser | Startet einen eigenen Browser |
+| Profil und Anmeldungen | `--isolated` hält das Profil im Speicher und speichert nichts |
+| Headless | `--headless` |
 
-**Warum webpage-mcp nicht geeignet ist.** Das Plugin liest eine Anzeige ohne deine Anmeldungen und
-ohne deinen Verlauf. webpage-mcp arbeitet in deiner echten Browser-Sitzung, mit deinen Cookies,
-Lesezeichen und deinem Verlauf in Reichweite. Seine README nennt einen aktivierten Client „a
-privileged browser operator“. Das ist das Gegenteil von dem, was der Intake braucht. Der Server
-steht hier, damit du siehst, warum er nicht empfohlen wird.
+Das Plugin liest eine Anzeige ohne deine Anmeldungen und ohne deinen Verlauf. Nutze nur einen Server,
+der in einem isolierten, nicht dauerhaften Browser-Kontext läuft; ein Server, der in deiner eigenen
+Browser-Sitzung arbeitet, passt nicht zu diesem Intake.
 
 ## Playwright MCP einrichten
 
@@ -109,7 +114,7 @@ nennt `browser_run_code_unsafe` als das riskanteste: Es führt beliebigen Code i
   Browser woandershin zu schicken.
 - **Weiterleitungen sind nicht bestätigt.** Das Plugin muss prüfen, wo eine Seite gelandet ist,
   weil ein Anzeigenlink auf eine Seite weiterleiten kann, die es nicht lesen darf (RC-5.2 Regel 9).
-  Keine der beiden READMEs sagt, dass ein Werkzeug die endgültige URL meldet. Bis ein Lauf der
+  Die README sagt nicht, dass ein Werkzeug die endgültige URL meldet. Bis ein Lauf der
   installierten Version das zeigt, bleibt der Browser-Weg praktisch abgeschaltet. Das ist ein
   offener Punkt der Spezifikation (UE-12).
 - **Skripte laufen auf deinem Rechner.** Ein Browser führt die Skripte jeder Seite aus, auf die die
