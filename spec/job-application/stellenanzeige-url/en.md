@@ -104,18 +104,18 @@ snapshot of the installed version contains settles it (open point UE-12).
 2. **Fields.** The skill fills the following fields from the page. A field the page does not state is `nicht ermittelt`;
    nothing is guessed from the domain, the firm's name or other postings.
 
-| Field | Source on the page | Goes to |
-|---|---|---|
-| Stelle (title, with `(m/w/d)` as printed) | heading | `vorgang.md` `stelle` |
-| Firma (name as printed) | heading, logo text, "Über uns" block, imprint link | `vorgang.md` `firma` |
-| Ort, Arbeitsform | location line, text | `stellenanzeige.md` |
-| Referenznummer | "Ref.-Nr.", "Kennziffer", job ID in the text | `vorgang.md` `ref_nr` |
-| Veröffentlichungsdatum, Bewerbungsfrist | date lines | `stellenanzeige.md` |
-| Bewerbungsweg (E-Mail, Portal, Post) and its address | application note, button text | `vorgang.md` `bewerbungsweg` |
-| Kontaktperson (name and function as printed) | contact block | the classification of KK-3.1; person data under RC-10 rule 3 |
-| Verlangte Unterlagen | application note | for the documents of S3 |
-| Anrede der Zielgruppe (Sie, du) | the text | R-3 |
-| Gehaltsangabe | text | `stellenanzeige.md` only when stated |
+   | Field | Source on the page | Goes to |
+   |---|---|---|
+   | Stelle (title, with `(m/w/d)` as printed) | heading | `vorgang.md` `stelle` |
+   | Firma (name as printed) | heading, logo text, "Über uns" block, imprint link | `vorgang.md` `firma` |
+   | Ort, Arbeitsform | location line, text | `stellenanzeige.md` |
+   | Referenznummer | "Ref.-Nr.", "Kennziffer", job ID in the text | `vorgang.md` `ref_nr` |
+   | Veröffentlichungsdatum, Bewerbungsfrist | date lines | `stellenanzeige.md` |
+   | Bewerbungsweg (E-Mail, Portal, Post) and its address | application note, button text | `vorgang.md` `bewerbungsweg` |
+   | Kontaktperson (name and function as printed) | contact block | the classification of KK-3.1; person data under RC-10 rule 3 |
+   | Verlangte Unterlagen | application note | for the documents of S3 |
+   | Anrede der Zielgruppe (Sie, du) | the text | R-3 |
+   | Gehaltsangabe | text | `stellenanzeige.md` only when stated |
 
 3. **Requirements.** Must-have and nice-to-have items are extracted by the existing analysis (`cv-generierung` CG-4),
    not by this intake. This intake provides the Anzeigentext on which it works.
