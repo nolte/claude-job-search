@@ -1,6 +1,6 @@
 ---
 description: The reviewer does not inherit a BEREIT report when the document holds an open placeholder.
-tags: [behavior]
+tags: [behavior, no-bash]
 plugins: ["../.."]
 runs: 3
 max_turns: 25

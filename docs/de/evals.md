@@ -40,7 +40,7 @@ task eval -- trigger                # dasselbe über das Taskfile
 | `MAX_COST_USD` | `10` | Harte Obergrenze; der Lauf endet mit Exit-Code 2 und Teilergebnissen |
 | `THRESHOLD` | `0.8` | Ein Case unter diesem Wert lässt den Lauf scheitern (Exit-Code 1). Der Standard des Werkzeugs, 1.0, ist für Modellverhalten zu streng |
 | `ABLATION` | `none` | Läuft nur mit dem Plugin. `with-without` führt jeden Case zusätzlich ohne Plugin aus: doppelte Kosten, zeigt aber, was das Plugin beiträgt |
-| `SKIP_PRECHECK` | aus | Jedes Ziel außer den Trigger-Cases führt zuerst die zwei Vorbedingungen `behavior-bash-works` und `behavior-python-works` aus; ist eine rot, endet der Lauf mit Exit-Code 3, bevor Geld für Cases ausgegeben wird, die nicht funktionieren können |
+| `SKIP_PRECHECK` | aus | Jedes Ziel außer den Trigger-Cases führt zuerst die zwei Vorbedingungen `behavior-bash-works` und `behavior-python-works` aus. Ist eine rot, lassen `behavior` und `all` die Cases mit Tag `needs-bash` aus (heute `behavior-gate-runs-script`), führen den Rest aus (Tag `no-bash`) und sagen, was ausgelassen wurde. Ein Case, den du namentlich wählst, läuft trotzdem und scheitert. Der Lauf ist dann nicht vollständig: Hole die ausgelassenen Cases auf einem Rechner mit grünen Vorbedingungen nach |
 | (Vorbedingungen) | | Die zwei Vorbedingungen sind zwei kurze Zusatzläufe vor `behavior`, `all` und vor jedem einzelnen Verhaltens-Case oder Glob (auch `behavior-plan-gate`); `all` führt danach nur die Cases mit Tag `trigger` oder `behavior` aus, sie laufen also nicht doppelt. Das Ergebnis jeder Vorbedingung steht in `evals/results/<Case>.json` |
 | `TRUST` | aus | `TRUST=1` übergibt `--trust-plugin`; ohne fragt Claude Code einmal, ob du diesem Plugin vertraust |
 

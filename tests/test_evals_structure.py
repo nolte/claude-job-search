@@ -105,6 +105,24 @@ class EvalSuiteTests(unittest.TestCase):
             head = text if path.endswith(".yaml") else text.split("---")[1]
             self.assertIsInstance(yaml.safe_load(head), dict, path)
 
+    def test_behavior_cases_say_whether_they_need_bash(self):
+        # run.sh leaves out the needs-bash cases when a precondition is red and runs the no-bash ones; a case that is
+        # tagged no-bash must not require a Bash call, a needs-bash case must
+        for case in CASES:
+            head = read(os.path.join(case, "prompt.md")).split("---")[1]
+            tags = set(re.findall(r"[\w-]+", re.search(r"(?m)^tags: \[(.*)\]$", head).group(1)))
+            self.assertLessEqual(tags, {"trigger", "behavior", "precondition", "no-bash", "needs-bash"}, case)
+            if "behavior" not in tags:
+                self.assertFalse(tags & {"no-bash", "needs-bash"}, case)
+                continue
+            self.assertEqual(len(tags & {"no-bash", "needs-bash"}), 1, f"{case}: a behavior case is either no-bash or needs-bash")
+            requires_bash = False
+            for grader in glob.glob(os.path.join(case, "graders", "*.md")):
+                text = read(grader)
+                if re.search(r"(?m)^tool: Bash$", text) and not re.search(r"(?m)^max: 0$", text):
+                    requires_bash = True
+            self.assertEqual(requires_bash, "needs-bash" in tags, f"{case}: tags and graders disagree about Bash")
+
     def test_trigger_cases_check_the_skill_they_are_named_after(self):
         for case in CASES:
             name = os.path.basename(case)

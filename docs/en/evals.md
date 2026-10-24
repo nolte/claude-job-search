@@ -39,7 +39,7 @@ task eval -- trigger                # the same through the Taskfile
 | `MAX_COST_USD` | `10` | Hard ceiling; the run stops with exit code 2 and partial results |
 | `THRESHOLD` | `0.8` | A case below this score fails the run (exit code 1). The default of the tool, 1.0, is too strict for model behaviour |
 | `ABLATION` | `none` | Runs only with the plugin. `with-without` also runs every case without it: double cost, and it shows what the plugin adds |
-| `SKIP_PRECHECK` | off | Every target except the trigger cases first runs the two preconditions `behavior-bash-works` and `behavior-python-works`; if one is red the run stops with exit code 3 before it spends money on cases that cannot work |
+| `SKIP_PRECHECK` | off | Every target except the trigger cases first runs the two preconditions `behavior-bash-works` and `behavior-python-works`. If one is red, `behavior` and `all` leave out the cases tagged `needs-bash` (today `behavior-gate-runs-script`), run the rest (tag `no-bash`) and say what was left out. A case that you select by name still runs and will fail. The run is then not complete: do the left-out cases on a machine where the preconditions are green |
 | (preconditions) | | The two preconditions are two short extra runs before `behavior`, `all` and every single behavioural case or glob (also `behavior-plan-gate`); `all` then runs only the cases tagged `trigger` or `behavior`, so they are not run twice. Results of each precondition are in `evals/results/<case>.json` |
 | `TRUST` | off | `TRUST=1` passes `--trust-plugin`; without it Claude Code asks once whether you trust this plugin |
 

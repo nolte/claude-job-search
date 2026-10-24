@@ -52,6 +52,8 @@ if [ "$needs_scaffold" = "1" ]; then
 fi
 
 # Preconditions: if Bash or python3 does not work inside the eval sandbox, the cases that run commands measure the machine.
+# A red precondition no longer stops the run: the cases tagged needs-bash are left out and the rest runs.
+bash_ok=1
 case "$TARGET" in
   trigger|trigger-*|behavior-bash-works|behavior-python-works) ;;
   *)
@@ -62,19 +64,26 @@ case "$TARGET" in
         claude "${common[@]}" ${grants[@]+"${grants[@]}"} --runs 1 --case "$pre" --json "evals/results/$pre.json" || rc=$?
         case "$rc" in
           0) ;;
-          1) echo "$pre failed (see docs/en/evals.md, 'What the spike found'). Fix that or set SKIP_PRECHECK=1." >&2; exit 3 ;;
+          1) echo "$pre is red: Bash or python3 does not work inside the eval sandbox (see docs/en/evals.md, 'What the spike found')." >&2; bash_ok=0 ;;
           *) echo "The precondition run ended with exit code $rc (2: cost ceiling, 130 or 143: aborted); that is no verdict on the sandbox." >&2; exit "$rc" ;;
         esac
       done
     fi ;;
 esac
 
+# Cases that need Bash (tag needs-bash). Left out of the suite targets when a precondition is red.
+if [ "$bash_ok" = "0" ] && [ "$TARGET" = "behavior" -o "$TARGET" = "all" ]; then
+  skipped=$(grep -l '^tags: .*needs-bash' evals/*/prompt.md 2>/dev/null | xargs -n1 dirname 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')
+  echo "Left out because Bash does not work here: ${skipped:-none}. Run them on a machine where the preconditions are green." >&2
+fi
+
 args=("${common[@]}" ${grants[@]+"${grants[@]}"} --json "evals/results/last-run.json")
 [ -n "${RUNS:-}" ] && args+=(--runs "$RUNS")
 case "$TARGET" in
   trigger)  args+=(--tag trigger) ;;
-  behavior) args+=(--tag behavior) ;;
-  all)      args+=(--tag trigger --tag behavior) ;;
-  *)        args+=(--case "$TARGET") ;;
+  behavior) if [ "$bash_ok" = "1" ]; then args+=(--tag behavior); else args+=(--tag no-bash); fi ;;
+  all)      if [ "$bash_ok" = "1" ]; then args+=(--tag trigger --tag behavior); else args+=(--tag trigger --tag no-bash); fi ;;
+  *)        args+=(--case "$TARGET")
+            [ "$bash_ok" = "0" ] && echo "Note: a case tagged needs-bash that you selected by name will fail here." >&2 ;;
 esac
 exec claude "${args[@]}" "$@"
