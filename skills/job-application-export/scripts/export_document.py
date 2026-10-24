@@ -52,6 +52,7 @@ from pathlib import Path
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 PAGE_LIMITS = {"cv": 2, "letter": 1, "motivation": 2, "email": None}
+OPEN_PLACEHOLDER = re.compile(r"\[(ERGÄNZEN|KLÄREN)")  # R-1 / R-7: not ready to send
 EXIT_CONTENT = 2
 EXIT_DIFFERENT = 3
 EXIT_PAGES = 4
@@ -441,6 +442,13 @@ def main(argv=None):
         if not grundlage_hash:
             print("Warnung: kein grundlage_hash im Frontmatter. Der Export ist nicht prüfbar gegen die Grundlage "
                   "(R-10.3).", file=sys.stderr)
+        # the whole file, frontmatter included: the same text and marker as CV-01 in the quality gate
+        open_placeholders = len(OPEN_PLACEHOLDER.findall(args.input.read_text(encoding="utf-8")))
+        if open_placeholders:
+            print(f"Warnung: {open_placeholders} offene Platzhalter ([ERGÄNZEN …] oder [KLÄREN …]) im Dokument. Der Export "
+                  "zählt die ganze Datei (Frontmatter eingeschlossen) und ist nicht versandfertig (R-7, CV-01, BR-01); der Export "
+                  "blockiert nicht.",
+                  file=sys.stderr)
         name = ascii_name(args.name or args.input.stem)
         if not name:
             raise ExportError("Der Dateiname ist nach der ASCII-Umschrift leer. --name angeben (R-4).")
@@ -499,6 +507,8 @@ def main(argv=None):
         print(f"Inhaltsprüfung: {status}")
         if not grundlage_hash:
             print("grundlage_hash: fehlt")
+        if open_placeholders:
+            print(f"Platzhalter: {open_placeholders} offen (nicht versandfertig)")
         if status != "ok":
             return EXIT_CONTENT
         return EXIT_PAGES if over_limit else 0

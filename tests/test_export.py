@@ -104,6 +104,33 @@ class ExportTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_open_placeholders_are_reported_and_stay_visible_without_blocking(self):
+        # audit finding EXP-001: the export used to say "Inhaltsprüfung: ok" and nothing else
+        with open(self.source, "a", encoding="utf-8") as handle:
+            handle.write("\n- [ERGÄNZEN: Aufgaben]\n- [KLÄREN: Titel laut Zeugnis]\n")
+        for fmt in ("md", "html"):
+            result = self.export(fmt)
+            self.assertEqual(result.returncode, 0, f"{fmt}: {result.stderr}")
+            self.assertIn("Platzhalter: 2 offen", result.stdout, fmt)
+            self.assertIn("2 offene Platzhalter", result.stderr, fmt)
+        with open(os.path.join(self.out, "Test_Lebenslauf.html"), encoding="utf-8") as handle:
+            self.assertIn("ERGÄNZEN", handle.read())
+
+    def test_a_placeholder_in_the_frontmatter_is_counted_like_the_gate_does(self):
+        with open(self.source, encoding="utf-8") as handle:
+            text = handle.read()
+        with open(self.source, "w", encoding="utf-8") as handle:
+            handle.write(text.replace("format: chronologisch", "format: chronologisch\nnotiz: [ERGÄNZEN: Ort]", 1))
+        result = self.export("md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Platzhalter: 1 offen", result.stdout)
+
+    def test_a_document_without_placeholders_prints_no_placeholder_line(self):
+        result = self.export("md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("Platzhalter", result.stdout)
+        self.assertNotIn("Platzhalter", result.stderr)
+
     def test_email_doc_type_only_exports_markdown(self):
         # R-10.2: the e-mail text exists only as Markdown
         for fmt in ("pdf", "docx", "html", "tex"):
@@ -153,6 +180,21 @@ class ExportTests(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.out, "Test_Doc.pdf")))
         with open(os.path.join(self.out, "Test_Doc.pdf.manifest.json"), encoding="utf-8") as handle:
             self.assertEqual(json.load(handle)["ausgabe"]["seiten"], 2)
+
+    def test_placeholders_do_not_mask_the_page_limit_exit_code(self):
+        source = SOURCE + "\n- [ERGÄNZEN: Aufgaben]\n"
+        code, err = self.run_main_with_pages("letter", 2, source_text=source)
+        self.assertEqual(code, 4)
+        self.assertIn("1 offene Platzhalter", err)
+        self.assertIn("Seitenlimit überschritten", err)
+
+    def test_the_placeholder_marker_is_the_one_of_the_quality_gate_script(self):
+        # the export and cv_checks.py (CV-01, BR-01) count the same marker; a new marker has to be added in both
+        sys.path.insert(0, os.path.join(ROOT, "scripts"))
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import cv_checks
+        import export_document
+        self.assertEqual(export_document.OPEN_PLACEHOLDER.pattern, cv_checks.PLACEHOLDER.pattern)
 
     def test_page_limits_differ_by_document_type(self):
         self.assertEqual(self.run_main_with_pages("cv", 2)[0], 0)

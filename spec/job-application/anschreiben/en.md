@@ -244,7 +244,7 @@ not met is a Warnung.
 | `grundlage_hash` stale (R-9.5) | R-9.5 | automated | Warnung |
 | Anlagen line names a file that does not exist in the folder | AS-10.4 | review | Blocker |
 | Export manifest missing for an exported file | R-10.3 | review | Warnung |
-| Export file changed after its manifest was written | CG-12.5 | review | Warnung |
+| Export file changed after its manifest was written | CG-12.6 | review | Warnung |
 | Manifest source hash differs from the current `anschreiben.md` (stale export) | CG-12.2 | review | Blocker |
 | PDF without extractable text | CG-12.4 | export check | Blocker |
 | `## Auswahl Anschreiben` missing in `pruefbericht.md` | CG-2.3, R-9.11.5 | review | Warnung |

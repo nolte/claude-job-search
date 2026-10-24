@@ -369,10 +369,12 @@ class ScenarioH_Export(unittest.TestCase):
         self.assertIn("architektin", extra)
 
     def test_open_placeholders_stay_visible_in_the_export(self):
-        # the export does not block on them (the quality gate does, CV-01); it must not hide them either
+        # the export does not block on them (the quality gate does, CV-01); it neither hides them nor stays silent
         with open(self.source, "a", encoding="utf-8") as handle:
             handle.write("\n- [ERGÄNZEN: Aufgaben]\n")
-        self.assertEqual(self.export("html").returncode, 0)
+        result = self.export("html")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("Platzhalter: 1 offen", result.stdout)
         with open(os.path.join(self.folder, "export", "lebenslauf.html"), encoding="utf-8") as handle:
             self.assertIn("ERGÄNZEN", handle.read())
 
