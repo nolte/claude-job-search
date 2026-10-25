@@ -1,0 +1,8 @@
+{
+  "provider": "cloudflare",
+  "model": "@cf/black-forest-labs/flux-2-klein-4b",
+  "source": "https://api.cloudflare.com/client/v4/accounts/<account>/ai/run/@cf/black-forest-labs/flux-2-klein-4b",
+  "prompt": "Wide flat vector banner illustration, calm sunrise landscape, off-white (#F7F9FC) sky fading to nothing, no gradients. Left third: the project mark, a deep blue (#2B5FAE) paper sheet with folded top-right corner and a slender green (#3DA35D) two-leaf sprout growing out of it, an amber (#F5A623) half sun rising behind. Across the bottom, a low horizon of two or three simple rolling hills in overlapping flat tones of blue and light blue. The right two thirds stay mostly empty for the title text, with only a few small amber and light-blue dots as subtle sparkle. Geometric shapes, rounded corners, no outlines, no shadows, no texture. Optimistic, calm, trustworthy: a fresh start. Avoid: text, letters, typography, numbers, watermark, people, faces, hands, photo, 3D render, gradient, glow, drop shadow, checkerboard pattern, busy background, clutter on the right side.",
+  "timestamp": "2026-10-25T22:07:09Z",
+  "mime_type": "image/jpeg"
+}

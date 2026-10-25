@@ -1,0 +1,8 @@
+{
+  "provider": "cloudflare",
+  "model": "@cf/black-forest-labs/flux-2-klein-4b",
+  "source": "https://api.cloudflare.com/client/v4/accounts/<account>/ai/run/@cf/black-forest-labs/flux-2-klein-4b",
+  "prompt": "Flat vector app icon, centered symbol on a solid deep blue (#2B5FAE) rounded-square background. Symbol: a white sheet of paper with a small folded top-right corner; a slender green (#3DA35D) sprout with exactly two symmetric leaves grows out of the upper edge of the sheet; behind the sprout a half sun in warm amber (#F5A623) rises from the sheet's top edge, as a simple semicircle. Geometric shapes, uniform rounded corners, no outlines, no gradients, no shadows, no texture. Three flat accent colors only plus white. Symbol fills about 60 percent of the canvas, generous margin, perfectly centered, readable at 32 pixels. Optimistic, calm, trustworthy mood: a fresh start. Avoid: text, letters, numbers, watermark, people, faces, hands, photo, 3D render, gradient, glow, drop shadow, bevel, checkerboard pattern, busy background, extra leaves, multiple suns, frame.",
+  "timestamp": "2026-10-25T22:05:54Z",
+  "mime_type": "image/jpeg"
+}

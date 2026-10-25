@@ -1,6 +1,14 @@
+<p align="center">
+  <img src="design/assets/banner.jpg" alt="claude-job-search: an otter in a paper boat setting off toward a rising sun" width="100%">
+</p>
+
 # claude-job-search
 
 [![CI](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-nolte.github.io-2B5FAE)](https://nolte.github.io/claude-job-search/)
+[![Release](https://img.shields.io/github/v/release/nolte/claude-job-search)](https://github.com/nolte/claude-job-search/releases)
+[![License: MIT](https://img.shields.io/github/license/nolte/claude-job-search)](LICENSE)
+[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757)](https://github.com/nolte/claude-job-search#readme)
 
 A Claude Code plugin that helps you write job applications for German-speaking countries
 (*Bewerbungsunterlagen*): a clear CV, a cover letter, a motivation letter, the application e-mail,

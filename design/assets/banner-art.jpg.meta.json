@@ -1,0 +1,14 @@
+{
+  "provider": "cloudflare",
+  "model": "@cf/black-forest-labs/flux-2-klein-4b",
+  "source": "https://api.cloudflare.com/client/v4/accounts/<account>/ai/run/@cf/black-forest-labs/flux-2-klein-4b",
+  "prompt": "Wide flat vector banner illustration on an off-white (#F7F9FC) sky, no gradients. Left third: the exact character from the reference image, a small round brown otter with cream belly sitting in a white paper boat with a deep blue fold line, on flat blue waves, with a warm amber half sun rising behind it. Keep the character, boat and colors identical to the reference. Across the bottom a low horizon of two or three simple rolling hills and waves in overlapping flat tones of blue and light blue. The right two thirds stay mostly empty for title text, with only a few small amber and light-blue dots as subtle sparkle. Geometric shapes, rounded corners, no outlines, no shadows, no texture. Optimistic, calm, trustworthy: setting off to new shores. Avoid: text, letters, typography, numbers, watermark, human, photo, 3D render, gradient, glow, drop shadow, outline, clutter on the right side, multiple characters.",
+  "timestamp": "2026-10-25T22:30:49Z",
+  "mime_type": "image/jpeg",
+  "reference_images": [
+    {
+      "name": "otter-ref.png",
+      "sha256": "76dd4b72a4afade510e6314c1d4e6a76c78ade8d5bd1c966c95836cb25a3455d"
+    }
+  ]
+}

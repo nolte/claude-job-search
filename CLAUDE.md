@@ -20,6 +20,7 @@ The conventions are in `spec/job-application/konventionen/en.md`.
 - `agents/<name>.md` — reusable sub-agents
 - `spec/` — specifications (EN canonical; DE translation pending). Fourteen specs under `spec/job-application/`: `konventionen`, `cv-generierung`, `lebenslauf`, `lebenslauf-versionen`, `anschreiben`, `motivationsschreiben`, `kontaktklassifikation`, `unternehmensanalyse`, `recherche`, `traumjob-interview`, `lokale-struktur`, `stellensuche`, `stellenanzeige-url`, `mail-verwaltung` (specification only, no skill yet). Index with one line per spec: `spec/README.md`
 - `docs/` — MkDocs source (EN and DE)
+- `design/` — logo, icon, mascot and README banner: reproducible image prompts (`prompts/`), chosen results with their prompt sidecars (`assets/`), and `scripts/add_wordmark.py` that sets the title onto the banner (see `design/README.md`)
 - `project/` — mission, roadmap, requirements
 - `tests/` — stdlib unittest suite: CV checks, export, skill structure, spec index (`task test`)
 
