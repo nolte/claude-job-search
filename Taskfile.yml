@@ -65,6 +65,13 @@ tasks:
     cmds:
       - evals/run.sh {{.CLI_ARGS}}
 
+  eval:container:
+    desc: |
+      Run the evals inside a container in which the sandbox of the Bash tool can work (docs/en/evals.md, "Running in a container").
+      Usage: task eval:container -- <case-glob>   (same arguments and env as `task eval`; needs docker)
+    cmds:
+      - evals/docker/run.sh {{.CLI_ARGS}}
+
   plugin:reload:
     desc: Start Claude Code with this repo loaded as a plugin (dogfooding)
     cmds:

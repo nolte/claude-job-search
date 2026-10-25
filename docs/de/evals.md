@@ -166,6 +166,30 @@ Eine Suite beweist nichts, solange sie nicht scheitern kann. Jede Probe schwäch
   den Grader, nicht den Skill.
 - Lass die Schwelle bei 0,8, bis die Trefferquoten von Zehner-Läufen bekannt sind.
 
+## Im Container laufen lassen
+
+Auf einem Rechner, auf dem das Bash-Tool des Evals mit `apply-seccomp: … nested userns is capability-restricted` scheitert, können die
+Cases mit Bash (`behavior-gate-runs-script`, die Vorbedingung `behavior-bash-works`) nicht laufen. `evals/docker/run.sh`
+(`task eval:container`) führt stattdessen `evals/run.sh` in einem Container aus; es nimmt dieselben Argumente und Variablen.
+
+```bash
+TRUST=1 task eval:container -- behavior-bash-works     # zuerst: funktioniert Bash im Container?
+TRUST=1 task eval:container -- behavior-python-works
+RUNS=3 MAX_COST_USD=3 TRUST=1 SKIP_PRECHECK=1 task eval:container -- behavior-gate-runs-script
+```
+
+- Das Image (`evals/docker/Dockerfile`, vom Skript gebaut) enthält nur Werkzeuge: Claude Code in der Version der Suite, `bubblewrap`,
+  `socat`, `git` und `python3`. Das Repository wird zur Laufzeit schreibgeschützt eingebunden, nur `evals/results/` ist beschreibbar. `TRUST` steht standardmäßig auf 1, weil der Container kein Terminal für die Vertrauensfrage hat. Es steckt kein
+  Zugang im Image; `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL` und `CLAUDE_CODE_OAUTH_TOKEN` werden aus deiner Umgebung per Namen durchgereicht.
+  Eine Anmeldung in `~/.claude` steht im Container nicht zur Verfügung.
+- Der Container läuft als dein Benutzer, verwirft alle Capabilities und setzt `no-new-privileges`. Er muss drei Voreinstellungen von Docker
+  lockern, die die Benutzer-Namespaces von `bubblewrap` blockieren: das Seccomp-Profil, das AppArmor-Profil und die maskierten Pfade
+  von `/proc`. Das schwächt die Trennung zwischen Container und Rechner. Nutze es nur für dieses vertraute Plugin und nur, wenn das auf
+  deinem Rechner vertretbar ist.
+- Ohne Modellaufruf geprüft: `bubblewrap` legt mit diesen Optionen als Nicht-Root-Benutzer einen User-Namespace an (eine zweite Ebene darin scheitert, nachgeprüft), und das
+  eingebundene Repository ist bis auf den Ergebnisordner schreibgeschützt. **Nicht geprüft:** ob das Bash-Tool von `claude plugin eval` im Container funktioniert;
+  das beantwortet `behavior-bash-works` (etwa 0,15 US-Dollar). Bleibt es rot, liegt es nicht am Profil des Hosts, und der Container hilft nicht.
+
 ## Grenzen
 
 - Die Suite misst das Befolgen von Anweisungen an wenigen Cases, nicht die Qualität eines Lebenslaufs oder Briefs.

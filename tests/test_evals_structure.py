@@ -269,6 +269,27 @@ class EvalSuiteTests(unittest.TestCase):
         self.assertIn("--max-cost-usd", runner)
         self.assertRegex(runner, r'MAX_COST_USD="\$\{MAX_COST_USD:-\d+\}"')
 
+    def test_the_container_runner_holds_no_credential_and_keeps_the_hardening(self):
+        script = read(os.path.join(EVALS, "docker", "run.sh"))
+        dockerfile = read(os.path.join(EVALS, "docker", "Dockerfile"))
+        self.assertTrue(os.stat(os.path.join(EVALS, "docker", "run.sh")).st_mode & stat.S_IXUSR)
+        for option in ("--cap-drop ALL", "no-new-privileges", '--user "$(id -u):$(id -g)"', '--env "$name"'):
+            self.assertIn(option, script, option)
+        for forbidden in ("--privileged", "docker.sock", "--network host", "--net host", "--pid host", "--cap-add"):
+            self.assertNotIn(forbidden, script, forbidden)
+        self.assertIn('--volume "$PWD:/work:ro"', script, "the repository is mounted read-only")
+        self.assertEqual(len(re.findall(r"--volume", script)), 2, "only the repository and the results folder are mounted")
+        self.assertIn('export TRUST="${TRUST:-1}"', script)
+        self.assertNotIn("--quiet", script, "a failed build must not be hidden")
+        self.assertNotRegex(script + dockerfile, r"(KEY|TOKEN)=\S", "a credential must come from the environment of the run")
+        self.assertNotRegex(dockerfile, r"(?m)^(ENV|ARG)\s+\w*(KEY|TOKEN|SECRET)", "no credential in the image")
+        self.assertRegex(dockerfile, r"(?m)^FROM \S+@sha256:[0-9a-f]{64}$")
+        self.assertRegex(dockerfile, r"(?m)^USER \d+:\d+$")
+        self.assertRegex(dockerfile, r"(?m)^ARG CLAUDE_CODE_VERSION=\d+\.\d+\.\d+$")
+        self.assertIn("evals/docker/run.sh", read(os.path.join(ROOT, "Taskfile.yml")))
+        for lang in ("en", "de"):
+            self.assertIn("eval:container", read(os.path.join(ROOT, "docs", lang, "evals.md")), lang)
+
     def test_results_are_ignored_and_the_pages_exist_in_both_languages(self):
         self.assertIn("evals/results/", read(os.path.join(ROOT, ".gitignore")))
         for lang in ("en", "de"):
