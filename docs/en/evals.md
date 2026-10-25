@@ -176,14 +176,14 @@ RUNS=3 MAX_COST_USD=3 TRUST=1 SKIP_PRECHECK=1 task eval:container -- behavior-ga
 ```
 
 - The image (`evals/docker/Dockerfile`, built by the script) holds only tools: Claude Code in the version of the suite, `bubblewrap`,
-  `socat`, `git` and `python3`. The repository is mounted at run time, results land in `evals/results/`. No credential is baked in; the
-  variables `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` are passed by name from your environment. A login in
+  `socat`, `git` and `python3`. The repository is mounted read-only at run time; only `evals/results/` is writable. `TRUST` defaults to 1 because the container has no terminal for the trust question. No credential is baked in; the
+  variables `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL` and `CLAUDE_CODE_OAUTH_TOKEN` are passed by name from your environment. A login in
   `~/.claude` is not available inside the container.
 - The container runs as your user, drops all capabilities and sets `no-new-privileges`. It has to relax three defaults of Docker that
   block the user namespaces which `bubblewrap` creates: the seccomp profile, the AppArmor profile and the masked paths of `/proc`. This
   lowers the isolation between the container and the host. Use it only for this trusted plugin and only if that is acceptable on your machine.
-- Checked without a model call: `bubblewrap` creates a nested namespace as a non-root user with these options, and the mounted repository
-  is writable. **Not checked:** whether the Bash tool of `claude plugin eval` works in the container; `behavior-bash-works` answers that
+- Checked without a model call: `bubblewrap` creates one user namespace as a non-root user with these options (a second level inside it fails, rechecked), and the mounted
+  repository is read-only except for the results folder. **Not checked:** whether the Bash tool of `claude plugin eval` works in the container; `behavior-bash-works` answers that
   (about 0.15 US dollars). If it is still red, the cause is not the host profile and the container does not help.
 
 ## Limits

@@ -179,15 +179,15 @@ RUNS=3 MAX_COST_USD=3 TRUST=1 SKIP_PRECHECK=1 task eval:container -- behavior-ga
 ```
 
 - Das Image (`evals/docker/Dockerfile`, vom Skript gebaut) enthält nur Werkzeuge: Claude Code in der Version der Suite, `bubblewrap`,
-  `socat`, `git` und `python3`. Das Repository wird zur Laufzeit eingebunden, die Ergebnisse landen in `evals/results/`. Es steckt kein
-  Zugang im Image; `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` und `ANTHROPIC_BASE_URL` werden aus Ihrer Umgebung per Namen durchgereicht.
+  `socat`, `git` und `python3`. Das Repository wird zur Laufzeit schreibgeschützt eingebunden, nur `evals/results/` ist beschreibbar. `TRUST` steht standardmäßig auf 1, weil der Container kein Terminal für die Vertrauensfrage hat. Es steckt kein
+  Zugang im Image; `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL` und `CLAUDE_CODE_OAUTH_TOKEN` werden aus deiner Umgebung per Namen durchgereicht.
   Eine Anmeldung in `~/.claude` steht im Container nicht zur Verfügung.
-- Der Container läuft als Ihr Benutzer, verwirft alle Capabilities und setzt `no-new-privileges`. Er muss drei Voreinstellungen von Docker
+- Der Container läuft als dein Benutzer, verwirft alle Capabilities und setzt `no-new-privileges`. Er muss drei Voreinstellungen von Docker
   lockern, die die Benutzer-Namespaces von `bubblewrap` blockieren: das Seccomp-Profil, das AppArmor-Profil und die maskierten Pfade
-  von `/proc`. Das schwächt die Trennung zwischen Container und Rechner. Nutzen Sie es nur für dieses vertraute Plugin und nur, wenn das auf
-  Ihrem Rechner vertretbar ist.
-- Ohne Modellaufruf geprüft: `bubblewrap` legt mit diesen Optionen als Nicht-Root-Benutzer einen geschachtelten Namespace an, und das
-  eingebundene Repository ist beschreibbar. **Nicht geprüft:** ob das Bash-Tool von `claude plugin eval` im Container funktioniert;
+  von `/proc`. Das schwächt die Trennung zwischen Container und Rechner. Nutze es nur für dieses vertraute Plugin und nur, wenn das auf
+  deinem Rechner vertretbar ist.
+- Ohne Modellaufruf geprüft: `bubblewrap` legt mit diesen Optionen als Nicht-Root-Benutzer einen User-Namespace an (eine zweite Ebene darin scheitert, nachgeprüft), und das
+  eingebundene Repository ist bis auf den Ergebnisordner schreibgeschützt. **Nicht geprüft:** ob das Bash-Tool von `claude plugin eval` im Container funktioniert;
   das beantwortet `behavior-bash-works` (etwa 0,15 US-Dollar). Bleibt es rot, liegt es nicht am Profil des Hosts, und der Container hilft nicht.
 
 ## Grenzen
