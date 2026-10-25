@@ -507,7 +507,7 @@ def letter(body, grundlage=GRUNDLAGE, doc_type="letter", context="", leader=Fals
 
 
 class LetterTests(unittest.TestCase):
-    """BR-01 to BR-04 (CG-13.6): the numbers, placeholders and leadership wording of a letter."""
+    """BR-01 to BR-05 (CG-13.6): the numbers, placeholders and leadership wording of a letter."""
 
     def test_clean_letter_has_no_findings(self):
         body = "Bei der Musterfirma GmbH habe ich die Latenz der Event-Pipeline von 800 ms auf 120 ms gesenkt."
@@ -534,6 +534,10 @@ class LetterTests(unittest.TestCase):
         for empty in ("---\nformat: chronologisch\n---\n", "# Lebenslauf\n\n## Berufserfahrung\n", ""):
             self.assertEqual(rules(run(empty), "Blocker"), ["CV-21"], repr(empty))
         self.assertNotIn("CV-21", rules(run(CLEAN_CV)))
+
+    def test_the_frontmatter_delimiter_may_have_trailing_blanks_and_hashtags_are_text(self):
+        self.assertEqual(rules(run("---  \nformat: x\n---  \n# Lebenslauf\n"), "Blocker"), ["CV-21"])
+        self.assertNotIn("CV-21", rules(run("# Lebenslauf\n#Python #Java\n")))
 
     def test_email_runs_only_the_placeholder_check(self):
         self.assertEqual(letter("Ich habe 99 Projekte geleitet, Teamleitung für 40 Mitarbeiter.", doc_type="email"), [])

@@ -382,12 +382,12 @@ def source_has(token, text):
 def has_content(text):
     """True if the document holds a line that is neither frontmatter, a heading nor blank (CV-21, BR-05)."""
     lines = text.splitlines()
-    if lines and lines[0] == "---":
+    if lines and lines[0].rstrip() == "---":
         for index in range(1, len(lines)):
-            if lines[index] == "---":
+            if lines[index].rstrip() == "---":
                 lines = lines[index + 1:]
                 break
-    return any(line.strip() and not line.lstrip().startswith("#") for line in lines)
+    return any(line.strip() and not re.match(r"\s*#{1,6}(\s|$)", line) for line in lines)
 
 
 def check_cv(text, file, source_text=None, sources=None, ats=False):
@@ -807,7 +807,7 @@ def covered_months(records, today):
 
 
 def check_letter(text, file, doc_type, source_text=None, records=None, context_text=""):
-    """BR-01 to BR-04 for anschreiben.md, motivationsschreiben.md and email.md (CG-13.6).
+    """BR-01 to BR-05 for anschreiben.md, motivationsschreiben.md and email.md (CG-13.6).
 
     `source_text` and `records` come from the Grundlage, `context_text` is the analysis and the posting."""
     findings = []

@@ -82,9 +82,10 @@ class FixtureTests(unittest.TestCase):
         for kind, sample in (("email", "max.muster@gmail.com"), ("international telephone number", "+49 30 1234567"),
                              ("international telephone number", "0049 176 12345678"), ("national telephone number", "0176/1234567"),
                              ("national telephone number", "(030) 1234567"), ("national telephone number", "030 12345678"),
-                             ("IBAN", "DE89 3704 0044 0532 0130 00"), ("profile URL", "https://www.linkedin.com/in/erika-m-4711")):
+                             ("IBAN", "DE89 3704 0044 0532 0130 00"), ("IBAN", "DE89370400440532013000"),
+                             ("email", "a@example.com.evil.org"), ("email", "x@example.test.evil.org"), ("profile URL", "https://www.linkedin.com/in/erika-m-4711")):
             self.assertIn(kind, [k for k, _ in personal_data.findings(f"Kontakt: {sample}")], sample)
-        for sample in ("max@example.test", "erika@mail.example.com", "x@firma.test", "00000 Musterstadt", "04/2021 – heute",
+        for sample in ("max@example.test", "erika@mail.example.com", "x@firma.test", "00000 Musterstadt", "Tel. 00000 123456", "04/2021 – heute",
                        "grundlage_hash: " + "0" * 64, "2019 – 2021", "https://www.linkedin.com/in/muster-person"):
             self.assertEqual(personal_data.findings(sample), [], sample)
 

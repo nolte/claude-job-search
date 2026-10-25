@@ -8,10 +8,10 @@ matter of review (CLAUDE.md, "Fictional examples only")."""
 import re
 
 PATTERNS = {
-    "email": r"[A-Za-z0-9._%+-]+@(?!(?:[A-Za-z0-9-]+\.)*(?:example\.(?:test|com|org|net)|[A-Za-z0-9-]+\.(?:test|invalid|example))\b)[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
-    "international telephone number": r"(?<![0-9A-Za-z])(?:\+|00)\d{1,3}[ /.-]?\(?\d{1,5}\)?[ /.-]?\d{3,}",
-    "national telephone number": r"(?<![0-9A-Za-z/.-])\(?0\d{2,5}\)?[ /.-]?\d{4,}(?![0-9A-Za-z])",
-    "IBAN": r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}\b",
+    "email": r"[A-Za-z0-9._%+-]+@(?!(?:[A-Za-z0-9-]+\.)*(?:example\.(?:test|com|org|net)|[A-Za-z0-9-]+\.(?:test|invalid|example))(?![A-Za-z0-9.-]))[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
+    "international telephone number": r"(?<![0-9A-Za-z])(?:\+|00)(?!0{3,})\d{1,3}[ /.-]?\(?\d{1,5}\)?[ /.-]?\d{3,}",
+    "national telephone number": r"(?<![0-9A-Za-z/.-])\(?0(?!0{4}\b)\d{2,5}\)?[ /.-]?\d{4,}(?![0-9A-Za-z])",
+    "IBAN": r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}\b|\bDE\d{20}\b",
     "profile URL": r"(?:linkedin|xing)\.com/(?:in|profile|profiles)/(?!muster|beispiel)",
 }
 
