@@ -54,6 +54,21 @@ def python_docx_available():
     return True
 
 
+class ToolchainTests(unittest.TestCase):
+    def test_ci_runs_the_tests_that_otherwise_skip(self):
+        # F-02: without pandoc, python-docx and PyYAML the export and frontmatter tests skip and the job stays green.
+        # LuaLaTeX (the PDF tests) is not required: the PDF checks run locally (docs/en/evals.md, "What the CI covers").
+        if not os.environ.get("CI"):
+            self.skipTest("not in CI: missing tools only skip the dependent tests")
+        try:
+            import yaml  # noqa: F401
+        except ImportError:
+            yaml = None
+        missing = [name for name, ok in (("pandoc", have("pandoc")), ("python-docx", python_docx_available()),
+                                          ("PyYAML", yaml is not None)) if not ok]
+        self.assertEqual(missing, [], "install them in the test job (tests/requirements.txt, apt pandoc)")
+
+
 @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
 class ExportTests(unittest.TestCase):
     def setUp(self):

@@ -290,6 +290,27 @@ class EvalSuiteTests(unittest.TestCase):
         for lang in ("en", "de"):
             self.assertIn("eval:container", read(os.path.join(ROOT, "docs", lang, "evals.md")), lang)
 
+    def test_summary_names_the_failed_case_and_grader(self):
+        run = lambda ok: {"passed": ok, "error": None, "graders": [
+            {"name": "no-invented-leadership", "passed": ok, "scored": True, "explanation": "pattern found"}]}
+        result = {"costUsd": 1.5, "partial": False, "aggregates": {"casesPassed": 0, "casesTotal": 1, "overallScore": 0.5},
+                  "cases": [{"name": "behavior-demo", "aggregates": {"score": 0.5}, "arms": {"with": [run(True), run(False)]}}]}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "r.json")
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump(result, handle)
+            text = subprocess.run([sys.executable, "-B", os.path.join(EVALS, "summarize.py"), path],
+                                  capture_output=True, text=True, check=True).stdout
+        self.assertIn("0 of 1 cases passed", text)
+        self.assertIn("`behavior-demo` | 0.50 | 1/2 | no-invented-leadership: pattern found", text)
+
+    def test_the_eval_workflow_is_manual_and_the_deterministic_ci_needs_no_credential(self):
+        evals = read(os.path.join(ROOT, ".github", "workflows", "evals.yml"))
+        self.assertRegex(evals, r"(?m)^on:\n  workflow_dispatch:")
+        self.assertNotRegex(evals, r"(?m)^  (push|pull_request|schedule):")
+        self.assertNotIn("ANTHROPIC", read(os.path.join(ROOT, ".github", "workflows", "ci.yml")))
+        self.assertTrue(os.stat(os.path.join(EVALS, "summarize.py")).st_mode & stat.S_IXUSR)
+
     def test_results_are_ignored_and_the_pages_exist_in_both_languages(self):
         self.assertIn("evals/results/", read(os.path.join(ROOT, ".gitignore")))
         for lang in ("en", "de"):

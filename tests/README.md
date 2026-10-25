@@ -12,6 +12,9 @@
 - `test_skill_structure.py`: frontmatter names, description, and existence of referenced spec, requirement, and script files,
   and of cross-referenced skills and agents.
 
+In the CI the job installs pandoc, python-docx and PyYAML (`tests/requirements.txt`); `ToolchainTests` in `test_export.py` fails there if one is missing.
+What the CI covers and what only the model evals check: `docs/en/evals.md`, "What the CI covers".
+
 Scenarios that depend on the generating skill (CG-14 A, C, D, E) are verified by review, not by these tests.
 What is automated of them, and what is not, is in `tests/fixtures/szenarien/README.md`.
 
