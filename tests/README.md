@@ -8,6 +8,7 @@
 - `test_scenarios.py`: the scenarios A to H of the critical findings audit on the fictional fixtures in `tests/fixtures/szenarien/`
   (`README.md` there lists per scenario what is automated and what stays review).
 - `test_semantic_fidelity.py`: wording of ownership, scope and expertise and team results against the station record (CV-22, CV-23, CG-7.4); the matrix at the end lists which component catches which scenario.
+- `test_evidence_fit.py`: fit of a Nachweis to its requirement (audit finding F-03, CG-4.7 to CG-4.9): the status of a row of `analyse.md` against its column `Offen` (CV-24), groups A to J, including the cases that must stay clean (other wording, indirect evidence, partial rows). The meaning is not read by the script; the module docstring lists what is model judgement.
 - `test_posting_url.py`: URL cleaning and refused targets of the posting intake (spec UE-2, scenarios UE-A and UE-F). Synthetic data only.
 - `test_skill_structure.py`: frontmatter names, description, and existence of referenced spec, requirement, and script files,
   and of cross-referenced skills and agents.

@@ -62,7 +62,8 @@ the directory, including the directory itself. If any directory contains `.claud
   of the selection (R-9.11). In directory mode the selection reads all notes of the set.
 - `<wurzel>/<slug>/analyse.md` (optional). Its rows (CG-4) decide which requirements the CV addresses and which entries
   get more room; it also records the posting's instructions (LB-12). A *Muss* row that is not *erfüllt* is never
-  claimed in the CV.
+  claimed in the CV. For a *teilweise* row the bullet states what the Nachweis shows, in its own scope and verb, and never the
+  wording of the requirement for the aspect named in `Offen` (CG-4.9); the experience is kept, not removed and not upgraded.
 - `situation` (asked if not given): Standard, Berufseinstieg, Schüler/Studierende/Praktikum, Quereinstieg, Lücke, Viele
   Stationen, ATS/Portal, Österreich, Schweiz. Europass and academic CV are not produced here (R-8.4).
 - `kurzprofil` (asked at the plan gate, default no): a Kurzprofil of at most three sentences. Optional in every format,

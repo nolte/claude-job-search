@@ -29,15 +29,24 @@ ist, und übergibt die Anzeige an die Analyse.
 Die Analyse legt den Ordner `musterfirma-senior-backend/` an und hält jede Anforderung mit Beleg
 aus deiner Datengrundlage fest:
 
-| Anforderung | Status | Beleg |
-|---|---|---|
-| 5+ Jahre Java | erfüllt | Station „Beispiel AG, 2019–2025", Stichpunkt 2 |
-| Kubernetes im Produktivbetrieb | teilweise | ein Projekt, keine Betriebsrolle |
-| Erfahrung in Teamleitung | nicht belegt | kein Eintrag in der Datengrundlage |
+| Anforderung | Status | Beleg | Offen |
+|---|---|---|---|
+| 5+ Jahre Java | erfüllt | Station „Beispiel AG, 2019–2025", Stichpunkt 2 | — |
+| Kubernetes im Produktivbetrieb | teilweise | ein Projekt, keine Betriebsrolle | produktiver Betrieb |
+| Erfahrung in Teamleitung | nicht belegt | kein Eintrag in der Datengrundlage | — |
 
 Außerdem notiert sie den Ton der Anzeige (Sie oder du), die geforderten Unterlagen und die
 Gegenpartei (hier: Arbeitgeber direkt, Fachabteilung). Lücken werden nicht überdeckt: *nicht
 belegt* bleibt eine Lücke, und der Plan zeigt, wie das Anschreiben ehrlich damit umgeht.
+
+Dieselbe Technologie zu nennen reicht für *erfüllt* nicht. Die Analyse prüft je Anforderung, was sie verlangt (Anwendung
+oder Betrieb, eine Komponente oder eine Plattform, Mitarbeit oder Verantwortung, eine Wirkung), gegen die zitierte Stelle
+deiner Datengrundlage und schreibt in *Offen*, was die Stelle nicht zeigt. Ist etwas offen, ist die Zeile *teilweise*, und
+der Lebenslauf beschreibt die Erfahrung, wie sie ist: „Kubernetes in einem Entwicklungsprojekt eingesetzt“, nicht „die
+Plattform betrieben“. Eine andere Formulierung derselben Tätigkeit zählt; ein fehlendes Stichwort ist kein Ablehnungsgrund.
+Ob Status und *Offen* zusammenpassen, prüft ein Skript (Regel CV-24); ob die offenen Aspekte richtig erkannt wurden, prüft
+der Reviewer. Lies die Spalte *Offen* und korrigiere sie, wenn du mehr weißt, als deine Datengrundlage sagt (und ergänze
+das dann in der Datengrundlage).
 
 ### 3. Den Plan freigeben
 

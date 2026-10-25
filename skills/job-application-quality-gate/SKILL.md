@@ -83,6 +83,7 @@ a Blocker exists. Its rule IDs:
 | CV-05 | Number in a bullet not in the station record: Hinweis when it is elsewhere in the Grundlage, Blocker when nowhere | Hinweis, Blocker; Warnung when the station holds the number with another unit or noun |
 | CV-06 | Station period differs from the Grundlage | Blocker |
 | CV-07 | *Muss* row marked *erfüllt* without evidence; *Muss* gap as report | Blocker, Warnung |
+| CV-24 | `analyse.md`: *erfüllt* while `Offen` names an aspect the Nachweis does not show (Blocker for *Muss*, Warnung for *Wunsch*); *teilweise* or *unklar* without an entry in `Offen`; a table without the column `Offen` (CG-4.7, CG-4.8) | Blocker, Warnung |
 | CV-08 | Table in the Lebenslauf | Warnung (Blocker with `--ats`) |
 | CV-09 | Duplicate bullet | Hinweis |
 | CV-10 | Heading outside the standard headings (CG-11.2a), qualifier in parentheses allowed | Warnung |
