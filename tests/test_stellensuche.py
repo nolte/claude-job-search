@@ -8,11 +8,14 @@ import copy
 import datetime as dt
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
+import unittest.mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
@@ -859,6 +862,168 @@ class ReviewFixTests(Base):  # findings of the review of PR 65
             self.assertNotIn(forbidden, call)
 
 
+class ReviewRoundTwoTests(Base):  # findings of the second review of PR 65
+    def two_board_order(self, **plan):
+        return self.auftrag(brief={**SPEC["brief"], "boards": ["indeed", "glassdoor"], "begriffe": SPEC["brief"]["begriffe"][:1]},
+                            plan={"laeufe_pro_woche": 7, **plan})
+
+    def both_boards(self, aid, indeed, glassdoor, now):
+        started = ss.start_run(self.w, aid, "manuell", now)
+        ss.record_board(self.w, aid, started["lauf"], "indeed", {"status": "ok", "ergebnisse": indeed}, now)
+        ss.record_board(self.w, aid, started["lauf"], "glassdoor", {"status": "ok", "ergebnisse": glassdoor}, now)
+        return started["lauf"], ss.finish_run(self.w, aid, started["lauf"], now)
+
+    def test_an_impossible_date_is_dropped_and_does_not_crash_the_merge(self):
+        self.assertEqual(ss.normalise({"title": "x", "date_posted": "2026-13-45"})["datum"], "")
+        self.assertEqual(ss.normalise({"title": "x", "date_posted": "2026-02-30"})["datum"], "")
+        self.assertEqual(ss.normalise({"title": "x", "date_posted": "2026-02-28"})["datum"], "2026-02-28")
+        self.assertEqual(ss.days_apart("2026-10-01", "2026-13-45"), 0)
+        aid = self.two_board_order()
+        gd = job(id="gd-1", job_url="https://g.example/1", date_posted="2026-13-45")
+        _, done = self.both_boards(aid, [job(date_posted="2026-13-45")], [gd], T0)
+        self.assertEqual(done["status"], "ok")
+        self.assertEqual(len(self.queue()), 1)  # merged by firm, title and place
+
+    def test_veto_matches_whole_words_and_german_compounds(self):
+        for wanted, value, hit in (("IT", "Architekt", False), ("IT", "IT-Administrator (m/w/d)", True),
+                                   ("Ulm", "Ulmen", False), ("Ulm", "Ulm, Germany", True),
+                                   ("Schicht", "Backend Engineer Schichtdienst", True), ("Schicht", "Schichtleiter", True),
+                                   ("Vertrieb", "Key Account Vertriebsleiter", True), ("Süd", "Sud", True),
+                                   ("Vertrieb", "Software Engineer", False)):
+            self.assertEqual(ss.word_match(wanted, value), hit, (wanted, value))
+
+    def test_two_boards_reporting_the_same_posting_differently_raise_no_false_change(self):
+        aid = self.two_board_order()
+        indeed = job(min_amount=70000, max_amount=80000, currency="EUR", interval="yearly", description="Text A")
+        glassdoor = job(id="gd-1", job_url="https://g.example/1")  # same posting; no salary, no description
+        for day in range(3):
+            _, done = self.both_boards(aid, [indeed], [glassdoor], later(days=day * 2))
+            entry = next(iter(self.queue().values()))
+            self.assertIsNone(entry["aenderung"], day)
+        self.assertEqual(entry["firma"], "Musterfirma GmbH")
+        self.assertEqual(entry["gehalt"]["min"], 70000)  # kept although the other board gives none
+        self.assertEqual(len(self.queue()), 1)
+
+    def test_a_blank_field_from_the_same_board_changes_nothing_but_a_real_change_does(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]}, plan={"laeufe_pro_woche": 7})
+        self.run_search(aid, [job()], T0)
+        blank_company = job(company="", is_remote=None)
+        self.run_search(aid, [blank_company], later(days=1))
+        entry = next(iter(self.queue().values()))
+        self.assertEqual((entry["firma"], entry["aenderung"]), ("Musterfirma GmbH", None))
+        self.run_search(aid, [job(location="Hamburg")], later(days=2))
+        entry = next(iter(self.queue().values()))
+        self.assertEqual((entry["ort"], entry["aenderung"]["felder"]), ("Hamburg", ["ort"]))
+
+    def test_a_full_list_does_not_prove_that_a_posting_is_gone(self):
+        brief = {**SPEC["brief"], "boards": ["indeed"], "begriffe": SPEC["brief"]["begriffe"][:1], "ergebnisse_pro_board": 2}
+        aid = self.auftrag(brief=brief, plan={"laeufe_pro_woche": 7})
+        record = lambda n: job(id=f"in-{n}", title=f"Rolle {n}", job_url=f"https://x.example/{n}")
+        self.run_search(aid, [record(1), record(2)], T0)
+        for day in (1, 2, 3):  # every list is full (cap 2) and does not contain posting 1 any more
+            self.run_search(aid, [record(10 + day), record(20 + day)], later(days=day))
+        statuses = {e["titel"]: e["verfuegbarkeit"] for e in self.queue().values()}
+        self.assertEqual(statuses["Rolle 1"], "verfuegbar")
+        order = ss.load_auftrag(self.w, aid)
+        self.assertEqual(order["laeufe"][-1]["vollstaendige_boards"], [])
+
+    def test_a_later_entry_does_not_touch_availability_of_a_newer_run(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]}, plan={"laeufe_pro_woche": 7})
+        failed = ss.start_run(self.w, aid, "manuell", T0)
+        ss.finish_run(self.w, aid, failed["lauf"], T0)
+        self.run_search(aid, [job()], later(days=1))
+        before = next(iter(self.queue().values()))
+        ss.add_later(self.w, aid, failed["lauf"], "indeed", {"status": "ok", "ergebnisse": [job()]}, later(days=2))
+        after = next(iter(self.queue().values()))
+        for key in ("zuletzt_lauf", "zuletzt_gesehen", "nicht_gesehen_zaehler", "verfuegbarkeit"):
+            self.assertEqual(after[key], before[key], key)
+        repeat = ss.record_board  # a repeated entry after a failed save finds the posting unchanged
+        self.assertEqual(self.refused(ss.add_later, self.w, aid, failed["lauf"], "indeed",
+                                      {"status": "ok", "ergebnisse": [job()]}, later(days=3)), "nachtrag_nicht_moeglich")
+
+    def test_commands_that_change_state_wait_for_each_other(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]}, plan={"laeufe_pro_woche": 7})
+        records = [job(id=f"in-{n}", title=f"Rolle {n}", job_url=f"https://x.example/{n}") for n in range(6)]
+        self.run_search(aid, records, T0)
+        config = os.path.join(self.w, "konfiguration.md")
+        with open(config, "w", encoding="utf-8") as handle:
+            handle.write(f"---\nwurzel: {self.w}\n---\n")
+        parser = ss.build_parser()
+        results = []
+
+        def decide(stelle):
+            args = parser.parse_args(["--konfiguration", config, "entscheiden", stelle, "--als", "abgelehnt", "--grund", "test"])
+            results.append(ss.run(args)["stelle"]["bearbeitung"])
+
+        threads = [threading.Thread(target=decide, args=(sid,)) for sid in self.queue()]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertEqual(results, ["abgelehnt"] * 6)
+        self.assertEqual({e["bearbeitung"] for e in self.queue().values()}, {"abgelehnt"})  # no update was lost
+
+    def test_a_busy_wurzel_is_reported(self):
+        config = os.path.join(self.w, "konfiguration.md")
+        with open(config, "w", encoding="utf-8") as handle:
+            handle.write(f"---\nwurzel: {self.w}\n---\n")
+        args = ss.build_parser().parse_args(["--konfiguration", config, "freigeben", "a-x", "--ja"])
+        with unittest.mock.patch.object(ss, "LOCK_WAIT_SECONDS", 0.2), ss.exclusive(self.w):
+            with self.assertRaises(ss.Refused) as caught:
+                ss.run(args)
+        self.assertEqual(caught.exception.code, "beschaeftigt")
+
+    def test_a_lock_with_a_bad_timestamp_is_stale_and_a_foreign_run_does_not_release_it(self):
+        aid = self.auftrag(plan={"laeufe_pro_woche": 7})
+        lock = ss.lock_path(self.w, aid)
+        with open(lock, "w", encoding="utf-8") as handle:
+            json.dump({"lauf": "l0099", "am": "gestern"}, handle)
+        started = ss.start_run(self.w, aid, "manuell", T0)
+        self.assertEqual(started["unterbrochener_lauf"], "l0099")
+        ss.release_lock(self.w, aid, "l0042")  # not the holder
+        self.assertTrue(os.path.exists(lock))
+        ss.release_lock(self.w, aid, started["lauf"])
+        self.assertFalse(os.path.exists(lock))
+
+    def test_the_overview_escapes_board_content(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
+        evil = job(title="Rolle [klick](http://evil.example) <img src=x onerror=1> `x` | y", company="A*B_C",
+                   job_url="https://x.example/a|b")
+        self.run_search(aid, [evil, job(id="in-9", title="Ok", job_url="https://x.example/9)")], T0)
+        ss.write_overview(self.w, T0)
+        with open(os.path.join(self.w, "suche", "warteschlange.md"), encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertIsNone(re.search(r"(?<!\\)<img", text))  # only the escaped, inert form remains
+        self.assertIn("\\<img", text)
+        self.assertNotIn("[klick](", text)
+        self.assertIn("\\[klick\\]", text)
+        self.assertNotIn("](https://x.example/a|b)", text)
+        self.assertNotIn("](https://x.example/9))", text)
+        self.assertEqual(text.count("\n| s-"), 2)  # no row was split
+
+    def test_scheduled_session_reads_results_only_from_eingang_and_starts_only_scheduled_runs(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
+        env = {"STELLENSUCHE_GEPLANT": "1"}
+        cli = ReviewFixTests.cli.__get__(self)
+        self.assertEqual(json.loads(cli("lauf-start", aid, env=env).stdout)["code"], "nur_interaktiv")  # manual trigger
+        started = json.loads(cli("lauf-start", aid, "--trigger", "geplant", env=env).stdout)
+        outside = os.path.join(self.w, "geheim.json")
+        with open(outside, "w", encoding="utf-8") as handle:
+            json.dump({"status": "ok", "ergebnisse": []}, handle)
+        for extra in (["--datei", outside], []):  # a file elsewhere, and standard input
+            result = cli("board-ergebnis", aid, started["lauf"], "indeed", *extra, env=env, stdin="{}")
+            self.assertEqual(json.loads(result.stdout)["code"], "nur_interaktiv", extra)
+        self.assertTrue(os.path.exists(outside))
+        eingang = os.path.join(self.w, "suche", "eingang")
+        os.makedirs(eingang)
+        inside = os.path.join(eingang, "indeed.json")
+        with open(inside, "w", encoding="utf-8") as handle:
+            json.dump({"status": "ok", "ergebnisse": [job()]}, handle)
+        self.assertEqual(cli("board-ergebnis", aid, started["lauf"], "indeed", "--datei", inside, env=env).returncode, 0)
+        self.assertFalse(os.path.exists(inside))
+        self.assertEqual(cli("lauf-ende", aid, started["lauf"], env=env).returncode, 0)
+
+
 class OverviewTests(Base):  # SR-T
     def test_overview_lists_each_stelle_once_in_the_group_of_its_decision(self):
         aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
@@ -871,7 +1036,7 @@ class OverviewTests(Base):  # SR-T
         self.assertEqual(text.count("| s-"), 2)
         self.assertIn("## Offen und fällig (1)", text)
         self.assertIn("## Abgelehnt (1)", text)
-        self.assertIn("Rolle / mit Pipe", text)
+        self.assertIn("Rolle \\| mit Pipe", text)
         self.assertIn("Grund: Schichtdienst", text)
         self.assertIn(aid, text)
 
@@ -944,18 +1109,20 @@ class LauncherTests(Base):
         log = os.path.join(self.w, "aufrufe.txt")
         fake = os.path.join(self.w, "claude")
         with open(fake, "w", encoding="utf-8") as handle:
-            handle.write(f'#!/usr/bin/env bash\nprintf \'%s\\n\' "$*" >> "{log}"\n')
+            handle.write(f'#!/usr/bin/env bash\nprintf \'%s\\n@@@\\n\' "$*" >> "{log}"\n')
         os.chmod(fake, 0o755)
         env = {**os.environ, "CLAUDE_BIN": fake}
         result = subprocess.run(["bash", os.path.join(ROOT, "scripts", "stellensuche_geplant.sh"), config],
                                 env=env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         with open(log, encoding="utf-8") as handle:
-            calls = handle.read().strip().splitlines()
+            calls = handle.read().split("\n@@@\n")[:-1]
         self.assertEqual(len(calls), 1)
         self.assertIn(due_id, calls[0])
         self.assertIn("--allowedTools mcp__jobspy__search_jobs", calls[0])
-        self.assertIn("Write(" + self.w + "/suche/eingang/*)", calls[0])
+        self.assertIn("Edit(/" + self.w + "/suche/eingang/*)", calls[0])  # two slashes: absolute; Write rules are not matched
+        self.assertNotIn("Write(", calls[0])
+        self.assertNotIn("Skill", calls[0])
         self.assertNotIn("WebFetch", calls[0])
         self.assertNotIn("Bash(*", calls[0])
 

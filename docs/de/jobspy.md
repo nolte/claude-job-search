@@ -94,8 +94,10 @@ Beispiele (sag es Claude, oder rufe das Hilfsskript selbst auf mit
    Scheduler von dir ein, etwa täglich. Es startet nur für fällige Suchaufträge eine Sitzung (freigegeben, aktiv, Intervall
    vergangen, noch Läufe im 7-Tage-Fenster übrig). Die headless Sitzung darf nur das Suchwerkzeug des Servers und die
    Hilfsbefehle `lauf-start`, `board-ergebnis`, `lauf-ende` und `nachtragen` aufrufen sowie Ergebnisdateien nach `suche/eingang/`
-   schreiben. Sie kann keinen Suchauftrag anlegen, ändern, freigeben, fortsetzen oder beenden und keine Entscheidung über eine
+   schreiben (den Ordner legt der Launcher an; das Hilfsskript liest Ergebnisse nur von dort und löscht eine Datei nach dem
+   Speichern). Sie läuft mit eigenem Prompt und ruft den Skill nicht auf. Sie kann keinen Suchauftrag anlegen, ändern, freigeben, fortsetzen oder beenden und keine Entscheidung über eine
    Stelle treffen: Das bleibt bei dir in einer interaktiven Sitzung, weil ein Inserat Text enthalten könnte, der danach verlangt.
+   Es läuft immer nur ein ändernder Befehl (ein zweiter wartet bis zu 30 Sekunden und antwortet dann `beschaeftigt`).
    Eine nicht lesbare Auftragsdatei wird auf stderr genannt und stoppt die anderen nicht, schau also in dein Log:
    `17 7 * * * cd /pfad/zum/arbeitsordner && /pfad/zum/plugin/scripts/stellensuche_geplant.sh job-application/konfiguration.md >> ~/suche.log 2>&1`.
    Der Werkzeugname des Servers ist standardmäßig `mcp__jobspy__search_jobs`; setze `STELLENSUCHE_JOBSPY_TOOL`, wenn du ihn

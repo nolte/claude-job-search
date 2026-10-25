@@ -22,6 +22,7 @@ Standard library only.
 """
 
 import argparse
+import contextlib
 import datetime as dt
 import hashlib
 import json
@@ -31,6 +32,11 @@ import sys
 import tempfile
 import time
 import unicodedata
+
+try:
+    import fcntl
+except ImportError:  # not available on Windows: commands then run without the file lock
+    fcntl = None
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -56,6 +62,7 @@ SIGNALS = ("vermittler",)
 MISSED_RUNS = 3
 LOCK_MINUTES = 120
 LOCK_GRACE_SECONDS = 60
+LOCK_WAIT_SECONDS = 30
 WINDOW_DAYS = 7
 KEEP_RUNS = 30
 KEEP_LOG = 50
@@ -477,11 +484,46 @@ def lock_path(wurzel, auftrag_id):
     return os.path.join(wurzel, "suche", "auftraege", auftrag_id + ".lock")
 
 
-def release_lock(wurzel, auftrag_id):
+def release_lock(wurzel, auftrag_id, run_id=None):
+    """Remove the run lock; with `run_id` only when that run holds it."""
+    path = lock_path(wurzel, auftrag_id)
     try:
-        os.unlink(lock_path(wurzel, auftrag_id))
+        if run_id is not None:
+            try:
+                if load_json(path, {}).get("lauf") != run_id:
+                    return
+            except Refused:
+                pass
+        os.unlink(path)
     except FileNotFoundError:
         pass
+
+
+@contextlib.contextmanager
+def exclusive(wurzel):
+    """One state-changing command at a time per Wurzel: queue and orders are read, changed and rewritten whole."""
+    if fcntl is None:
+        yield
+        return
+    path = os.path.join(wurzel, "suche", ".stellensuche.lock")
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        handle = open(path, "a")
+    except OSError as error:
+        raise Refused("speichern_fehlgeschlagen", f"Sperre nicht möglich: {redact(error)}")
+    deadline = time.monotonic() + LOCK_WAIT_SECONDS
+    try:
+        while True:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() > deadline:
+                    raise Refused("beschaeftigt", "Ein anderer Befehl ändert gerade die Suche; später wiederholen.")
+                time.sleep(0.05)
+        yield
+    finally:
+        handle.close()  # closing releases the flock
 
 
 def due(wurzel, auftrag, now):
@@ -528,7 +570,7 @@ def start_run(wurzel, auftrag_id, trigger, now):
     path = lock_path(wurzel, auftrag_id)
     interrupted = None
     handle = None
-    for _ in range(2):
+    for _ in range(3):
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             handle = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -536,13 +578,19 @@ def start_run(wurzel, auftrag_id, trigger, now):
         except OSError as error:
             if not isinstance(error, FileExistsError):
                 raise Refused("speichern_fehlgeschlagen", f"Lauf nicht sperrbar: {redact(error)}")
+            held = {}
             try:
                 held = load_json(path, {})
             except Refused:  # empty or torn file: the writer died, or is writing right now
-                held = {}
-                if time.time() - os.path.getmtime(path) < LOCK_GRACE_SECONDS:
-                    raise Refused("lauf_aktiv", "Ein Lauf wird gerade gestartet.")
-            since = parse_time(held["am"]) if held.get("am") else None
+                try:
+                    if time.time() - os.path.getmtime(path) < LOCK_GRACE_SECONDS:
+                        raise Refused("lauf_aktiv", "Ein Lauf wird gerade gestartet.")
+                except FileNotFoundError:
+                    continue  # it vanished in between: try again
+            try:
+                since = parse_time(held["am"]) if held.get("am") else None
+            except (ValueError, TypeError):
+                since = None  # malformed: stale
             if since and now - since < dt.timedelta(minutes=LOCK_MINUTES):
                 raise Refused("lauf_aktiv", f"Der Lauf {held.get('lauf', '?')} läuft noch (seit {held['am']}).")
             interrupted = held.get("lauf")
@@ -563,7 +611,7 @@ def start_run(wurzel, auftrag_id, trigger, now):
     try:
         save_auftrag(wurzel, auftrag)
     except Refused:
-        release_lock(wurzel, auftrag_id)
+        release_lock(wurzel, auftrag_id, run_id)
         raise
     return {"ok": True, "auftrag": auftrag_id, "lauf": run_id, "unterbrochener_lauf": interrupted,
             "brief": auftrag["brief"], "boards_erlaubt": auftrag["brief"]["boards"],
@@ -601,6 +649,14 @@ def to_number(value):
     return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
 
 
+def valid_date(text):
+    """The ISO date of a record, or an empty string when it is missing or no real date."""
+    try:
+        return dt.date.fromisoformat(text).isoformat() if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text) else ""
+    except ValueError:
+        return ""
+
+
 def normalise(raw):
     """Reduce one result record to the stored fields. Everything else, `emails` included, is dropped (ST-9)."""
     if not isinstance(raw, dict):
@@ -616,7 +672,7 @@ def normalise(raw):
         "ort": clean_text(first(raw, "location", "ort"), 120),
         "remote": to_bool(first(raw, "is_remote", "remote")),
         "jobtyp": clean_text(job_type, 60).lower(),
-        "datum": date if re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) else "",
+        "datum": valid_date(date),
         "board_id": clean_text(first(raw, "id", "board_id"), 80),
     }
     low, high = to_number(raw.get("min_amount")), to_number(raw.get("max_amount"))
@@ -656,9 +712,21 @@ def content_hash(stelle):
 
 
 def days_apart(first_date, second_date):
+    """Days between two stored dates; 0 when one is unknown (stored dates are valid, see `valid_date`)."""
     if not first_date or not second_date:
         return 0
-    return abs((dt.date.fromisoformat(first_date) - dt.date.fromisoformat(second_date)).days)
+    try:
+        return abs((dt.date.fromisoformat(first_date) - dt.date.fromisoformat(second_date)).days)
+    except ValueError:
+        return 0
+
+
+def word_match(wanted, value):
+    """Whole words, ignoring case and diacritics; a value of 5+ letters also matches inside a German compound."""
+    needle, hay = norm(wanted), norm(value)
+    if not needle:
+        return False
+    return f" {needle} " in f" {hay} " or (len(needle) >= 5 and needle in hay)
 
 
 def prefilter(auftrag, stelle):
@@ -674,7 +742,7 @@ def prefilter(auftrag, stelle):
         elif field == "remote":
             if value == (wanted == "ja"):
                 veto.append({**item, "grund": "Remote-Angabe steht auf den Ausschlüssen"})
-        elif wanted in fold(value):
+        elif word_match(item["wert"], value):
             veto.append({**item, "grund": f"{field.capitalize()} enthält „{item['wert']}“"})
     return {"geprueft": True, "veto": veto, "unklar": sorted(set(unclear))}
 
@@ -753,8 +821,16 @@ def flag_duplicates(entries, entry, others):
 FIELDS = ("titel", "firma", "ort", "remote", "jobtyp", "gehalt")
 
 
-def ingest_records(queue, auftrag, run_id, board, records, now, vorgaenge):
-    """Merge the records of one board into the queue. A bad record is counted and skipped (ST-17 rule 1)."""
+def blank(value):
+    return value is None or value == ""
+
+
+def ingest_records(queue, auftrag, run_id, board, records, now, vorgaenge, seen=True):
+    """Merge the records of one board into the queue. A bad record is counted and skipped (ST-17 rule 1).
+
+    A change is a difference from what the same board reported before (ST-17 rule 3); a field the record leaves
+    blank changes nothing. With `seen=False` (a later entry for an old run) availability is not touched.
+    """
     entries = queue["stellen"]
     index = {key: entry_id for entry_id, entry in entries.items() for key in entry["schluessel"]}
     count = dict.fromkeys(("neu", "unveraendert", "aktualisiert", "bereits_ausgewaehlt", "im_vorgang", "entschieden",
@@ -787,27 +863,32 @@ def ingest_records(queue, auftrag, run_id, board, records, now, vorgaenge):
             index[key] = entry["id"]
         source = next((b for b in entry["boards"] if b["board"] == board), None)
         if source is None:
-            entry["boards"].append({"board": board, "url": stelle["url"], "url_direkt": stelle["url_direkt"]})
+            source = {"board": board, "url": stelle["url"], "url_direkt": stelle["url_direkt"], "stand": {}}
+            entry["boards"].append(source)
         else:
             source["url"], source["url_direkt"] = stelle["url"] or source["url"], stelle["url_direkt"] or source["url_direkt"]
-        changed = [] if created else [f for f in FIELDS if entry[f] != stelle[f]]
-        if not created and entry["beschreibung_hash"] and stelle["beschreibung_hash"] \
-                and entry["beschreibung_hash"] != stelle["beschreibung_hash"]:
-            changed.append("beschreibung")
-        if changed:
-            for field in FIELDS:
+        stand = source.setdefault("stand", {})  # the last non-blank value this board gave per field
+        changed = []
+        for field in FIELDS + ("beschreibung_hash",):
+            new = stelle[field]
+            if blank(new):
+                continue
+            if not created and not blank(stand.get(field)) and stand[field] != new:
+                changed.append("beschreibung" if field == "beschreibung_hash" else field)
+            stand[field] = new
+        for field in FIELDS + ("beschreibung_hash",):
+            if not blank(stelle[field]) and (blank(entry[field]) or ("beschreibung" if field == "beschreibung_hash" else field) in changed):
                 entry[field] = stelle[field]
-            entry["beschreibung_hash"] = stelle["beschreibung_hash"] or entry["beschreibung_hash"]
-            entry["inhalt_hash"] = content_hash({**stelle, "beschreibung_hash": entry["beschreibung_hash"]})
+        if changed:
+            entry["inhalt_hash"] = content_hash(entry)
             entry["aenderung"] = {"felder": changed, "am": stamp(now), "gesehen": False}
             log(entry, now, "Anzeige geändert: " + ", ".join(changed))
-        else:
-            entry["beschreibung_hash"] = entry["beschreibung_hash"] or stelle["beschreibung_hash"]
         entry["datum"] = stelle["datum"] or entry["datum"]
         entry["url"] = entry["url"] or stelle["url_direkt"] or stelle["url"]
         entry["signale"] = sorted(set(entry["signale"]) | set(stelle["signale"]))
-        entry.update(zuletzt_gesehen=stamp(now), zuletzt_lauf=f"{auftrag['id']}/{run_id}", nicht_gesehen_zaehler=0,
-                     verfuegbarkeit="verfuegbar")
+        if seen or created:
+            entry.update(zuletzt_gesehen=stamp(now), zuletzt_lauf=f"{auftrag['id']}/{run_id}", nicht_gesehen_zaehler=0,
+                         verfuegbarkeit="verfuegbar")
         if not any(s["auftrag"] == auftrag["id"] and s["lauf"] == run_id and s["board"] == board for s in entry["gefunden_in"]):
             entry["gefunden_in"] = (entry["gefunden_in"] + [{"auftrag": auftrag["id"], "lauf": run_id, "am": stamp(now),
                                                               "board": board}])[-KEEP_SEEN:]
@@ -869,7 +950,8 @@ def add_later(wurzel, auftrag_id, run_id, board, payload, now):
     """Store the answers of a board for a Lauf that ended without them (ST-15 rule 7).
 
     Only for a `teilweise`, `fehlgeschlagen` or `unterbrochen` Lauf, only for an approved board that did not report `ok`, once per board.
-    The Lauf keeps its status; no success time, failure count, availability or budget changes.
+    The Lauf keeps its status; no success time, failure count, availability or budget changes. Storing is idempotent
+    (a posting already known is `unveraendert`), so a repeat after a failed save of the order is harmless.
     """
     auftrag = load_auftrag(wurzel, auftrag_id)
     run = find_run(auftrag, run_id)
@@ -887,7 +969,7 @@ def add_later(wurzel, auftrag_id, run_id, board, payload, now):
     limit = auftrag["brief"]["ergebnisse_pro_board"] * len(auftrag["brief"]["begriffe"])
     taken = payload["ergebnisse"][:limit]
     queue = load_queue(wurzel)
-    count, defects, neue = ingest_records(queue, auftrag, run_id, board, taken, now, scan_vorgaenge(wurzel))
+    count, defects, neue = ingest_records(queue, auftrag, run_id, board, taken, now, scan_vorgaenge(wurzel), seen=False)
     result = {"am": stamp(now), "anzahl": len(taken) - len(defects), "abgeschnitten": max(0, len(payload["ergebnisse"]) - limit),
               "defekt": len(defects), "zaehlung": count, "neue": neue}
     atomic_write(queue_path(wurzel), queue)
@@ -896,12 +978,14 @@ def add_later(wurzel, auftrag_id, run_id, board, payload, now):
     return {"ok": True, "lauf": run_id, "lauf_status": run["status"], "board": board, **result}
 
 
-def mark_missing(queue, auftrag, seen_key):
+def mark_missing(queue, auftrag, seen_key, complete):
+    """Count a posting as not seen only on boards whose list was not full: on a full list (the cap of the search is
+    reached) a missing posting may just rank lower (ST-17 rule 5)."""
     count = 0
     for entry in queue["stellen"].values():
         mine = any(seen["auftrag"] == auftrag["id"] for seen in entry["gefunden_in"])
         searched = {b["board"] for b in entry["boards"]} & set(auftrag["brief"]["boards"])
-        if mine and searched and entry["zuletzt_lauf"] != seen_key:
+        if mine and searched and searched <= complete and entry["zuletzt_lauf"] != seen_key:
             entry["nicht_gesehen_zaehler"] += 1
             if entry["nicht_gesehen_zaehler"] == MISSED_RUNS:
                 entry["verfuegbarkeit"] = "nicht_mehr_gesehen"
@@ -941,7 +1025,10 @@ def finish_run(wurzel, auftrag_id, run_id, now):
         warnings.append({"code": "duplikat_unklar", "anzahl": total["moegliches_duplikat"]})
     queue = load_queue(wurzel)
     if status in ("ok", "ok_ohne_treffer"):
-        total["nicht_mehr_gesehen"] = mark_missing(queue, auftrag, f"{auftrag_id}/{run_id}")
+        cap = auftrag["brief"]["ergebnisse_pro_board"]
+        complete = {b for b, r in boards.items() if r["status"] == "ok" and r["anzahl"] + r["defekt"] < cap and not r["abgeschnitten"]}
+        run["vollstaendige_boards"] = sorted(complete)
+        total["nicht_mehr_gesehen"] = mark_missing(queue, auftrag, f"{auftrag_id}/{run_id}", complete)
         atomic_write(queue_path(wurzel), queue)
         auftrag["letzter_erfolg"] = stamp(now)
     run.update(status=status, ende=stamp(now), zaehlung=total, fehler=error, warnungen=warnings)
@@ -949,7 +1036,7 @@ def finish_run(wurzel, auftrag_id, run_id, now):
     auftrag["fehler"] = error
     auftrag["letzter_lauf"] = {"lauf": run_id, "status": status, "am": stamp(now), "zaehlung": total}
     save_auftrag(wurzel, auftrag)
-    release_lock(wurzel, auftrag_id)
+    release_lock(wurzel, auftrag_id, run_id)
     new = [{"id": e["id"], "titel": e["titel"], "firma": e["firma"], "ort": e["ort"], "vorpruefung": prefilter_class(e)}
            for r in boards.values() for e in (queue["stellen"].get(i) for i in r.get("neue", [])) if e]
     return {"ok": status != "fehlgeschlagen", "lauf": run_id, "status": status, "zaehlung": total, "fehler": error,
@@ -1133,7 +1220,11 @@ def fail_handoff(wurzel, entry_id, reason, now):
 # ---------------------------------------------------------------- overview (ST-19 rule 5)
 
 def cell(value):
-    return clean_text(value, 200).replace("|", "/")
+    """Text of a table cell from untrusted board content: every Markdown and HTML punctuation is escaped."""
+    return re.sub(r"([\\`*_\[\]<>|~&])", r"\\\1", clean_text(value, 200))
+
+
+SAFE_URL = re.compile(r"https?://[A-Za-z0-9._~:/?#@$&'*+,;=%-]+")
 
 
 def write_overview(wurzel, now):
@@ -1165,7 +1256,8 @@ def write_overview(wurzel, now):
                 + (["nicht mehr gesehen"] if i["verfuegbarkeit"] != "verfuegbar" else []) \
                 + ([f"Vorgang {i['vorgang']}"] if i["vorgang"] else []) + ([f"bis {i['bis']}"] if i["bis"] else []) \
                 + ([f"Grund: {i['grund']}"] if i["grund"] else [])
-            link = f"[{','.join(i['boards'])}]({i['url']})" if i["url"] and " " not in i["url"] and ")" not in i["url"] else ",".join(i["boards"])
+            label = cell(",".join(i["boards"]))
+            link = f"[{label}]({i['url']})" if SAFE_URL.fullmatch(i["url"] or "") else label
             lines.append(f"| {i['id']} | {cell(i['firma']) or '?'} | {cell(i['titel'])} | {cell(i['ort']) or '?'} | {i['datum']} | "
                          f"{i['klasse']} | {cell(', '.join(notes))} | {link} |")
     path = os.path.join(wurzel, "suche", "warteschlange.md")
@@ -1247,9 +1339,8 @@ def consume_input(args, wurzel):
     """Delete a result file once its answers are stored; only in `<wurzel>/suche/eingang/` (ST-16 rule 5)."""
     if args.befehl not in ("board-ergebnis", "nachtragen") or not args.datei:
         return
-    eingang = os.path.realpath(os.path.join(wurzel, "suche", "eingang"))
     path = os.path.realpath(args.datei)
-    if os.path.dirname(path) == eingang and os.path.isfile(path):
+    if inside_eingang(wurzel, path) and os.path.isfile(path):
         os.unlink(path)
 
 
@@ -1257,15 +1348,32 @@ USER_ONLY = ("anlegen", "aendern", "freigeben", "fortsetzen", "beenden", "entsch
              "aenderung-gesehen", "uebergabe-fertig", "uebergabe-fehler")
 
 
+def inside_eingang(wurzel, path):
+    return os.path.dirname(os.path.realpath(path)) == os.path.realpath(os.path.join(wurzel, "suche", "eingang"))
+
+
+def check_scheduled(args, wurzel):
+    """What a scheduled (unattended) session may not do, whatever its prompt says (ST-16 rule 5)."""
+    if args.befehl in USER_ONLY:
+        raise Refused("nur_interaktiv", f"{args.befehl} ist in einem geplanten Lauf nicht erlaubt (ST-16 Regel 5)")
+    if args.befehl == "lauf-start" and args.trigger != "geplant":
+        raise Refused("nur_interaktiv", "Ein geplanter Lauf startet nur mit --trigger geplant (ST-16 Regel 5)")
+    if args.befehl in ("board-ergebnis", "nachtragen") and not (args.datei and inside_eingang(wurzel, args.datei)):
+        raise Refused("nur_interaktiv", "Ein geplanter Lauf liest Ergebnisse nur aus <wurzel>/suche/eingang/ (ST-16 Regel 5)")
+
+
 def run(args):
     wurzel = find_wurzel(args.konfiguration)
     now = parse_time(args.jetzt) if args.jetzt else dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-    if os.environ.get("STELLENSUCHE_GEPLANT") and args.befehl in USER_ONLY:
-        raise Refused("nur_interaktiv", f"{args.befehl} ist in einem geplanten Lauf nicht erlaubt (ST-16 Regel 5)")
-    result = dispatch(args, wurzel, now)
-    consume_input(args, wurzel)
-    if args.befehl not in READ_ONLY and os.path.isdir(os.path.join(wurzel, "suche")):
-        write_overview(wurzel, now)
+    if os.environ.get("STELLENSUCHE_GEPLANT"):
+        check_scheduled(args, wurzel)
+    if args.befehl in READ_ONLY:
+        return dispatch(args, wurzel, now)
+    with exclusive(wurzel):
+        result = dispatch(args, wurzel, now)
+        consume_input(args, wurzel)
+        if os.path.isdir(os.path.join(wurzel, "suche")):
+            write_overview(wurzel, now)
     return result
 
 

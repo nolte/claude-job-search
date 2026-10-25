@@ -88,9 +88,11 @@ Examples (say it to Claude, or run the helper yourself with
 4. **Repeat on a schedule:** the plugin installs no timer. Add `scripts/stellensuche_geplant.sh` to a scheduler of yours, for
    example once a day. It starts a run only for Suchaufträge that are due (approved, active, interval passed, runs left in the
    7-day window). The headless session may call only the search tool of the server and the helper commands `lauf-start`,
-   `board-ergebnis`, `lauf-ende` and `nachtragen`, and write result files into `suche/eingang/`. It cannot create, change, approve,
+   `board-ergebnis`, `lauf-ende` and `nachtragen`, and write result files into `suche/eingang/` (the launcher creates that folder; the
+   helper reads results only from there and deletes a file after storing it). It runs by its own prompt and does not call the skill. It cannot create, change, approve,
    continue or end a Suchauftrag, nor decide on a posting: that stays with you in an interactive session, because a posting could
-   contain text that asks for it. An unreadable Suchauftrag file is named on stderr and does not stop the others, so check your log:
+   contain text that asks for it. Only one state-changing command runs at a time (a second one waits up to 30 seconds, then answers
+   `beschaeftigt`). An unreadable Suchauftrag file is named on stderr and does not stop the others, so check your log:
    `17 7 * * * cd /pfad/zum/arbeitsordner && /pfad/zum/plugin/scripts/stellensuche_geplant.sh job-application/konfiguration.md >> ~/suche.log 2>&1`.
    The tool name of the server defaults to `mcp__jobspy__search_jobs`; set `STELLENSUCHE_JOBSPY_TOOL` if you named it differently.
    Not verified here: the plugin has not run a scheduled session against the real server (no server was connected).

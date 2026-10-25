@@ -27,7 +27,7 @@ see_also:
 Spec: `spec/job-application/stellensuche/en.md` ST-1 to ST-12 (ST-2 brief, ST-3 boards and volume, ST-4 de-duplication,
 ST-5 shortlist, ST-7 hand-off, ST-8 Suchprotokoll, ST-9 personal data, ST-10 scenarios SS-A to SS-U; the recurring search:
 ST-13 Suchauftrag, ST-14 approval, ST-15 run, ST-16 limits and scheduling, ST-17 identity and errors, ST-18 pre-filter,
-ST-19 Warteschlange and hand-off, ST-20 scenarios SR-A to SR-S). Channel:
+ST-19 Warteschlange and hand-off, ST-20 scenarios SR-A to SR-AB). Channel:
 `spec/job-application/recherche/en.md` RC-5.0 (rules for optional network channels) and RC-5.8 (JobSpy), RC-5.4 (LinkedIn).
 Privacy exception: `spec/job-application/traumjob-interview/en.md` WJ-8.2. Fit check and veto: WJ-6, WJ-6.3. Paths:
 `spec/job-application/lokale-struktur/en.md` LS-2, LS-3, LS-4, LS-9 rule 7. Signals and double submission:
@@ -168,9 +168,11 @@ Wurzel and the repository boundary are checked by the script (a Blocker line on 
    `nachtragen <id> <lauf> <board> --datei …` for a board that did not report `ok` (ST-15 rule 7); never to get around a limit, and never for a Lauf that ended `ok`.
 4. **Scheduled run** (a headless session started by `scripts/stellensuche_geplant.sh`, prompt says „geplanter Lauf“). Same as
    step 3 with `lauf-start <id> --trigger geplant`, write the board answers as files into `<wurzel>/suche/eingang/` and pass
-   them with `--datei` (consumed once stored), ask no question, run only `lauf-start`, `board-ergebnis`, `lauf-ende` and `nachtragen` (the
+   them with `--datei` (only from that folder, consumed once stored; the launcher's prompt carries these steps, so this skill is not
+   called in the session), ask no question, run only `lauf-start`, `board-ergebnis`, `lauf-ende` and `nachtragen` (the
    launcher grants no more, and `freigeben` and the other changing commands answer `nur_interaktiv`), use no other tool, and end with the one-line status. A refusal of
    `lauf-start` (`noch_nicht_faellig`, `budget_erschoepft`, `pausiert`, `freigabe_veraltet`, …) ends the session without a search.
+   If a command answers `beschaeftigt`, another state-changing command runs on the same Wurzel (ST-15 rule 8): wait and repeat it once.
 5. **Show the Warteschlange** with `warteschlange` (`--status`, `--auftrag`, `--klasse`): by default the open and due
    postponed Stellen, grouped by class (`ohne_treffer`, `klaerung`, `veto`) as the pre-filter on structured fields; say so
    and say that the fit check runs after the hand-off (ST-18). Show hints: `aenderung` (changed ad), `moegliches_duplikat`,

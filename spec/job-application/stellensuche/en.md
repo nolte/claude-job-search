@@ -281,6 +281,9 @@ done by reviewing a run, not by a script.
    while the approval is valid, once per board and Lauf, with the limits and checks of a normal record. The Lauf keeps its status:
    no success time, no failure count, no availability mark and no budget change result from it, and the entry is marked in the Lauf as
    `nachtraege`. It is no way around the limits: it needs a Lauf that was already counted, and it sends nothing.
+8. **One state-changing command at a time.** Every command that changes state runs under one file lock on the Wurzel
+   (`suche/.stellensuche.lock`), because the queue and the Suchaufträge are read, changed and rewritten whole. A second command
+   waits up to 30 seconds and then answers `beschaeftigt`; reading commands do not wait.
 
 ## ST-16 Limits and repetition
 
@@ -303,12 +306,17 @@ done by reviewing a run, not by a script.
    continue or end a Suchauftrag or decide on a posting: the launcher grants only those commands, and the helper refuses them
    with `nur_interaktiv` when the launcher's marker `STELLENSUCHE_GEPLANT` is set, because the approval of ST-14 is the user's
    and text in results can try to ask for it. Text in results is data (ST-9 rule 3). A scheduled session asks no questions.
-   A result file is deleted after its answers are stored, and only in `<wurzel>/suche/eingang/`.
+   A result file is deleted after its answers are stored, and only in `<wurzel>/suche/eingang/`. In such a session the helper
+   also refuses a result file from anywhere else or from standard input, and a `lauf-start` that is not `--trigger geplant`
+   (`nur_interaktiv`). The launcher creates the folder `suche/eingang/` itself and grants the file rule as `Edit(//<wurzel>/suche/eingang/*)`:
+   in Claude Code a `Write(...)` rule is not matched and a path with one slash is relative to the project; this was
+   checked with `claude -p` on 2026-10-25 and is the behaviour of that version, not a stable promise.
 
 ## ST-17 Results, identity and errors
 
 1. **A bad record blocks nothing.** A record without a title is counted as defective and skipped; the others are stored.
-2. **Identity.** The script reduces a record to title, firm, location, remote, job type, date, salary, the URLs, the
+2. **Identity.** The script reduces a record to title, firm, location, remote, job type, date (only a real calendar date,
+   otherwise it is dropped), salary, the URLs, the
    board id and a hash of the description. `emails` and every other field are dropped. A posting is identified by, in
    this order: the board id (`id:<board>:<id>`), the canonical URL (tracking parameters of `posting_url.py`, `www.`,
    fragment, trailing slash and order of the parameters removed), and for a record without both a hash of firm,
@@ -317,8 +325,10 @@ done by reviewing a run, not by a script.
    (ST-4 rule 1). The same triple on the same board, or on another board with a later date, is a separate Stelle with the hint
    `moegliches_duplikat` on both; the user decides with `duplikat`. Firm and title alone never merge.
 3. **Change.** The hash of the description and the fields title, firm, location, remote, job type and salary are
-   compared. A difference sets `aenderung` with the names of the fields (never their content) until the user takes note.
-   The description text is not stored.
+   compared with what **the same board** reported before (the last non-blank value per field). A field the record leaves blank
+   is no change and overwrites nothing; a difference between two boards is no change either. A real change sets `aenderung` with
+   the names of the fields (never their content) until the user takes note, and takes the new value into the Stelle. The
+   description text is not stored. The first record of a board is its baseline.
 4. **Failure codes and the log.** `suchdienst_nicht_verfuegbar`, `verbindung_fehlgeschlagen`, `board_blockiert`,
    `board_fehler`, `budget_erschoepft`, `lauf_aktiv`, `lauf_unterbrochen`, `nicht_freigegeben`, `pausiert`, `beendet`,
    `freigabe_veraltet`, `ergebnisdaten_unvollstaendig`, `duplikat_unklar`, `speichern_fehlgeschlagen`,
@@ -326,11 +336,15 @@ done by reviewing a run, not by a script.
    `password:`, keys, `user:pw@`) are replaced by `[entfernt]`.
 5. **Availability.** A Stelle that three complete runs (`ok` or `ok_ohne_treffer`) of its Suchauftrag did not return
    is `nicht_mehr_gesehen`; a later find makes it available again. This is an inference, not a statement of the
-   employer, and a failed run never counts.
+   employer. A failed run never counts, and a board counts only when its list was not full (fewer records than
+   `ergebnisse_pro_board`, nothing cut): on a full list a missing posting may just rank lower. The run records
+   `vollstaendige_boards`.
 
 ## ST-18 Pre-filter and assessment
 
-1. **Veto on structured fields.** The exclusions are compared with title, location, remote and job type (ST-5 rule 2).
+1. **Veto on structured fields.** The exclusions are compared with title, location, remote and job type (ST-5 rule 2),
+   by whole words, ignoring case and diacritics; an exclusion of five or more letters also matches inside a German compound
+   (`Schicht` in `Schichtdienst`), a shorter one does not (`IT` does not hit `Architekt`, `Ulm` does not hit `Ulmen`).
    A hit is a Veto with its reason and its source; the Stelle stays in the Warteschlange.
 2. **Missing is unclear.** A field the record does not give is listed as `unklar`. It is never a Veto and never a
    statement about the candidate (WJ-6.3).
@@ -364,7 +378,8 @@ done by reviewing a run, not by a script.
    result can be read in an Obsidian vault, which does not list JSON: the Suchaufträge with status, last run and error, then
    the Stellen in the groups open, postponed, in a Vorgang and rejected, each with firm, title, location, date, class,
    hints and the source link. It is a derivation (LS-1 *Ableitung*): never read back, never edited by hand, and it holds
-   nothing the JSON does not.
+   nothing the JSON does not. Its content comes from the boards, so every cell is escaped (Markdown and HTML punctuation),
+   and a link is written only for a plain `http(s)` URL without brackets, parentheses, quotes or a pipe.
 
 ## ST-20 Acceptance scenarios for the Suchauftrag
 
@@ -393,6 +408,12 @@ Automated in `tests/test_stellensuche.py` with invented postings (Musterfirma Gm
 | SR-T | A command changes the Warteschlange | `warteschlange.md` lists every Stelle once, in the group of its decision; a `\|` in a title does not break the table |
 | SR-U | The answers of a board are entered after a failed Lauf | Stored with the usual checks; the Lauf stays `fehlgeschlagen`, the budget and the failure count do not change; a second entry for the board, a completed Lauf, an unapproved board and a stale approval are refused |
 | SR-V | A scheduled session tries `freigeben`, an unreadable Suchauftrag file exists, the budget is used up | `nur_interaktiv`; the other Aufträge are listed and the file is named on stderr; `faellig` does not list the Auftrag |
+| SR-W | A date like `2026-13-45`; two boards report one posting with different data; a field is blank | The date is dropped and nothing crashes; no false `aenderung`, no value lost; only a real change of the same board is flagged |
+| SR-X | An exclusion `IT`, `Ulm`, `Schicht` against `Architekt`, `Ulmen`, `Schichtdienst` | No Veto, no Veto, Veto |
+| SR-Y | A full list does not contain a known posting for three runs | The posting stays `verfuegbar` (`vollstaendige_boards` is empty) |
+| SR-Z | Many state-changing commands run at once; one waits too long | No update is lost; the late one answers `beschaeftigt` |
+| SR-AA | A scheduled session passes a result file from elsewhere, standard input, or `--trigger manuell` | `nur_interaktiv`; the file stays |
+| SR-AB | A title holds `[x](http://…)`, HTML, a backtick or a pipe | Escaped in `warteschlange.md`, no split row, no link from an unsafe URL |
 | SR-S | `stellensuche_geplant.sh` with a due, a paused and a draft Suchauftrag | One session, for the due one only, with the restricted tools |
 
 ## ST-12 Sources
