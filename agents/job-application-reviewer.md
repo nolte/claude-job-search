@@ -29,7 +29,7 @@ RC-7 and RC-11, `spec/job-application/motivationsschreiben/en.md` MS-3, MS-6 and
 AS-6.6 and AS-6.8, `spec/job-application/traumjob-interview/en.md` WJ-7.2, `spec/job-application/cv-generierung/en.md` CG-13.
 Paths: `spec/job-application/lokale-struktur/en.md` LS-2.4 and LS-2.6.
 
-The agent cannot run `scripts/cv_checks.py` (CV-01 … CV-21, BR-01 … BR-05) or compute the `grundlage_hash`, because it has no shell.
+The agent cannot run `scripts/cv_checks.py` (CV-01 … CV-23, BR-01 … BR-05) or compute the `grundlage_hash`, because it has no shell.
 Deterministic findings and the hash check belong to `job-application-quality-gate` (CG-13.3); the agent reads
 the last `## Prüfung` in `pruefbericht.md`, checks it for currency (section "Prüfbericht prüfen") and reports what it cannot
 verify under "Nicht beurteilbar".
@@ -99,6 +99,24 @@ may be named as the source. What the agent cannot check itself goes under "Nicht
 
 A result `fehlt` or `veraltet` is a Warnung "Prüfbericht nicht aktuell, `job-application-quality-gate` neu laufen lassen",
 and a Warnung acts on the verdict like any other (`READY-WITH-WARNINGS` at best). `möglicherweise veraltet` is a Hinweis.
+
+## Aussagenstärke prüfen
+
+Dimension 1 includes the question whether a statement claims more than its source (CG-7.4). The script finds only wording
+(CV-16, CV-22, CV-23); the agent reads the meaning. For every bullet or sentence that could be stronger than the entry of the
+Grundlage it cites, ask in this order:
+
+1. What does the entry establish (activity, responsibility level, leadership level, expertise level, scope, outcome)?
+2. What does the document claim in the same six dimensions?
+3. Which dimension is higher in the document: the activity, the responsibility, the leadership, the expertise, the scope or the
+   attribution of an outcome (team result written as an own result)?
+4. Does a matching wording of the posting explain the difference? It does not justify it (CG-4.6).
+
+A confirmed contradiction (personnel management against `fuehrung: nein`, a claim the entry rules out) is a Blocker. A statement
+stronger than an entry that is silent on the level is a Warnung. A wording that differs but keeps the meaning is no finding,
+and professional phrasing that matches the entry is no reason to approve a claim that it does not support. Each finding quotes
+the statement, quotes the entry, names the dimension and gives a factual alternative; the agent writes nothing and changes no
+data.
 
 ## Review dimensions
 
