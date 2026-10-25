@@ -113,7 +113,9 @@ Severity of code 4 is set by the quality gate: Blocker for `cv` (LB-13) and `let
    propose `docx` only when the posting or the portal asks for a Word file (CG-11.5, R-8.3.4). The e-mail text is
    exported only as `md`.
 2. Run `task export -- …` with the arguments. Set `--out-dir` only to a folder inside the Wurzel.
-3. Read the output and the exit code. Report the file path, the number of pages for PDF, and the content check.
+3. Read the output and the exit code. Report the file path, the number of pages for PDF, and the content check. The line `Reihenfolge: Abweichung bei den Überschriften` is a
+   Warnung (the export carries a section in another order than the source); report it and do not call the export ready
+   before the user has looked at it. It does not change the exit code.
 4. On exit 4, report the page overrun with the limit and say that the severity is decided by the quality gate
    (Blocker for Lebenslauf and Anschreiben). Do not shorten the document here: the owning skill does that. On exit 2,
    report the difference and do not call the export ready.

@@ -197,7 +197,7 @@ task export SLUG=<slug>
 task export SLUG=<slug> FORMAT=tex
 ```
 
-Check the result after every export: the console must print `Inhaltsprüfung: ok`. A PDF that is only a
+Check the result after every export: the console must print `Inhaltsprüfung: ok` and no line `Reihenfolge: Abweichung` (a section stands in another order than in the source; a warning, the exit code stays 0). A PDF that is only a
 few kilobytes large and has no text is a failed export, even if a file exists. Only the export skill is
 copied into the image (`.dockerignore`), so personal data of your repository never enters the build context.
 

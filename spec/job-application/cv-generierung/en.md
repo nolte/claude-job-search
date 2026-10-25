@@ -326,6 +326,10 @@ The skill may reformulate verified content. It may not add facts.
    code 2 (R-10.10) and the set is not ready to send. The quality gate reports the difference as a
    Blocker. Equally a Blocker: an export whose manifest source hash (`quelle.sha256`) no longer matches
    the current Markdown (stale export, LV-6.4). The check is run by the export and by the tests.
+   With equal multisets the export also compares the order of the headings of level 1 and 2 (EXP-002, row 15 of CG-13.2):
+   a heading that the export does not carry after the previous one prints `Reihenfolge: Abweichung bei den Überschriften`
+   and a Warnung on stderr, and leaves the exit code unchanged. The words inside a section are not compared, because the
+   templates move header fields (the name stands before "Persönliche Daten") and lay out the station lines as a grid.
 3. **Structure check.** Export tests verify that all section headings appear in the DOCX text in
    the source order.
 4. **PDF check.** The PDF must contain extractable text and stay within the page limit of the
