@@ -194,6 +194,7 @@ credential. The model evals above are a separate workflow, `.github/workflows/ev
 
 | Area | Deterministic, in the CI | Model eval, by hand | Not automated |
 |---|---|---|---|
+| Fit of the evidence to the requirement (F-03) | Status against `Offen` (CV-24, `test_evidence_fit.py`); a keyword is not rejected | `behavior-evidence-fit` (not run yet) | Whether the demanded aspects were identified correctly: model judgement plus the reviewer; an aspect nobody records is not seen |
 | Fact grounding (invented skills, leadership, metrics, certificates; ownership, scope, expertise and team-result wording) | `cv_checks.py` through `test_cv_checks.py`, `test_scenarios.py`, `test_semantic_fidelity.py` | `behavior-no-invented-skills` | Known limits L1 to L3 of `tests/README.md`: only a model review sees them, and no eval case covers the reviewer on them |
 | Target position and audience (specialist, leadership, career changer, beginner) | The checks that need a posting: *Muss* without evidence (CV-07), gaps (CV-13, CV-14), posting numbers as own experience (BR-03, BR-04) on the three personas of `tests/fixtures/szenarien/` | none | Which experience is emphasised and in which order (CG-5), differences between postings, old but relevant experience: review only |
 | Quality gate and reviewer | The gate's severities map to verdicts (`test_semantic_fidelity.py`) | `behavior-gate-runs-script`, `behavior-gate-discloses-missing-script`, `behavior-reviewer-stale-report` | Whether the reviewer catches a subtle fact error in a full application |
