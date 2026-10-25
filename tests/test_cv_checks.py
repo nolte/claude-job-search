@@ -507,7 +507,7 @@ def letter(body, grundlage=GRUNDLAGE, doc_type="letter", context="", leader=Fals
 
 
 class LetterTests(unittest.TestCase):
-    """BR-01 to BR-04 (CG-13.6): the numbers, placeholders and leadership wording of a letter."""
+    """BR-01 to BR-05 (CG-13.6): the numbers, placeholders and leadership wording of a letter."""
 
     def test_clean_letter_has_no_findings(self):
         body = "Bei der Musterfirma GmbH habe ich die Latenz der Event-Pipeline von 800 ms auf 120 ms gesenkt."
@@ -521,6 +521,23 @@ class LetterTests(unittest.TestCase):
         for doc_type in ("letter", "motivation", "email"):
             found = letter("Mein Beweggrund: [ERGÄNZEN: Beweggrund]", doc_type=doc_type)
             self.assertIn("BR-01", rules(found, "Blocker"), doc_type)
+
+    def test_a_document_with_nothing_but_frontmatter_and_headings_blocks(self):
+        # every other rule passes on an empty document, so the empty file used to read as clean
+        for empty in ("---\ndokumenttyp: anschreiben\n---\n", "", "---\nformat: x\n---\n# Anschreiben\n\n## Betreff\n"):
+            for doc_type in ("letter", "motivation", "email"):
+                found = cv_checks.check_letter(empty, "anschreiben.md", doc_type)
+                self.assertEqual(rules(found, "Blocker"), ["BR-05"], (doc_type, empty))
+        self.assertNotIn("BR-05", rules(letter("Ich interessiere mich für Ihre Plattform.")))
+
+    def test_an_empty_lebenslauf_blocks_and_a_real_one_does_not(self):
+        for empty in ("---\nformat: chronologisch\n---\n", "# Lebenslauf\n\n## Berufserfahrung\n", ""):
+            self.assertEqual(rules(run(empty), "Blocker"), ["CV-21"], repr(empty))
+        self.assertNotIn("CV-21", rules(run(CLEAN_CV)))
+
+    def test_the_frontmatter_delimiter_may_have_trailing_blanks_and_hashtags_are_text(self):
+        self.assertEqual(rules(run("---  \nformat: x\n---  \n# Lebenslauf\n"), "Blocker"), ["CV-21"])
+        self.assertNotIn("CV-21", rules(run("# Lebenslauf\n#Python #Java\n")))
 
     def test_email_runs_only_the_placeholder_check(self):
         self.assertEqual(letter("Ich habe 99 Projekte geleitet, Teamleitung für 40 Mitarbeiter.", doc_type="email"), [])

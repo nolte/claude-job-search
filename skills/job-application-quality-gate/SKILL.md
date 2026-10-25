@@ -97,6 +97,7 @@ a Blocker exists. Its rule IDs:
 | CV-18 | Birthdate of a person (`Geburtsdatum`, `geb.`, `geboren` or `*` with a date) in `analyse.md` or a firm file passed with `--firma` (RC-5.3 rule 5, RC-11 rule 4) | Warnung |
 | CV-19 | Entry of a list section (skills, languages, certificates, education) that stands nowhere in the Grundlage, or a number in its parenthesis that stands nowhere (CG-13.4.6) | Blocker |
 | CV-20 | Station used in the Lebenslauf that the Grundlage records with `Bestätigt: nein` (R-9.5 point 5, CG-13.4.8) | Blocker |
+| CV-21 | Lebenslauf with nothing but frontmatter and headings | Blocker |
 
 The letters run the same script with `--doc-type`, once per document that exists
 (`anschreiben.md` and `anschreiben-portal.txt` as `letter`, `motivationsschreiben.md` and its portal copy as `motivation`,
@@ -113,6 +114,7 @@ python3 <plugin-root>/scripts/cv_checks.py <wurzel>/<slug>/anschreiben.md --doc-
 | BR-02 | Number in the text (Anrede to Grußformel) that stands nowhere in the Grundlage, the analysis or the posting; Warnung when only the analysis or the posting holds it; Hinweis for an amount with a currency | Blocker, Warnung, Hinweis |
 | BR-03 | Experience span (`N Jahre Erfahrung`) that the Grundlage does not state and the station periods do not reach | Blocker |
 | BR-04 | Personnel-leadership wording while no station of the Grundlage records `fuehrung: ja` (Hinweis when one does) | Blocker, Hinweis |
+| BR-05 | Anschreiben, Motivationsschreiben or E-Mail with nothing but frontmatter and headings | Blocker |
 
 Checks that need judgement stay in the review: ownership, leadership, expertise and proficiency
 wording (CG-7.2), relevance of selection (CG-5), seniority and role positioning, language and

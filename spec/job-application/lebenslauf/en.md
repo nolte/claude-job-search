@@ -273,7 +273,7 @@ mandatory instruction that is not met is a Blocker.
 
 ## LB-13 Quality checks
 
-The automated rules of `scripts/cv_checks.py` (CV-01 to CV-20) apply to this document. This table adds the
+The automated rules of `scripts/cv_checks.py` (CV-01 to CV-21) apply to this document. This table adds the
 document-level checks and shows which are automated.
 
 | Check | Rule | Kind | Severity |
