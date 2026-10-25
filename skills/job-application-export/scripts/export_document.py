@@ -330,7 +330,7 @@ def export_html(pandoc, source, out_file, grundlage_hash):
     return plain, None
 
 
-def export_docx(pandoc, source, out_file, name, grundlage_hash):
+def export_docx(pandoc, source, out_file, name, grundlage_hash, epoch=None):
     reference = reference_docx(pandoc)
     subprocess.run(
         [pandoc, str(source), "-f", "markdown", "-t", "docx", "--reference-doc", str(reference),
@@ -347,8 +347,28 @@ def export_docx(pandoc, source, out_file, name, grundlage_hash):
     doc.core_properties.comments = ""
     if grundlage_hash:
         doc.core_properties.keywords = f"grundlage_hash:{grundlage_hash}"
+    if epoch is not None:
+        # a frozen Version: the dates of the document and of its zip entries come from `version_datum`, not from the clock
+        moment = datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc).replace(tzinfo=None)
+        doc.core_properties.created = doc.core_properties.modified = moment
     doc.save(out_file)
+    if epoch is not None:
+        fix_zip_dates(out_file, epoch)
     return docx_text(Document(out_file)), None
+
+
+def fix_zip_dates(path, epoch):
+    """Rewrite a zip with one fixed date for every entry (the clock time of the export would differ by the second)."""
+    import zipfile
+
+    stamp = max(datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc).timetuple()[:6], (1980, 1, 1, 0, 0, 0))
+    with zipfile.ZipFile(path) as source:
+        entries = [(info, source.read(info.filename)) for info in source.infolist()]
+    with zipfile.ZipFile(path, "w") as target:
+        for info, data in entries:
+            fixed = zipfile.ZipInfo(info.filename, date_time=stamp)
+            fixed.compress_type, fixed.external_attr = info.compress_type, info.external_attr
+            target.writestr(fixed, data)
 
 
 def docx_text(doc):
@@ -501,7 +521,7 @@ def tool_versions(fmt):
 
 
 def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch, limit=None, checks=None):
-    reproducible = fmt in ("tex", "pdf") and epoch is not None
+    reproducible = fmt in ("tex", "pdf", "docx") and epoch is not None
     return {
         "schema": 1,
         "name": name,
@@ -635,7 +655,7 @@ def main(argv=None):
         elif args.format == "tex":
             exported_text, _ = export_tex(pandoc, args.input, out_file, grundlage_hash, args.doc_type)
         elif args.format == "docx":
-            exported_text, _ = export_docx(pandoc, args.input, out_file, name, grundlage_hash)
+            exported_text, _ = export_docx(pandoc, args.input, out_file, name, grundlage_hash, epoch)
         else:
             exported_text, pages = export_pdf(pandoc, args.input, out_dir, name, grundlage_hash,
                                               args.doc_type, epoch)

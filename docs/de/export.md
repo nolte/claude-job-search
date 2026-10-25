@@ -168,7 +168,9 @@ docker run --rm --entrypoint sh -v "$PWD:/src:ro" claude-job-search-export \
 Eine Quelle mit dem Frontmatter-Schlüssel `version_datum` (`JJJJ-MM-TT`) ist eine festgeschriebene Version. Der
 Export leitet dann Datum und PDF-ID der PDF aus der Quelle ab. Gleiche Quelle, gleiche Vorlage und gleiches
 Container-Image ergeben eine byte-identische PDF. Ohne `version_datum` trägt die PDF den Tag des Exports, und der
-Export gibt einen Hinweis aus.
+Export gibt einen Hinweis aus. Auch eine DOCX einer festgeschriebenen Version ist byte-identisch: Datum des Dokuments und
+der Zip-Einträge stammen aus `version_datum`. Eine DOCX ohne `version_datum` trägt die Zeit des Exports, deshalb kann
+`--reproduce` eine Abweichung melden, wenn beide Exporte in verschiedenen Sekunden liegen.
 
 ```bash
 python3 skills/job-application-export/scripts/export_document.py --reproduce lebenslauf.pdf.manifest.json

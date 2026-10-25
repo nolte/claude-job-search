@@ -91,7 +91,9 @@ A repository that is, or may become, public stores none of these files (R-6).
 
 1. The Manifest states which level applies (`byte_reproduzierbar`).
 2. Byte-identity is promised only for a Version with `version_datum`. Without it the PDF carries the day of
-   the export and the exporter prints a notice.
+   the export and the exporter prints a notice. For a DOCX the dates of the document and of its zip entries then come
+   from `version_datum`; without it they carry the time of the export, and `--reproduce` reports a difference whenever
+   the two exports fall in different seconds.
 3. Byte-identity holds for the same toolchain. A different pandoc, LuaLaTeX or font package may change line
    breaks. `--reproduce` then reports the tool differences next to the result.
 

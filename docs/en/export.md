@@ -166,7 +166,9 @@ docker run --rm --entrypoint sh -v "$PWD:/src:ro" claude-job-search-export \
 A source with the frontmatter key `version_datum` (`YYYY-MM-DD`) is a frozen version. The export then derives
 the PDF dates and the PDF ID from the source, so the same source, template and container image give a
 byte-identical PDF. Without `version_datum` the PDF carries the day of the export and the exporter prints a
-notice.
+notice. A DOCX of a frozen version is byte-identical too: its document dates and zip entry dates come from
+`version_datum`. A DOCX without it carries the time of the export, so `--reproduce` can report a difference when the two
+exports fall in different seconds.
 
 ```bash
 python3 skills/job-application-export/scripts/export_document.py --reproduce lebenslauf.pdf.manifest.json
