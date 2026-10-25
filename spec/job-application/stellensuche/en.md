@@ -342,7 +342,7 @@ done by reviewing a run, not by a script.
    is `nicht_mehr_gesehen`; a later find makes it available again. This is an inference, not a statement of the
    employer. A failed run never counts, and a board counts only when its list was not full: no single term reached
    `ergebnisse_pro_board` and nothing was cut. `board-ergebnis` therefore takes `je_begriff`, the number of records per term in
-   the order of the brief. Without it, only an empty answer (or an order with one term and fewer records than the cap) counts as
+   the order of the brief (exactly one number per term, otherwise the answer is refused). Without it, only an empty answer (or an order with one term and fewer records than the cap) counts as
    complete. On a full list a missing posting may just rank lower. The run records `vollstaendige_boards`.
 
 ## ST-18 Pre-filter and assessment
@@ -354,7 +354,8 @@ done by reviewing a run, not by a script.
    words the boards report (`fulltime`, `parttime`, `internship`, `contract`) or `Vollzeit`, `Teilzeit`, `Praktikum`, `Vertrag`,
    which are stored as the English token; any other value is refused, so an exclusion cannot silently never match. Each
    Suchauftrag judges with its own exclusions (`vorpruefung_je_auftrag`); a Stelle shows the union of the Vetos of the orders that
-   found it.
+   found it. When the exclusions of an order change, its open Stellen are judged again at once; when the order ends, its
+   judgement is forgotten.
 2. **Missing is unclear.** A field the record does not give is listed as `unklar`. It is never a Veto and never a
    statement about the candidate (WJ-6.3).
 3. **No score, no fit claim.** The Warteschlange classes are `ohne_treffer`, `klaerung` (unclear field, missing data,
@@ -429,6 +430,7 @@ Automated in `tests/test_stellensuche.py` with invented postings (Musterfirma Gm
 | SR-AF | Several terms, one list per term is full; none is full | No posting is marked gone; with `je_begriff` all below the cap, a missing posting is marked after three runs |
 | SR-AG | The overview cannot be written; a `vorgang.md` is not UTF-8 or has CRLF | The command keeps its result with `warnung_uebersicht`; the scan skips the first and reads the second |
 | SR-AH | The user decided "no duplicate"; a record carries the keys of both | They are not flagged again |
+| SR-AI | The exclusions of an order change, or the order ends; `je_begriff` has the wrong length; `bis` is `2026-99-99`; an order file lacks keys; the Wurzel is `~/…` | The open Stellen are judged again; the answer is refused; the date is refused; the file is named and the others are listed; `~` is expanded |
 | SR-S | `stellensuche_geplant.sh` with a due, a paused and a draft Suchauftrag | One session, for the due one only, with the restricted tools |
 
 ## ST-12 Sources

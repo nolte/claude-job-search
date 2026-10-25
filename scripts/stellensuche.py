@@ -180,7 +180,7 @@ def load_json(path, default):
 
 def find_wurzel(konfiguration):
     config = read_frontmatter(konfiguration)
-    wurzel = resolve(config.get("wurzel") or DEFAULT_WURZEL)
+    wurzel = resolve(os.path.expanduser(config.get("wurzel") or DEFAULT_WURZEL))
     if inside_plugin_repo(wurzel):
         raise Blocker(f"Der Pfad liegt im Plugin-Repository ({wurzel}). Lege die Wurzel außerhalb ab (LS-2.4).")
     return wurzel
@@ -192,11 +192,21 @@ def auftrag_path(wurzel, auftrag_id):
     return os.path.join(wurzel, "suche", "auftraege", auftrag_id + ".json")
 
 
+AUFTRAG_KEYS = {"id", "name", "status", "brief", "plan", "ausschluesse", "laeufe", "fehler_in_folge", "lauf_zaehler"}
+
+
+def check_auftrag(data, name):
+    missing = sorted(AUFTRAG_KEYS - set(data))
+    if missing:
+        raise Refused("speichern_fehlgeschlagen", f"{name} ist unvollständig (es fehlt: {', '.join(missing)})")
+    return data
+
+
 def load_auftrag(wurzel, auftrag_id):
     path = auftrag_path(wurzel, auftrag_id)
     if not os.path.isfile(path):
         raise Refused("auftrag_unbekannt", f"Kein Suchauftrag {auftrag_id}")
-    return load_json(path, {})
+    return check_auftrag(load_json(path, {}), os.path.basename(path))
 
 
 def save_auftrag(wurzel, auftrag):
@@ -211,7 +221,7 @@ def all_auftraege(wurzel, defects=None):
         if not name.endswith(".json"):
             continue
         try:
-            found.append(load_json(os.path.join(directory, name), {}))
+            found.append(check_auftrag(load_json(os.path.join(directory, name), {}), name))
         except Refused as error:
             if defects is not None:
                 defects.append({"datei": name, "meldung": error.meldung})
@@ -286,6 +296,8 @@ def validate_brief(brief):
 
 
 def validate_plan(plan):
+    if plan is not None and not isinstance(plan, dict):
+        raise Refused("suchauftrag_ungueltig", "Der Plan ist ein Objekt mit intervall_tage, laeufe_pro_woche, …")
     plan = {**DEFAULT_PLAN, **(plan or {})}
     if set(plan) - set(DEFAULT_PLAN):
         raise Refused("suchauftrag_ungueltig", "Unbekannte Felder im Plan: " + ", ".join(sorted(set(plan) - set(DEFAULT_PLAN))))
@@ -377,6 +389,8 @@ def change_auftrag(wurzel, auftrag_id, patch, now):
     if material_hash(auftrag) != before and auftrag["status"] in ("aktiv", "pausiert"):
         auftrag["status"] = "zur_freigabe"
     save_auftrag(wurzel, auftrag)
+    if "ausschluesse" in patch:
+        reassess(wurzel, auftrag)
     return auftrag
 
 
@@ -485,6 +499,7 @@ def end_auftrag(wurzel, auftrag_id, now):
                        fehler={"code": "lauf_unterbrochen", "meldung": "Der Suchauftrag wurde beendet."})
     release_lock(wurzel, auftrag_id)
     save_auftrag(wurzel, auftrag)
+    reassess(wurzel, auftrag, drop=True)
     return auftrag
 
 
@@ -827,6 +842,30 @@ def new_entry(stelle, keys, now):
     return entry
 
 
+def combine_prefilter(entry):
+    results = list(entry.get("vorpruefung_je_auftrag", {}).values())
+    entry["vorpruefung"] = {
+        "geprueft": any(r["geprueft"] for r in results),
+        "veto": [v for r in results for v in r["veto"]],
+        "unklar": sorted({u for r in results for u in r["unklar"]}),
+    }
+
+
+def reassess(wurzel, auftrag, drop=False):
+    """Judge the open Stellen of an order again after its exclusions changed, or forget its judgement when it ended."""
+    queue = load_queue(wurzel)
+    for entry in queue["stellen"].values():
+        if not any(seen["auftrag"] == auftrag["id"] for seen in entry["gefunden_in"]):
+            continue
+        if drop:
+            entry.setdefault("vorpruefung_je_auftrag", {}).pop(auftrag["id"], None)
+            combine_prefilter(entry)
+        elif entry["bearbeitung"] in ("offen", "zurückgestellt"):
+            entry.setdefault("vorpruefung_je_auftrag", {})[auftrag["id"]] = prefilter(auftrag, entry)
+            combine_prefilter(entry)
+    atomic_write(queue_path(wurzel), queue)
+
+
 def refresh_derived(entry, auftrag):
     entry["unvollstaendig"] = [name for name, value in (("firma", entry["firma"]), ("ort", entry["ort"]), ("url", entry["url"]))
                                if not value]
@@ -834,14 +873,8 @@ def refresh_derived(entry, auftrag):
     entry["signale"] = sorted(signals | (set() if entry["firma"] else {"kein_arbeitgeber"}))
     if entry["bearbeitung"] in ("offen", "zurückgestellt"):
         # each Suchauftrag judges with its own exclusions; the Stelle shows the union of the orders that found it
-        per_order = entry.setdefault("vorpruefung_je_auftrag", {})
-        per_order[auftrag["id"]] = prefilter(auftrag, entry)
-        results = list(per_order.values())
-        entry["vorpruefung"] = {
-            "geprueft": any(r["geprueft"] for r in results),
-            "veto": [v for r in results for v in r["veto"]],
-            "unklar": sorted({u for r in results for u in r["unklar"]}),
-        }
+        entry.setdefault("vorpruefung_je_auftrag", {})[auftrag["id"]] = prefilter(auftrag, entry)
+        combine_prefilter(entry)
 
 
 def flag_duplicates(entries, entry, others):
@@ -970,9 +1003,9 @@ def record_board(wurzel, auftrag_id, run_id, board, payload, now):
     if not isinstance(records, list):
         raise Refused("ergebnisdaten_unvollstaendig", "ergebnisse muss eine Liste sein")
     per_term = payload.get("je_begriff")
-    if per_term is not None and not (isinstance(per_term, list) and len(per_term) <= MAX_TERMS
+    if per_term is not None and not (isinstance(per_term, list) and len(per_term) == len(auftrag["brief"]["begriffe"])
                                       and all(bounded_int(n, 0, 1000) for n in per_term)):
-        raise Refused("ergebnisdaten_unvollstaendig", "je_begriff ist eine Liste von Anzahlen, eine je Suchbegriff")
+        raise Refused("ergebnisdaten_unvollstaendig", "je_begriff ist eine Liste von Anzahlen, genau eine je Suchbegriff")
     entry = {"status": payload["status"], "grund": redact(payload.get("grund")), "anzahl": 0, "abgeschnitten": 0,
              "defekt": 0, "zaehlung": {}, "neue": [], "je_begriff": per_term}
     if payload["status"] == "ok":
@@ -1148,8 +1181,8 @@ def decide(wurzel, entry_id, decision, reason, until, now):
         raise Refused("entscheidung_ungueltig", "Entscheidungen: offen, zurückgestellt, abgelehnt (übernommen setzt die Übergabe)")
     if decision == "abgelehnt" and not clean_text(reason, 200):
         raise Refused("entscheidung_ungueltig", "Eine Ablehnung braucht einen kurzen Grund (ST-8 Regel 2)")
-    if until and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", until):
-        raise Refused("entscheidung_ungueltig", "bis hat die Form JJJJ-MM-TT")
+    if until and valid_date(until) != until:
+        raise Refused("entscheidung_ungueltig", "bis ist ein echtes Datum der Form JJJJ-MM-TT")
     queue = load_queue(wurzel)
     entry = get_entry(queue, entry_id)
     if entry["bearbeitung"] == "übernommen" or entry["vorgang"]:

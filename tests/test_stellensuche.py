@@ -1156,6 +1156,60 @@ class ReviewRoundThreeTests(Base):  # findings of the third review of PR 65
         self.assertFalse(os.path.exists(ss.lock_path(self.w, aid)))
 
 
+class ReviewRoundFourTests(Base):  # data findings of the fourth review of PR 65
+    def test_changing_exclusions_judges_open_stellen_again_and_ending_forgets_the_order(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]}, plan={"laeufe_pro_woche": 7},
+                           ausschluesse=[{"feld": "titel", "wert": "Backend", "quelle": "x"}])
+        self.run_search(aid, [job()], T0)
+        entry = lambda: next(iter(self.queue().values()))
+        self.assertEqual(ss.prefilter_class(entry()), "veto")
+        ss.change_auftrag(self.w, aid, {"ausschluesse": []}, later(hours=1))
+        self.assertNotEqual(ss.prefilter_class(entry()), "veto")  # no run needed to drop the stale Veto
+        ss.change_auftrag(self.w, aid, {"ausschluesse": [{"feld": "titel", "wert": "Engineer", "quelle": "x"}]}, later(hours=2))
+        self.assertEqual(ss.prefilter_class(entry()), "veto")
+        ss.end_auftrag(self.w, aid, later(hours=3))
+        self.assertNotEqual(ss.prefilter_class(entry()), "veto")
+        self.assertEqual(entry()["vorpruefung_je_auftrag"], {})
+
+    def test_je_begriff_must_name_every_term(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})  # two terms
+        started = ss.start_run(self.w, aid, "manuell", T0)
+        for bad in ([0], [1, 2, 3]):
+            self.assertEqual(self.refused(ss.record_board, self.w, aid, started["lauf"], "indeed",
+                                          {"status": "ok", "je_begriff": bad, "ergebnisse": []}, T0), "ergebnisdaten_unvollstaendig")
+        ss.record_board(self.w, aid, started["lauf"], "indeed", {"status": "ok", "je_begriff": [0, 0], "ergebnisse": []}, T0)
+
+    def test_a_tilde_in_the_wurzel_is_expanded_and_never_makes_a_folder_called_tilde(self):
+        home = os.path.join(self.w, "home")
+        os.makedirs(home)
+        config = os.path.join(self.w, "k.md")
+        with open(config, "w", encoding="utf-8") as handle:
+            handle.write("---\nwurzel: ~/bewerbung\n---\n")
+        with unittest.mock.patch.dict(os.environ, {"HOME": home}):
+            self.assertEqual(ss.find_wurzel(config), os.path.join(home, "bewerbung"))
+
+    def test_a_postponement_date_must_be_a_real_date(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
+        self.run_search(aid, [job()], T0)
+        sid = next(iter(self.queue()))
+        self.assertEqual(self.refused(ss.decide, self.w, sid, "zurückgestellt", "", "2026-99-99", T0), "entscheidung_ungueltig")
+        self.assertEqual(ss.decide(self.w, sid, "zurückgestellt", "", "2026-12-01", T0)["bis"], "2026-12-01")
+
+    def test_an_order_file_without_its_keys_is_named_and_does_not_crash_the_listing(self):
+        good = self.auftrag(approve=False)
+        with open(os.path.join(self.w, "suche", "auftraege", "a-halb.json"), "w", encoding="utf-8") as handle:
+            json.dump({"id": "a-halb", "name": "halb"}, handle)
+        defects = []
+        found = ss.all_auftraege(self.w, defects)
+        self.assertEqual([a["id"] for a in found], [good])
+        self.assertIn("a-halb.json", defects[0]["datei"])
+        self.assertEqual(self.refused(ss.load_auftrag, self.w, "a-halb"), "speichern_fehlgeschlagen")
+
+    def test_a_plan_that_is_no_object_is_refused_not_a_traceback(self):
+        for bad in ("woechentlich", [1, 2], 7):
+            self.assertEqual(self.refused(ss.create_auftrag, self.w, {**SPEC, "plan": bad}, T0), "suchauftrag_ungueltig")
+
+
 class OverviewTests(Base):  # SR-T
     def test_overview_lists_each_stelle_once_in_the_group_of_its_decision(self):
         aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
