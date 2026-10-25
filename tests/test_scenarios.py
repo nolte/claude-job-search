@@ -19,7 +19,9 @@ import unittest
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
+sys.path.insert(0, os.path.join(ROOT, "tests"))
 import cv_checks  # noqa: E402
+import personal_data  # noqa: E402
 
 FIXTURES = os.path.join(ROOT, "tests", "fixtures", "szenarien")
 HASH_SCRIPT = os.path.join(ROOT, "scripts", "grundlage_hash.py")
@@ -74,9 +76,17 @@ class FixtureTests(unittest.TestCase):
     def test_personal_data_in_fixtures_is_fictional(self):
         for folder in ("grundlage", "anzeigen", "analysen", "cv", "briefe"):
             for name in os.listdir(os.path.join(FIXTURES, folder)):
-                text = read(folder, name)
-                self.assertNotRegex(text, r"@[a-z0-9-]+\.[a-z]{2,}", name)
-                self.assertNotRegex(text, r"\+?\d{3,}[ /-]\d{5,}", name)
+                self.assertEqual(personal_data.findings(read(folder, name)), [], name)
+
+    def test_the_personal_data_patterns_can_fail_and_pass_the_fictional_forms(self):
+        for kind, sample in (("email", "max.muster@gmail.com"), ("international telephone number", "+49 30 1234567"),
+                             ("international telephone number", "0049 176 12345678"), ("national telephone number", "0176/1234567"),
+                             ("national telephone number", "(030) 1234567"), ("national telephone number", "030 12345678"),
+                             ("IBAN", "DE89 3704 0044 0532 0130 00"), ("profile URL", "https://www.linkedin.com/in/erika-m-4711")):
+            self.assertIn(kind, [k for k, _ in personal_data.findings(f"Kontakt: {sample}")], sample)
+        for sample in ("max@example.test", "erika@mail.example.com", "x@firma.test", "00000 Musterstadt", "04/2021 – heute",
+                       "grundlage_hash: " + "0" * 64, "2019 – 2021", "https://www.linkedin.com/in/muster-person"):
+            self.assertEqual(personal_data.findings(sample), [], sample)
 
 
 class DocumentationTests(unittest.TestCase):

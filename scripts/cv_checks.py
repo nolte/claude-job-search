@@ -33,6 +33,7 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
         that stands nowhere                                       Blocker
   CV-20 station used in the Lebenslauf that the Grundlage records with
         `Bestätigt: nein` (R-9.5 point 5)                         Blocker
+  CV-21 no content: nothing but the frontmatter and headings        Blocker
 
 Letters (`--doc-type letter|motivation|email`, CG-13.6) run a smaller set on anschreiben.md,
 motivationsschreiben.md and email.md:
@@ -46,6 +47,7 @@ motivationsschreiben.md and email.md:
         periods do not reach                                      Blocker
   BR-04 personnel-leadership wording: Blocker when no station of the Grundlage records
         `fuehrung: ja`, Hinweis otherwise (the mapping to the station stays in the review)
+  BR-05 no text: nothing but the frontmatter and headings          Blocker
 
 A station header that is not in the strict form `MM/JJJJ – MM/JJJJ | Position | Arbeitgeber, Ort`
 (for example years only) gets CV-02. Its bullets and its period are still checked: the station is
@@ -377,10 +379,23 @@ def source_has(token, text):
     return any(re.search(number_pattern(variant), text) for variant in variants)
 
 
+def has_content(text):
+    """True if the document holds a line that is neither frontmatter, a heading nor blank (CV-21, BR-05)."""
+    lines = text.splitlines()
+    if lines and lines[0] == "---":
+        for index in range(1, len(lines)):
+            if lines[index] == "---":
+                lines = lines[index + 1:]
+                break
+    return any(line.strip() and not line.lstrip().startswith("#") for line in lines)
+
+
 def check_cv(text, file, source_text=None, sources=None, ats=False):
     """Run the Lebenslauf rules. `source_text` and `sources` (station records) come from the Grundlage."""
     lines = text.splitlines()
     findings = []
+    if not has_content(text):
+        findings.append(finding("CV-21", "Blocker", file, 1, "Lebenslauf ohne Inhalt (CV-21): nur Frontmatter und Überschriften"))
     section = None
     current = None
     bullets = {}
@@ -796,6 +811,8 @@ def check_letter(text, file, doc_type, source_text=None, records=None, context_t
 
     `source_text` and `records` come from the Grundlage, `context_text` is the analysis and the posting."""
     findings = []
+    if not has_content(text):
+        findings.append(finding("BR-05", "Blocker", file, 1, "Dokument ohne Text (BR-05): nur Frontmatter und Überschriften"))
     for number, line in enumerate(text.splitlines(), 1):
         if PLACEHOLDER.search(line):
             findings.append(finding("BR-01", "Blocker", file, number, "offener Platzhalter (BR-01): " + line.strip()))
@@ -856,7 +873,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Deterministic checks for a Lebenslauf (CG-13) or a letter (CG-13.6).")
     parser.add_argument("lebenslauf", help="path to lebenslauf.md, or to the letter with --doc-type")
     parser.add_argument("--doc-type", choices=("cv", "letter", "motivation", "email"), default="cv",
-                        help="cv (default): the rules CV-01 to CV-20; letter, motivation, email: the rules BR-01 to BR-04")
+                        help="cv (default): the rules CV-01 to CV-21; letter, motivation, email: the rules BR-01 to BR-05")
     parser.add_argument("--grundlage", action="append", default=[], help="Grundlage file or directory (repeatable: directory and index note)")
     parser.add_argument("--analyse", help="path to analyse.md")
     parser.add_argument("--stellenanzeige", help="path to stellenanzeige.md (letters: numbers of the posting are no proof of the candidate)")

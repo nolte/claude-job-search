@@ -522,6 +522,19 @@ class LetterTests(unittest.TestCase):
             found = letter("Mein Beweggrund: [ERGÄNZEN: Beweggrund]", doc_type=doc_type)
             self.assertIn("BR-01", rules(found, "Blocker"), doc_type)
 
+    def test_a_document_with_nothing_but_frontmatter_and_headings_blocks(self):
+        # every other rule passes on an empty document, so the empty file used to read as clean
+        for empty in ("---\ndokumenttyp: anschreiben\n---\n", "", "---\nformat: x\n---\n# Anschreiben\n\n## Betreff\n"):
+            for doc_type in ("letter", "motivation", "email"):
+                found = cv_checks.check_letter(empty, "anschreiben.md", doc_type)
+                self.assertEqual(rules(found, "Blocker"), ["BR-05"], (doc_type, empty))
+        self.assertNotIn("BR-05", rules(letter("Ich interessiere mich für Ihre Plattform.")))
+
+    def test_an_empty_lebenslauf_blocks_and_a_real_one_does_not(self):
+        for empty in ("---\nformat: chronologisch\n---\n", "# Lebenslauf\n\n## Berufserfahrung\n", ""):
+            self.assertEqual(rules(run(empty), "Blocker"), ["CV-21"], repr(empty))
+        self.assertNotIn("CV-21", rules(run(CLEAN_CV)))
+
     def test_email_runs_only_the_placeholder_check(self):
         self.assertEqual(letter("Ich habe 99 Projekte geleitet, Teamleitung für 40 Mitarbeiter.", doc_type="email"), [])
 

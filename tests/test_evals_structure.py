@@ -12,9 +12,12 @@ import re
 import stat
 import subprocess
 import tempfile
+import sys
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import personal_data  # noqa: E402
 EVALS = os.path.join(ROOT, "evals")
 CASES = sorted(os.path.dirname(p) for p in glob.glob(os.path.join(EVALS, "*", "prompt.md")))
 
@@ -279,9 +282,7 @@ class EvalSuiteTests(unittest.TestCase):
         for path in glob.glob(os.path.join(EVALS, "**", "*"), recursive=True):
             if not os.path.isfile(path) or "/results/" in path:
                 continue
-            text = read(path)
-            self.assertNotRegex(text, r"[A-Za-z0-9._-]+@(?!example\.test)[A-Za-z0-9-]+\.[a-z]{2,}", path)
-            self.assertNotRegex(text, r"\+?\d{3,}[ /-]\d{5,}", path)
+            self.assertEqual(personal_data.findings(read(path)), [], path)
 
 
 if __name__ == "__main__":
