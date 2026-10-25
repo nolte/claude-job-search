@@ -16,7 +16,7 @@ repository:
   # A comma-separated string, never a YAML list: probot/settings calls .split() on
   # topics, and a list throws after the repository PATCH, which silently skips the
   # branches block (nolte/gh-plumbing#416).
-  topics: claude-code, claude-code-plugin, claude, anthropic, skills, agents, job-application, bewerbung, lebenslauf, cover-letter, dach
+  topics: claude-code-plugin, job-application, bewerbung, lebenslauf
   allow_squash_merge: true
   allow_merge_commit: false
   allow_rebase_merge: false

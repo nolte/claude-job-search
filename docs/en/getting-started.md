@@ -117,7 +117,11 @@ spend time on documents, and a veto stops the plan in step 5.
 /claude-job-search:job-application-solution
 ```
 
-Paste the posting text or give its link. The skill
+Paste the posting text or give its link. A link alone is enough: the skill cleans it of tracking
+parameters, loads the page through the optional open-webSearch server and shows you the extracted
+posting for confirmation before anything is saved. If the page cannot be read (removed, log-in
+wall, bot check, needs JavaScript, no server connected), you are asked to paste the text. LinkedIn
+links are never loaded. The skill
 
 1. checks that your Datengrundlage and profile are current,
 2. creates the application folder and analyses the posting (which requirements you meet, with

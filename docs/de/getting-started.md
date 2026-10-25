@@ -119,7 +119,11 @@ Firma damit, bevor du Zeit in Unterlagen steckst, und ein Veto stoppt den Plan i
 /claude-job-search:job-application-solution
 ```
 
-Füge den Text der Stellenanzeige ein oder gib den Link an. Der Skill
+Füge den Text der Stellenanzeige ein oder gib den Link an. Ein Link allein genügt: Der Skill
+entfernt Tracking-Parameter, lädt die Seite über den optionalen open-webSearch-Server und zeigt dir
+die erkannte Anzeige zur Bestätigung, bevor etwas gespeichert wird. Lässt sich die Seite nicht
+lesen (entfernt, Anmeldung, Bot-Prüfung, braucht JavaScript, kein Server verbunden), wirst du
+gebeten, den Text einzufügen. LinkedIn-Links werden nie geladen. Der Skill
 
 1. prüft, ob Datengrundlage und Profil aktuell sind,
 2. legt den Bewerbungsordner an und analysiert die Anzeige (welche Anforderungen du belegt

@@ -2,164 +2,108 @@
 
 [![CI](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/nolte/claude-job-search/actions/workflows/ci.yml)
 
-The `ci` workflow runs three required status checks on `develop`: `lint`, `test`, and `docs`. A green `CI` badge means all three passed on the latest `develop` commit.
-
-Claude Code plugin with skills and an agent for German-speaking job applications
-(*Bewerbungsunterlagen*) — Wunschprofil and fit check, single-column Lebenslauf, DIN-5008-style
-Anschreiben, Motivationsschreiben, Bewerbungs-E-Mail, requirement match against the Stellenanzeige,
-a quality gate before you send, and export to PDF, DOCX, HTML or Markdown. "Single-column" is the
-term used throughout for the CV layout: one column, no tables, so a parser reads it in order.
+A Claude Code plugin that helps you write job applications for German-speaking countries
+(*Bewerbungsunterlagen*): a clear CV, a cover letter, a motivation letter, the application e-mail,
+and a check before you send. It writes in German and follows the usual conventions of Germany,
+Austria and Switzerland.
 
 ## Purpose
 
-Application documents for the DACH region follow specific conventions (reverse-chronological
-single-column CV, one-page letter with a concrete subject line, attachment naming), and every
-application repeats the same facts. This plugin keeps the facts in one local profile and
-derives every document from it, so the output is consistent, tailored to the posting and
-never invents experience.
+Every application repeats the same facts, and each posting asks for something a little different.
+This plugin keeps your facts in one place, on your own computer, and builds every document from
+them. The result is consistent, fits the posting, and never invents experience.
 
-- You describe a **job posting**; `job-application-solution` checks your profile, analyses the
-  posting, and asks for approval of the plan before any document is written.
-- Every fact comes from your Datengrundlage. `job-application/profil.md` is derived from it and keeps
-  a source reference per entry. Gaps are marked `[ERGÄNZEN: …]` and block the quality gate until resolved.
-  A requirement is marked as met only with evidence; missing evidence is reported, never claimed.
-- The rules are codified in `spec/job-application/konventionen/en.md`.
+- You give it a **job posting**. It reads the posting, compares it with your profile, shows you a
+  plan, and writes nothing until you approve.
+- **Every statement comes from your own material.** If something is missing, the plugin leaves a
+  visible gap marked `[ERGÄNZEN: …]` and asks you. A requirement counts as met only when there is
+  proof for it.
+- **Your data stays with you.** Everything lives in one local folder (the *Wurzel*). Nothing is
+  uploaded or sent by the plugin.
 
-## What you get
+## What you can do with it
 
-### Skills
+- **Apply for one posting, end to end.** `job-application-solution` leads you through all steps.
+- **Find out what you want.** `job-application-traumjob-interview` records your wishes and
+  deal-breakers; `job-application-fit-check` then tells you whether a posting or company fits.
+- **Build your profile.** `job-application-profile-capture` turns old CVs, certificates and notes
+  into one profile; `job-application-cv-maintain` keeps it up to date.
+- **Understand a posting.** `job-application-posting-analysis` lists the requirements and shows
+  which ones you meet, with proof.
+- **Write the documents.** CV, cover letter, motivation letter and e-mail each have their own skill
+  (`job-application-cv-create`, `-cover-letter-create`, `-motivation-letter-create`,
+  `-email-create`).
+- **Check and export.** `job-application-quality-gate` checks a set before you send it, and
+  `job-application-reviewer` reads it like a recruiter would. `job-application-export` produces
+  PDF, Word, HTML or Markdown.
+- **Look for postings** (optional). `job-application-job-search` searches job boards with a search
+  brief that you approve first.
 
-| Skill | Phase | What it does |
-|---|---|---|
-| `job-application-job-search` | search | Optional step before the application. Builds a Suchbrief from the confirmed Wunschprofil, shows it with the source of each term, and after your yes searches job boards through the optional JobSpy MCP server. Returns a shortlist (vetoes shown, duplicates merged), records it in `suche/`, and hands one chosen posting to `job-application-solution`. See `spec/job-application/stellensuche/en.md`. |
-| `job-application-solution` | plan | Front door. Checks the Datengrundlage and profile, analyses the posting, shows a plan, creates the documents in order, and ends with the quality gate. |
-| `job-application-profile-capture` | intake | Builds the Datengrundlage (chronological Markdown) from existing CVs, certificates, and notes, and derives `profil.md` from it. |
-| `job-application-cv-maintain` | intake | Maintains an existing Datengrundlage in a guided interview. Checks core points and inconsistencies, asks only about findings, and records changes in a Pflegeverlauf. |
-| `job-application-traumjob-interview` | intake | Seven-phase preference interview. Stores the confirmed Wunschprofil (wishes, priorities, vetoes, hypotheses) in the Wurzel. See `spec/job-application/traumjob-interview/en.md`. |
-| `job-application-fit-check` | analyse | Compares a posting or company with the confirmed Wunschprofil and writes `passung.md`: vetoes first, every value sourced, no score. |
-| `job-application-posting-analysis` | analyse | Extracts requirements, tone, and requested documents from a Stellenanzeige and matches each requirement against the Grundlage with priority, evidence, strength, and status (erfüllt, teilweise, nicht belegt, unklar). Creates the Vorgang folder: `stellenanzeige.md`, `vorgang.md`, `notizen.md`, and the company file in `firmen/`. |
-| `job-application-cv-create` | create | Creates the Lebenslauf in the format for the situation (chronological, one page, combined, ATS). Selects stations and bullets by relevance and evidence. Bullet limits are defaults with a maximum of 5 per station, see `spec/job-application/cv-generierung/en.md`. |
-| `job-application-cover-letter-create` | create | Writes a one-page Anschreiben in DIN 5008 layout. Variants: job posting, unsolicited application, career change, entry-level. |
-| `job-application-motivation-letter-create` | create | Writes a Motivationsschreiben when the posting, a university, or a funder asks for one. Reasons and goals come from the user's own words, never invented; every statement gets a provenance note. See `spec/job-application/motivationsschreiben/en.md`. |
-| `job-application-email-create` | deliver | Writes the Bewerbungs-E-Mail: subject, short body, attachment list, and file names. |
-| `job-application-export` | deliver | Exports a finished document to PDF (LaTeX), DOCX, HTML, or Markdown via `task export`. Carries the hash and checks that the content is unchanged. |
-| `job-application-quality-gate` | review | Checks a folder before sending: blockers, warnings, and notes. Automated rules CV-01 to CV-18 come from `scripts/cv_checks.py`; the rest is judged in review. Sets the Vorgang status to `geprüft` or `in Arbeit`. |
-
-### Agent
-
-| Agent | What it does |
-|---|---|
-| `job-application-reviewer` | Read-only review of the whole set from a recruiter's view: traceability, consistency, requirement coverage, and language. Writes nothing. |
-
-All skills read and write only inside the Wurzel, by default the `job-application/` folder of your
-working copy. The folder is local and git-ignored by default; tracking it in a private, unpublished
-repository is allowed (R-6, LV-4). The rules the skills follow are in
-`spec/job-application/konventionen/en.md`.
-
-## Use cases
-
-- **Complete application for one posting** — `job-application-solution`.
-- **Wunschprofil and fit** — `job-application-traumjob-interview` records what you want; `job-application-fit-check` compares a posting or company with it before you invest in documents.
-- **Check whether your profile fits a posting** — `job-application-posting-analysis`.
-- **Cover letter for a posting, an unsolicited application, or a career change** — `job-application-cover-letter-create`.
-- **Review before sending** — `job-application-quality-gate`, plus the `job-application-reviewer` agent for a second read.
-- **Export for sending or viewing** — `job-application-export`, e.g. `task export -- <datei.md> --format pdf --doc-type cv`.
-- **Tracking after sending** — each application has a `vorgang.md` with status and history; you maintain sending, replies and interviews there (or in Obsidian), no skill does it for you yet.
+Each application gets its own folder with a status and a short history. The plugin does not track
+what happens after you send; you note replies and interviews there yourself, or in Obsidian.
 
 ## Getting started
 
-1. Install the plugin from its marketplace, or run `claude --plugin-dir <path-to-this-repo>` for a local checkout.
-2. Create `job-application/konfiguration.md` and point `grundlage` at your Datengrundlage (one Markdown file or a directory of notes).
-3. Put your old CVs and certificates into `rohdaten/`, then run `/claude-job-search:job-application-profile-capture`.
-4. Run `/claude-job-search:job-application-solution` with the text of a posting.
+1. Install the plugin from its marketplace.
+2. Create `job-application/konfiguration.md` and point it at your material (one file or a folder of
+   notes).
+3. Put your old CVs and certificates into `rohdaten/` and run
+   `/claude-job-search:job-application-profile-capture`.
+4. Run `/claude-job-search:job-application-solution` and paste the text of a posting.
 
-The step-by-step guide with examples is the docs page *Getting started*:
+The step-by-step guide with examples is on the docs page *Getting started*:
 <https://nolte.github.io/claude-job-search/getting-started/> (German: *Erste Schritte*,
 <https://nolte.github.io/claude-job-search/de/getting-started/>).
 
-Optional network channels (LinkedIn, Handelsregister, web search, job boards) use third-party MCP servers. None is
-required, the plugin registers none, and the same rules hold for all of them. Overview and rules are on the
-docs page *Optional MCP servers*: <https://nolte.github.io/claude-job-search/mcp-servers/>.
+## Optional helpers
 
-Optional, for direct access to LinkedIn postings, company pages and your own profile: the
-third-party [LinkedIn MCP server](https://github.com/stickerdaniel/linkedin-mcp-server). No skill
-needs it. Setup and the risks (LinkedIn's terms prohibit automated access) are on the docs page
-*LinkedIn access*: <https://nolte.github.io/claude-job-search/linkedin/>.
-
-Optional, for checking a firm's identity against the Handelsregister: the third-party
-[handelsregister-mcp server](https://github.com/lexdoudkin/handelsregister-mcp). No skill needs it.
-Setup, the pinned commit and the risks are on the docs page *Handelsregister*:
-<https://nolte.github.io/claude-job-search/handelsregister/>.
-
-Optional, for searching job boards (Indeed and Glassdoor by default): the third-party
-[JobSpy MCP server](https://github.com/speedyapply/JobSpy), used by `job-application-job-search`. No
-skill needs it. Coverage in DACH, the risks (boards block automated access, their terms are to be
-checked per board) and the checked version are on the docs page *JobSpy*:
-<https://nolte.github.io/claude-job-search/jobspy/>.
+Some steps can reach the internet through add-on programs from other authors (MCP servers):
+LinkedIn, the Handelsregister, web search, job boards and, for pages that need a browser, a
+browser server. **None is required.** Without them you paste the text yourself, and the plugin
+installs none of them. The same ground rules apply to all of them, among them: they only start
+with your approval, they stay small, and they never receive your personal data. The overview and
+the risks are on the docs page *Optional MCP servers*:
+<https://nolte.github.io/claude-job-search/mcp-servers/>.
 
 ## Usage
 
-Install the plugin via its marketplace, then invoke a skill with
-`/claude-job-search:<skill>`, for example `/claude-job-search:job-application-solution`.
+Start a skill with `/claude-job-search:<skill>`, for example
+`/claude-job-search:job-application-solution`. Your data lives in the *Wurzel*, by default the
+`job-application/` folder of your working directory. It is local and ignored by git. If you want
+to track it, use a private repository.
 
-Application data lives in the Wurzel, by default the `job-application/` folder of the working copy:
-local, git-ignored by default, tracking in a private, unpublished repository allowed. The anchor
-`job-application/konfiguration.md` names the Wurzel and the Datengrundlage; every skill resolves its
-paths through it.
-
-### Work on the plugin itself (dogfooding)
-
-```bash
-claude --plugin-dir .
-```
-
-Use `/reload-plugins` inside the session to pick up changes. Local automation runs through
-`Taskfile.yml`:
-
-```bash
-task install  # once: create .venv and install the docs dependencies
-task lint     # pre-commit checks
-task test     # unit and structure tests: CV checks, export (md, html, docx), skill structure
-task docs     # build the MkDocs site, strict (shared module from nolte/taskfiles)
-task export -- <datei.md> --format pdf --doc-type cv   # export a document (pdf, docx, html, md)
-```
-
-## Documentation
-
-Published at <https://nolte.github.io/claude-job-search>, English and German.
+The full documentation, in English and German, is at
+<https://nolte.github.io/claude-job-search>.
 
 ## Structure
 
-```text
-.claude-plugin/       # plugin.json + marketplace.json manifests
-skills/<name>/        # one skill per folder (SKILL.md); job-application-export also holds
-                      #   templates/ (document.tex, cv.lua) and scripts/export_document.py
-agents/<name>.md      # reusable sub-agents
-spec/                 # specifications (English canonical, German translation pending), index in spec/README.md
-scripts/              # deterministic checks: grundlage_hash.py, cv_checks.py
-tests/                # stdlib unittest suite, run by task test (CV checks, export, skill structure, spec index)
-docs/                 # MkDocs source (en/, de/), requirements.txt for the docs build
-project/              # mission, roadmap, requirements
-Dockerfile            # export image: pandoc, LuaLaTeX, German language support, poppler-utils
-Taskfile.yml          # lint / test / docs / export automation
-```
+The repository holds the skills, one agent, the rules they follow (`spec/`), the documentation and
+the tests. If you want to work on the plugin itself, start with [CLAUDE.md](CLAUDE.md): it
+explains the layout, the commands and the conventions.
+
+## Related repositories
+
+This plugin is built on [Claude Code](https://claude.com/claude-code) and shares its tooling with
+other projects of the same portfolio:
+
+- [claude-shared](https://github.com/nolte/claude-shared): the shared plugin and specifications
+  that this repository follows for specs, pull requests and releases.
+- [gh-plumbing](https://github.com/nolte/gh-plumbing): the shared GitHub workflows and settings
+  behind the checks and releases.
+- [taskfiles](https://github.com/nolte/taskfiles): the shared task modules that run the local
+  commands, such as the documentation build.
 
 ## Status
 
-Implemented: the thirteen skills and the agent listed above; Vorgang persistence
-for the stages intake to review (`stellenanzeige.md`, `vorgang.md` with status and history,
-`notizen.md`, `firmen/`); Wurzel resolution through `konfiguration.md`; export with manifest and
-reproducible PDFs for frozen versions; text PDF as the default for ATS portals, DOCX only when a
-portal demands it.
+Ready to use: all thirteen skills and the agent, the application folder with status and history,
+and export to PDF, Word, HTML and Markdown. PDF is the default for application portals, because
+parsers read it reliably.
 
-Open, on the roadmap (`project/roadmap.md`): a tracking skill for sending and follow-up (you
-maintain `vorgang.md` by hand or in Obsidian for now), interview preparation, Zeugnisanalyse, and
-the German translations of the specs.
+Planned (`project/roadmap.md`): follow-up after sending, interview preparation, analysis of
+employment references (*Zeugnisse*), and German versions of the rules.
 
-Verified by `task test`: the CV rules CV-01 to CV-18, DOCX and HTML export with content check,
-the skill structure, and the spec index. PDF export needs pandoc and LuaLaTeX. Without LuaLaTeX
-its test is skipped, and the PDF page check is unverified. The plugin does not guarantee that any
-specific ATS parser reads a document correctly.
+The plugin is tested, but it cannot promise that every application portal reads a document
+correctly. PDF export needs pandoc and LuaLaTeX on your computer.
 
 ## License
 

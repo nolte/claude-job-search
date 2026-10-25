@@ -10,8 +10,13 @@ is frozen: the PDF dates and the PDF ID are derived from the source, so the same
 give a byte-identical PDF (spec lebenslauf-versionen LV-6). `--reproduce` rebuilds an output from its
 manifest and compares it.
 
+The checks compare the export with its Markdown source and nothing else (key `pruefung` of the manifest): the word
+multiset, the symbols of figures (`%`, `€`, `+`, ...), the order of the list items, the order of the headings and the
+structure of the DOCX and HTML (headings, tables, text boxes, headers). They do not say that the text is true against the
+Grundlage (that is `cv_checks.py`) or that an applicant tracking system reads the file.
+
 Exit codes: 0 ok (or, for --reproduce, byte-identical); 1 error (missing tool, invalid arguments, unreadable input);
-2 content check found a difference; 3 --reproduce: output differs or the source hash no longer matches the manifest
+2 content check found a difference (words, symbols of figures or the order inside a list item); 3 --reproduce: output differs or the source hash no longer matches the manifest
 (lebenslauf-versionen LV-6.4); 4 the PDF exceeds the page limit of its document type (LB-2.3, AS-7.1, MS-7). With 2 and
 4 the file stays and the manifest is written. If both apply, the exit code is 2 and the page count is still reported.
 The severity of a page overrun (Blocker for cv and letter, Warnung for motivation) is set by the quality gate
@@ -52,6 +57,7 @@ from pathlib import Path
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 PAGE_LIMITS = {"cv": 2, "letter": 1, "motivation": 2, "email": None}
+OPEN_PLACEHOLDER = re.compile(r"\[(ERGÄNZEN|KLÄREN)")  # R-1 / R-7: not ready to send
 EXIT_CONTENT = 2
 EXIT_DIFFERENT = 3
 EXIT_PAGES = 4
@@ -179,17 +185,96 @@ def read_document(path):
     return meta, body
 
 
-def tokens(text):
+def token_list(text):
     # Hyphens are dropped before splitting, so "E-Mail" equals "E-" + line break + "Mail" in a PDF.
     # A hyphenated word and its line-broken form then count as the same word.
     text = re.sub(r"-\s*", "", text)
-    return Counter(t.lower() for t in re.findall(r"[0-9A-Za-zÄÖÜäöüß]+", text))
+    return [t.lower() for t in re.findall(r"[0-9A-Za-zÄÖÜäöüß]+", text)]
+
+
+def tokens(text):
+    return Counter(token_list(text))
 
 
 def compare_content(source_body, exported_text):
     """FA-O6: word multiset of source and export must match."""
-    expected, actual = tokens(source_body), tokens(exported_text)
+    # The target of a link (`[text](https://…)`) is not text of the export: PDF, DOCX and HTML carry the link text only.
+    expected, actual = tokens(plain_markdown(source_body)), tokens(exported_text)
     return expected - actual, actual - expected
+
+
+FIGURE_SYMBOLS = "%€$+&"  # a lost "%" turns "40 %" into "40"; the word check cannot see it
+LIST_ITEM = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(.*\S)\s*$")
+
+
+def plain_markdown(text):
+    """The words and symbols of a Markdown text without link targets and the markers at the start of a line."""
+    text = re.sub(r"\]\([^)\s]*\)", "]", text)
+    text = re.sub(r"<(?:https?://|mailto:)[^>]*>", " ", text)
+    return "\n".join(re.sub(r"^\s*(?:#{1,6}|[-*+]|\d+[.)])\s+", "", line) for line in text.splitlines())
+
+
+def figure_symbols(text):
+    return Counter(char for char in text if char in FIGURE_SYMBOLS)
+
+
+def fact_differences(source_body, exported_text):
+    """Differences that the word multiset cannot see, as a list of messages (empty when none).
+
+    1. A symbol of a figure is lost or added: `40 %` read back as `40`, `C++` as `C`.
+    2. A list item (bullet) of the source does not stand in the export as the same words in the same order, or after the
+       item before it: `von 800 ms auf 120 ms` read back as `von 120 ms auf 800 ms`, or two bullets swapped. Items are the
+       carrier of the facts of a Lebenslauf. Headings and the station lines of level 3 are laid out in a grid and are not
+       compared here (see first_order_difference).
+    The words inside one item must stand next to each other; line and page breaks, hyphens and layout are no difference.
+    Run it when the word multiset is equal, so that a lost word is not reported twice."""
+    messages = []
+    lost = figure_symbols(plain_markdown(source_body)) - figure_symbols(exported_text)
+    added = figure_symbols(exported_text) - figure_symbols(plain_markdown(source_body))
+    if lost:
+        messages.append("Zeichen fehlen im Export: " + ", ".join(f"{symbol} ×{count}" for symbol, count in lost.items()))
+    if added:
+        messages.append("Zeichen kommen im Export hinzu: " + ", ".join(f"{symbol} ×{count}" for symbol, count in added.items()))
+    exported = token_list(exported_text)
+    cursor = 0
+    for line in source_body.splitlines():
+        item = LIST_ITEM.match(line)
+        words = token_list(plain_markdown(item.group(1))) if item else []
+        if not words:
+            continue
+        for start in range(cursor, len(exported) - len(words) + 1):
+            if exported[start:start + len(words)] == words:
+                cursor = start + len(words)
+                break
+        else:
+            messages.append("Stichpunkt im Export nicht in Wortlaut und Reihenfolge der Quelle: „" + " ".join(words[:8]) + "…“")
+            break  # the cursor is no longer reliable after a miss; the first item is the one to look at
+    return messages
+
+
+def first_order_difference(source_body, exported_text):
+    """EXP-002: the first heading of level 1 or 2 that the export does not carry after the previous one, else None.
+
+    The word multiset says nothing about order. The headings give the order of the sections; the words inside a
+    section are not compared, because the templates move header fields (the name stands before "Persönliche Daten" in
+    the CV layout) and the station lines of level 3 are laid out in a grid (CG-13.2 row 15).
+
+    A heuristic: the words of a heading are searched after the previous heading, so a one-word heading whose word also
+    stands in the text before it can hide a swap. Only `#` headings are read."""
+    exported = token_list(exported_text)
+    cursor = 0
+    for line in source_body.splitlines():
+        heading = re.match(r"#{1,2}\s+(.+?)\s*#*\s*$", line)
+        words = token_list(heading.group(1)) if heading else []
+        if not words:
+            continue
+        for start in range(cursor, len(exported) - len(words) + 1):
+            if exported[start:start + len(words)] == words:
+                cursor = start + len(words)
+                break
+        else:
+            return heading.group(1)
+    return None
 
 
 def reference_docx(pandoc):
@@ -224,9 +309,15 @@ def export_md(source, out_file):
     return out_file.read_text(encoding="utf-8"), None
 
 
+def embed_option(version_line):
+    """`--embed-resources` exists from pandoc 2.19; the image of the Dockerfile ships 2.17, which knows `--self-contained`."""
+    match = re.search(r"pandoc(?:\.exe)?\s+(\d+)\.(\d+)", version_line or "")
+    return "--embed-resources" if not match or (int(match.group(1)), int(match.group(2))) >= (2, 19) else "--self-contained"
+
+
 def export_html(pandoc, source, out_file, grundlage_hash):
     subprocess.run(
-        [pandoc, str(source), "-f", "markdown", "-t", "html5", "--standalone", "--embed-resources",
+        [pandoc, str(source), "-f", "markdown", "-t", "html5", "--standalone", embed_option(tool_version([pandoc, "--version"])),
          "--css", str(TEMPLATES / "style.css"), "-M", "lang=de", "-o", str(out_file)],
         check=True,
     )
@@ -257,8 +348,69 @@ def export_docx(pandoc, source, out_file, name, grundlage_hash):
     if grundlage_hash:
         doc.core_properties.keywords = f"grundlage_hash:{grundlage_hash}"
     doc.save(out_file)
-    text = "\n".join(paragraph.text for paragraph in Document(out_file).paragraphs)
-    return text, None
+    return docx_text(Document(out_file)), None
+
+
+def docx_text(doc):
+    """Paragraphs and table cells in document order. A table is content that stays readable; that it is a table is
+    reported by structure_notes, not mistaken for missing words."""
+    from docx.table import Table
+
+    lines = []
+    for child in doc.element.body.iterchildren():
+        tag = child.tag.rsplit("}", 1)[-1]
+        if tag == "p":
+            # all runs, also those inside a hyperlink: Paragraph.text leaves them out in older python-docx
+            lines.append("".join(node.text or "" for node in child.iter() if node.tag.rsplit("}", 1)[-1] == "t"))
+        elif tag == "tbl":
+            lines += [cell.text for row in Table(child, doc).rows for cell in row.cells]
+    return "\n".join(lines)
+
+
+def source_heading_levels(body):
+    return Counter(len(m.group(1)) for m in (re.match(r"(#{1,6})\s+\S", line) for line in body.splitlines()) if m)
+
+
+def structure_notes(fmt, out_file, body):
+    """Structure of a DOCX or HTML export that a parser depends on, as notes (empty when nothing stands out).
+
+    Reported, never blocking: headings per level against the source, tables, text boxes, images, text in headers and
+    footers (DOCX). The spec asks for a single column without tables (R-10 items 6 and 7). This is a check of the file
+    against its source, not a test with any applicant tracking system."""
+    expected = source_heading_levels(body)
+    notes = []
+    if fmt == "docx":
+        from docx import Document
+
+        doc = Document(out_file)
+        found = Counter()
+        for paragraph in doc.paragraphs:
+            match = re.match(r"(?:Heading|Überschrift)\s+(\d)$", paragraph.style.name or "")
+            if match:
+                found[int(match.group(1))] += 1
+        xml = doc.element.xml
+        if doc.tables:
+            notes.append(f"{len(doc.tables)} Tabelle(n): Parser lesen Tabellen unterschiedlich, die Vorgabe ist eine Spalte ohne Tabelle (R-10)")
+        if "txbxContent" in xml:
+            notes.append("Textfeld im Dokument: sein Text kann von einem Parser übersprungen werden")
+        if "<w:drawing" in xml or "<w:pict" in xml:
+            notes.append("Bild oder Zeichnung im Dokument")
+        header_text = " ".join(p.text for section in doc.sections for part in (section.header, section.footer) for p in part.paragraphs).strip()
+        if header_text:
+            notes.append("Text in Kopf- oder Fußzeile: nicht jeder Parser liest ihn")
+    elif fmt == "html":
+        content = out_file.read_text(encoding="utf-8")
+        found = Counter(int(level) for level in re.findall(r"<h([1-6])\b", content))
+        if "<table" in content:
+            notes.append(f"{content.count('<table')} Tabelle(n) im HTML")
+        if "<img" in content:
+            notes.append("Bild im HTML")
+    else:
+        return notes
+    if found != expected:
+        render = lambda counter: ", ".join(f"H{level}×{count}" for level, count in sorted(counter.items())) or "keine"
+        notes.append(f"Überschriften weichen von der Quelle ab: Quelle {render(expected)}, Export {render(found)}")
+    return notes
 
 
 # The layout macros that templates/cv.lua emits. For the content check each one reads back as its arguments
@@ -348,7 +500,7 @@ def tool_versions(fmt):
     }
 
 
-def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch, limit=None):
+def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch, limit=None, checks=None):
     reproducible = fmt in ("tex", "pdf") and epoch is not None
     return {
         "schema": 1,
@@ -364,6 +516,9 @@ def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch, li
         "umgebung": {"plugin_revision": os.environ.get("PLUGIN_REVISION") or None, "image_id": os.environ.get("EXPORT_IMAGE_ID") or None},
         "ausgabe": {"datei": out_file.name, "sha256": sha256_file(out_file), "seiten": pages, "seitenlimit": limit,
                     "seitenlimit_ueberschritten": bool(pages is not None and limit is not None and pages > limit)},
+        # Result of the checks of this run against the source. It says nothing about the truth against the Grundlage or
+        # about an applicant tracking system; a manifest exists for a failed check as well.
+        "pruefung": checks,
     }
 
 
@@ -441,6 +596,13 @@ def main(argv=None):
         if not grundlage_hash:
             print("Warnung: kein grundlage_hash im Frontmatter. Der Export ist nicht prüfbar gegen die Grundlage "
                   "(R-10.3).", file=sys.stderr)
+        # the whole file, frontmatter included: the same text and marker as CV-01 in the quality gate
+        open_placeholders = len(OPEN_PLACEHOLDER.findall(args.input.read_text(encoding="utf-8")))
+        if open_placeholders:
+            print(f"Warnung: {open_placeholders} offene Platzhalter ([ERGÄNZEN …] oder [KLÄREN …]) im Dokument. Der Export "
+                  "zählt die ganze Datei (Frontmatter eingeschlossen) und ist nicht versandfertig (R-7, CV-01, BR-01); der Export "
+                  "blockiert nicht.",
+                  file=sys.stderr)
         name = ascii_name(args.name or args.input.stem)
         if not name:
             raise ExportError("Der Dateiname ist nach der ASCII-Umschrift leer. --name angeben (R-4).")
@@ -479,31 +641,64 @@ def main(argv=None):
                                               args.doc_type, epoch)
 
         status = "ok"
+        facts = []
         if exported_text is not None:
             missing, extra = compare_content(body, exported_text)
             if missing or extra:
                 status = "Inhaltsabweichung"
                 print(f"Fehlend im Export: {sum(missing.values())} Wörter, z. B. {list(missing)[:5]}", file=sys.stderr)
                 print(f"Zusätzlich im Export: {sum(extra.values())} Wörter, z. B. {list(extra)[:5]}", file=sys.stderr)
+            else:
+                facts = fact_differences(body, exported_text)
+                for message in facts:
+                    print(f"Inhaltsabweichung: {message}", file=sys.stderr)
+                if facts:
+                    status = "Inhaltsabweichung"
+        notes = structure_notes(args.format, out_file, body) if args.format in ("docx", "html") else []
+        for note in notes:
+            print(f"Struktur: {note}", file=sys.stderr)
+        order = None
+        if exported_text is not None and status == "ok":
+            order = first_order_difference(body, exported_text)
+            if order:
+                print(f"Reihenfolge der Überschriften weicht ab: „{order}“ steht im Export nicht an der Stelle der Quelle", file=sys.stderr)
         limit = page_limit_for(args.doc_type, meta)
         over_limit = pages is not None and limit is not None and pages > limit
         if over_limit:
             print(f"Seitenlimit überschritten: {pages} Seiten, Grenze für diesen Dokumenttyp ist {limit} "
                   "(LB-2.3, AS-7.1, MS-7).", file=sys.stderr)
         print(f"{out_file}")
+        checks = {
+            "inhalt": "nicht_geprueft" if exported_text is None else ("ok" if status == "ok" else "abweichung"),
+            "zeichen_und_stichpunkte": "nicht_geprueft" if exported_text is None else ("abweichung" if facts else "ok"),
+            "reihenfolge_ueberschriften": "nicht_geprueft" if exported_text is None or status != "ok" else ("abweichung" if order else "ok"),
+            "struktur_hinweise": notes,
+            "platzhalter_offen": open_placeholders,
+            "grundlage_hash_vorhanden": bool(grundlage_hash),
+            "gegen": "quelle",
+        }
         if not args.no_manifest:
-            print(f"Manifest: {write_manifest(build_manifest(args.input.resolve(), meta, args.format, args.doc_type, name, out_file, pages, epoch, limit), out_file)}")
+            print(f"Manifest: {write_manifest(build_manifest(args.input.resolve(), meta, args.format, args.doc_type, name, out_file, pages, epoch, limit, checks), out_file)}")
         if pages is not None:
             print(f"Seiten: {pages}")
             print(f"Seitenlimit: {'überschritten' if over_limit else 'ok'} ({pages} von {limit})" if limit else "Seitenlimit: keines")
         print(f"Inhaltsprüfung: {status}")
+        if notes:
+            print(f"Struktur: {len(notes)} Hinweis(e) (Warnung, Exit-Code unverändert)")
+        if order:
+            print("Reihenfolge: Abweichung bei den Überschriften (Warnung, Exit-Code unverändert)")
         if not grundlage_hash:
             print("grundlage_hash: fehlt")
+        if open_placeholders:
+            print(f"Platzhalter: {open_placeholders} offen (nicht versandfertig)")
         if status != "ok":
             return EXIT_CONTENT
         return EXIT_PAGES if over_limit else 0
     except ExportError as error:
         print(f"Fehler: {error}", file=sys.stderr)
+        return 1
+    except OSError as error:
+        print(f"Fehler: Datei nicht lesbar oder nicht schreibbar: {error}", file=sys.stderr)
         return 1
     except subprocess.CalledProcessError as error:
         print(f"Fehler: Werkzeug schlug fehl: {error.cmd[0]} (Exit {error.returncode})", file=sys.stderr)

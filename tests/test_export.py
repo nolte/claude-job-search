@@ -54,6 +54,21 @@ def python_docx_available():
     return True
 
 
+class ToolchainTests(unittest.TestCase):
+    def test_ci_runs_the_tests_that_otherwise_skip(self):
+        # F-02: without pandoc, python-docx and PyYAML the export and frontmatter tests skip and the job stays green.
+        # LuaLaTeX (the PDF tests) is not required: the PDF checks run locally (docs/en/evals.md, "What the CI covers").
+        if not os.environ.get("CI"):
+            self.skipTest("not in CI: missing tools only skip the dependent tests")
+        try:
+            import yaml  # noqa: F401
+        except ImportError:
+            yaml = None
+        missing = [name for name, ok in (("pandoc", have("pandoc")), ("python-docx", python_docx_available()),
+                                          ("PyYAML", yaml is not None)) if not ok]
+        self.assertEqual(missing, [], "install them in the test job (tests/requirements.txt, apt pandoc)")
+
+
 @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
 class ExportTests(unittest.TestCase):
     def setUp(self):
@@ -104,6 +119,33 @@ class ExportTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_open_placeholders_are_reported_and_stay_visible_without_blocking(self):
+        # audit finding EXP-001: the export used to say "Inhaltsprüfung: ok" and nothing else
+        with open(self.source, "a", encoding="utf-8") as handle:
+            handle.write("\n- [ERGÄNZEN: Aufgaben]\n- [KLÄREN: Titel laut Zeugnis]\n")
+        for fmt in ("md", "html"):
+            result = self.export(fmt)
+            self.assertEqual(result.returncode, 0, f"{fmt}: {result.stderr}")
+            self.assertIn("Platzhalter: 2 offen", result.stdout, fmt)
+            self.assertIn("2 offene Platzhalter", result.stderr, fmt)
+        with open(os.path.join(self.out, "Test_Lebenslauf.html"), encoding="utf-8") as handle:
+            self.assertIn("ERGÄNZEN", handle.read())
+
+    def test_a_placeholder_in_the_frontmatter_is_counted_like_the_gate_does(self):
+        with open(self.source, encoding="utf-8") as handle:
+            text = handle.read()
+        with open(self.source, "w", encoding="utf-8") as handle:
+            handle.write(text.replace("format: chronologisch", "format: chronologisch\nnotiz: [ERGÄNZEN: Ort]", 1))
+        result = self.export("md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Platzhalter: 1 offen", result.stdout)
+
+    def test_a_document_without_placeholders_prints_no_placeholder_line(self):
+        result = self.export("md")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("Platzhalter", result.stdout)
+        self.assertNotIn("Platzhalter", result.stderr)
+
     def test_email_doc_type_only_exports_markdown(self):
         # R-10.2: the e-mail text exists only as Markdown
         for fmt in ("pdf", "docx", "html", "tex"):
@@ -153,6 +195,21 @@ class ExportTests(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.out, "Test_Doc.pdf")))
         with open(os.path.join(self.out, "Test_Doc.pdf.manifest.json"), encoding="utf-8") as handle:
             self.assertEqual(json.load(handle)["ausgabe"]["seiten"], 2)
+
+    def test_placeholders_do_not_mask_the_page_limit_exit_code(self):
+        source = SOURCE + "\n- [ERGÄNZEN: Aufgaben]\n"
+        code, err = self.run_main_with_pages("letter", 2, source_text=source)
+        self.assertEqual(code, 4)
+        self.assertIn("1 offene Platzhalter", err)
+        self.assertIn("Seitenlimit überschritten", err)
+
+    def test_the_placeholder_marker_is_the_one_of_the_quality_gate_script(self):
+        # the export and cv_checks.py (CV-01, BR-01) count the same marker; a new marker has to be added in both
+        sys.path.insert(0, os.path.join(ROOT, "scripts"))
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import cv_checks
+        import export_document
+        self.assertEqual(export_document.OPEN_PLACEHOLDER.pattern, cv_checks.PLACEHOLDER.pattern)
 
     def test_page_limits_differ_by_document_type(self):
         self.assertEqual(self.run_main_with_pages("cv", 2)[0], 0)
@@ -295,6 +352,32 @@ class ExportTests(unittest.TestCase):
         self.assertTrue(have("pdftotext"))
         text = subprocess.run(["pdftotext", os.path.join(self.out, "Test_Lebenslauf.pdf"), "-"], capture_output=True, text=True).stdout
         self.assertIn("Berufserfahrung", text)
+
+    @unittest.skipUnless(have("lualatex"), "LuaLaTeX is not installed: PDF export and page check not run")
+    def test_pdf_text_keeps_figures_symbols_and_the_reading_order_over_several_pages(self):
+        # F-04, groups B, G: the text a parser extracts has the station line in order, no figure or symbol is lost, and the
+        # new check finds a swapped figure in the same PDF (not only in a simulated text)
+        stations = "".join(
+            f"\n### {2000 + i:04d} – {2001 + i:04d} | Position {i} | Beispiel AG {i}, Hamburg\n"
+            + "".join(f"- Aufgabe {j}: Plattform mit 40 % weniger Störungen betrieben; C++ und C# eingesetzt, siehe [Seite](https://beispiel.test/a-{i}).\n" for j in range(1, 5))
+            for i in range(1, 7))
+        text = SOURCE.replace("## Berufserfahrung\n", "## Berufserfahrung\n" + stations, 1)
+        with open(self.source, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        result = self.export("pdf")
+        self.assertIn(result.returncode, (0, 4), result.stderr)  # 4: more than two pages, which is not the subject here
+        self.assertIn("Inhaltsprüfung: ok", result.stdout)
+        pdf = os.path.join(self.out, "Test_Lebenslauf.pdf")
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        extracted = export_document.strip_page_numbers(subprocess.run(["pdftotext", pdf, "-"], capture_output=True, text=True).stdout)
+        flat = " ".join(extracted.split())
+        self.assertRegex(flat, r"2003 – 2004\s+Position 3\s+Beispiel AG 3, Hamburg")
+        self.assertEqual(export_document.fact_differences(export_document.read_document(self.source)[1], extracted), [])
+        self.assertTrue(export_document.fact_differences(export_document.read_document(self.source)[1].replace("40 % weniger", "weniger 40 %", 1), extracted))
+        with open(os.path.join(self.out, "Test_Lebenslauf.pdf.manifest.json"), encoding="utf-8") as handle:
+            self.assertEqual(json.load(handle)["pruefung"]["zeichen_und_stichpunkte"], "ok")
 
     def freeze(self):
         with open(self.source, "w", encoding="utf-8") as handle:
@@ -440,6 +523,276 @@ class ExportTests(unittest.TestCase):
         first = open(os.path.join(self.out, "Test_Lebenslauf.pdf"), "rb").read()
         self.export("pdf")
         self.assertEqual(first, open(os.path.join(self.out, "Test_Lebenslauf.pdf"), "rb").read())
+
+
+class OrderTests(unittest.TestCase):
+    """EXP-002: the export compares the order of the words, not only the multiset (CG-12.2)."""
+
+    def setUp(self):
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        self.mod = export_document
+
+    def test_equal_text_has_no_difference_even_with_a_line_broken_hyphenated_word(self):
+        self.assertIsNone(self.mod.first_order_difference("## Team\nDie E-Mail an das Team", "Team\nDie E-\nMail an das Team"))
+
+    def test_two_swapped_sections_name_the_first_heading_out_of_place(self):
+        source = "## Berufserfahrung\nPython\n## Ausbildung\nBachelor"
+        exported = "Ausbildung\nBachelor\nBerufserfahrung\nPython"
+        self.assertEqual(self.mod.compare_content(source, exported), (self.mod.Counter(), self.mod.Counter()))
+        self.assertEqual(self.mod.first_order_difference(source, exported), "Ausbildung")
+
+    def test_moved_header_fields_and_station_headings_are_not_a_difference(self):
+        # the CV layout puts the name before "Persönliche Daten" and lays out the station lines of level 3 as a grid
+        source = "## Persönliche Daten\nMax Mustermann\n## Berufserfahrung\n### 04/2021 | Entwickler | Firma\n- Python"
+        exported = "Max Mustermann\nPersönliche Daten\nBerufserfahrung\nFirma Entwickler 04/2021\nPython"
+        self.assertIsNone(self.mod.first_order_difference(source, exported))
+
+    def test_a_heading_word_in_the_running_text_can_hide_a_swap_a_known_limit(self):
+        source = "## Berufserfahrung\nIch habe eine Ausbildung gemacht\n## Ausbildung\nBachelor"
+        swapped = "Ausbildung\nBachelor\nBerufserfahrung\nIch habe eine Ausbildung gemacht"
+        self.assertIsNone(self.mod.first_order_difference(source, swapped))
+
+    def test_the_export_warns_about_the_order_without_changing_the_exit_code(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        source = os.path.join(tmp, "lebenslauf.md")
+        with open(source, "w", encoding="utf-8") as handle:
+            handle.write(SOURCE)
+        reordered = SOURCE.split("---\n", 2)[2].split("\n## ")
+        reordered = "\n## ".join([reordered[0], reordered[2], reordered[1], *reordered[3:]])
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+        from unittest import mock
+
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.object(self.mod, "require", return_value="pandoc"), mock.patch.object(self.mod, "export_html", return_value=(reordered, None)), mock.patch.object(self.mod, "structure_notes", return_value=[]), redirect_stdout(out), redirect_stderr(err):
+            code = self.mod.main([source, "--format", "html", "--doc-type", "cv", "--out-dir", os.path.join(tmp, "out"), "--no-manifest"])
+        self.assertEqual(code, 0, err.getvalue())
+        self.assertIn("Inhaltsprüfung: ok", out.getvalue())
+        self.assertIn("Reihenfolge: Abweichung", out.getvalue())
+        self.assertIn("Reihenfolge der Überschriften weicht ab", err.getvalue())
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    def test_a_normal_export_prints_no_order_line(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        source = os.path.join(tmp, "lebenslauf.md")
+        with open(source, "w", encoding="utf-8") as handle:
+            handle.write(SOURCE)
+        for fmt in ("html", "docx", "tex"):
+            result = subprocess.run([sys.executable, EXPORTER, source, "--format", fmt, "--doc-type", "cv", "--out-dir", os.path.join(tmp, "out")], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, f"{fmt}: {result.stderr}")
+            self.assertNotIn("Reihenfolge", result.stdout + result.stderr, fmt)
+
+
+BULLETS = """\
+## Berufserfahrung
+
+### 04/2021 – heute | Senior Backend-Entwickler | Musterfirma GmbH, Berlin
+- Latenz der Pipeline von 800 ms auf 120 ms gesenkt.
+- Umsatz um 40 % gesteigert; C++ und C# eingesetzt.
+- Code-Reviews im Team mit fünf Entwicklern eingeführt.
+"""
+
+
+class FactDifferenceTests(unittest.TestCase):
+    """F-04: what the word multiset cannot see. Groups A (content kept), F (no changed fact), G (reading order)."""
+
+    def setUp(self):
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        self.mod = export_document
+
+    def differences(self, exported, source=BULLETS):
+        return self.mod.fact_differences(source, exported)
+
+    def test_the_old_check_misses_swapped_figures_lost_symbols_and_swapped_bullets(self):
+        # reproduction of F-04: each of these is equal to the source as a multiset of words
+        for damaged in (BULLETS.replace("von 800 ms auf 120 ms", "von 120 ms auf 800 ms"),
+                        BULLETS.replace("40 %", "40").replace("C++", "C").replace("C#", "C"),
+                        "\n".join(BULLETS.splitlines()[:3] + BULLETS.splitlines()[:2:-1]) + "\n"):
+            self.assertEqual(self.mod.compare_content(BULLETS, damaged), (self.mod.Counter(), self.mod.Counter()))
+
+    def test_swapped_figures_in_a_bullet_are_found(self):
+        found = self.differences(BULLETS.replace("von 800 ms auf 120 ms", "von 120 ms auf 800 ms"))
+        self.assertEqual(len(found), 1)
+        self.assertIn("latenz der pipeline", found[0])
+
+    def test_two_swapped_bullets_are_found(self):
+        lines = BULLETS.splitlines()
+        swapped = "\n".join(lines[:3] + [lines[4], lines[3]] + lines[5:])
+        self.assertTrue(self.differences(swapped))
+
+    def test_a_lost_percent_sign_and_plus_signs_are_found(self):
+        found = self.differences(BULLETS.replace("40 %", "40").replace("C++", "C"))
+        self.assertIn("%", found[0])
+        self.assertIn("+", found[0])
+
+    def test_an_added_symbol_is_found(self):
+        self.assertIn("hinzu", self.differences(BULLETS + "Zusatz 5 %\n")[0])
+
+    def test_layout_changes_are_not_a_difference(self):
+        # line and page breaks, a hyphen at the line end, a bullet sign, link targets and bold marks (valid-looking layout)
+        wrapped = ("Berufserfahrung\n04/2021 – heute Senior Backend-Entwickler Musterfirma GmbH, Berlin\n"
+                   "• Latenz der Pipeline von 800 ms\nauf 120 ms gesenkt.\n\f• Umsatz um 40 % gesteigert; C++ und C# eingesetzt.\n"
+                   "• Code-\nReviews im Team mit fünf Entwicklern eingeführt.\n")
+        self.assertEqual(self.differences(wrapped), [])
+        linked = "- Details unter [Beispiel](https://beispiel.test/a-b) **veröffentlicht**.\n"
+        self.assertEqual(self.differences("Details unter Beispiel veröffentlicht.", linked), [])
+
+    def test_other_words_in_other_places_of_the_page_do_not_matter_for_the_items(self):
+        # header fields and the station lines of level 3 are laid out freely; only the items are held to their order
+        moved = "Musterfirma GmbH, Berlin\nSenior Backend-Entwickler 04/2021 – heute\n" + "\n".join(BULLETS.splitlines()[3:]) + "\nBerufserfahrung\n"
+        self.assertEqual(self.differences(moved), [])
+
+    def test_the_source_without_list_items_or_symbols_has_nothing_to_find(self):
+        self.assertEqual(self.mod.fact_differences("## Titel\nEin Absatz ohne Liste.\n", "Ein Absatz ohne Liste. Titel"), [])
+
+
+class StructureAndManifestTests(unittest.TestCase):
+    """F-04: structure notes of DOCX and HTML, the manifest key `pruefung`, the pandoc option. Groups C, G, H, I, J."""
+
+    TABLE_SOURCE = (
+        "---\ngrundlage_hash: 0000000000000000000000000000000000000000000000000000000000000000\n---\n\n# Lebenslauf\n\n"
+        "## Berufserfahrung\n\n| Zeitraum | Position |\n|---|---|\n| 04/2021 – heute | Senior Backend-Entwickler |\n\n"
+        "- Latenz von 800 ms auf 120 ms gesenkt.\n")
+
+    def setUp(self):
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        self.mod = export_document
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def reading(self, text):
+        """export_html that writes the real file but reads back `text`: the export came out damaged, the file exists."""
+        real = self.mod.export_html
+        return lambda *args: (real(*args)[0] and text, None)
+
+    def run_export(self, text, fmt, name="lebenslauf"):
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+
+        source = os.path.join(self.tmp, name + ".md")
+        with open(source, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err):
+            code = self.mod.main([source, "--format", fmt, "--doc-type", "cv", "--out-dir", os.path.join(self.tmp, "out")])
+        manifest = os.path.join(self.tmp, "out", f"{name}.{fmt}.manifest.json")
+        data = json.load(open(manifest, encoding="utf-8")) if os.path.exists(manifest) else None
+        return code, out.getvalue(), err.getvalue(), data
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    @unittest.skipUnless(python_docx_available(), "python-docx is not installed")
+    def test_a_table_in_the_docx_is_read_as_content_and_reported_as_structure(self):
+        # before F-04 the cells of the table counted as missing words (exit 2) and the table itself was not named
+        code, out, err, manifest = self.run_export(self.TABLE_SOURCE, "docx")
+        self.assertEqual(code, 0, err)
+        self.assertIn("Inhaltsprüfung: ok", out)
+        self.assertIn("Struktur: 1 Tabelle(n)", err)
+        self.assertEqual(manifest["pruefung"]["inhalt"], "ok")
+        self.assertTrue(any("Tabelle" in note for note in manifest["pruefung"]["struktur_hinweise"]))
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    def test_html_reports_a_table_and_keeps_the_exit_code(self):
+        code, out, err, manifest = self.run_export(self.TABLE_SOURCE, "html")
+        self.assertEqual(code, 0, err)
+        self.assertTrue(any("Tabelle" in note for note in manifest["pruefung"]["struktur_hinweise"]))
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    @unittest.skipUnless(python_docx_available(), "python-docx is not installed")
+    def test_a_normal_docx_and_html_have_no_structure_note(self):
+        for fmt in ("docx", "html"):
+            code, out, err, manifest = self.run_export(SOURCE, fmt, name="normal-" + fmt)
+            self.assertEqual(code, 0, err)
+            self.assertEqual(manifest["pruefung"]["struktur_hinweise"], [], fmt)
+            self.assertNotIn("Struktur:", out + err)
+
+    def test_headings_that_do_not_match_the_source_are_named(self):
+        # the same notes from a DOCX that lost a heading level: simulated with an HTML file
+        from pathlib import Path
+
+        html_file = Path(self.tmp) / "x.html"
+        html_file.write_text("<h1>Lebenslauf</h1><h3>Persönliche Daten</h3>", encoding="utf-8")
+        notes = self.mod.structure_notes("html", html_file, "# Lebenslauf\n\n## Persönliche Daten\n")
+        self.assertIn("Überschriften weichen von der Quelle ab", notes[0])
+        self.assertIn("H2×1", notes[0])
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    def test_the_manifest_records_the_checks_of_the_run_and_what_they_do_not_cover(self):
+        code, out, err, manifest = self.run_export(SOURCE, "html")
+        checks = manifest["pruefung"]
+        self.assertEqual(checks["gegen"], "quelle")
+        self.assertEqual((checks["inhalt"], checks["zeichen_und_stichpunkte"], checks["reihenfolge_ueberschriften"]), ("ok", "ok", "ok"))
+        self.assertEqual((checks["platzhalter_offen"], checks["grundlage_hash_vorhanden"]), (0, True))
+        self.assertNotIn("ats", json.dumps(manifest).lower())
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    def test_markdown_is_a_copy_and_is_recorded_as_not_checked(self):
+        code, out, err, manifest = self.run_export(SOURCE, "md")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(manifest["pruefung"]["inhalt"], "nicht_geprueft")
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    def test_a_failed_check_is_in_the_manifest_and_a_damaged_figure_gives_exit_2(self):
+        from unittest import mock
+
+        damaged = SOURCE.split("---\n", 2)[2].replace("von 800 ms auf 120 ms", "von 120 ms auf 800 ms")
+        with mock.patch.object(self.mod, "export_html", self.reading(damaged)):
+            code, out, err, manifest = self.run_export(SOURCE, "html")
+        self.assertEqual(code, 2, err)
+        self.assertIn("Inhaltsabweichung: Stichpunkt im Export", err)
+        self.assertEqual(manifest["pruefung"]["inhalt"], "abweichung")
+        self.assertEqual(manifest["pruefung"]["zeichen_und_stichpunkte"], "abweichung")
+        self.assertEqual(manifest["pruefung"]["reihenfolge_ueberschriften"], "nicht_geprueft")
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    def test_an_added_statement_is_found_as_an_extra_word(self):
+        from unittest import mock
+
+        added = SOURCE.split("---\n", 2)[2] + "\n- Teamleitung für zwölf Mitarbeiter übernommen.\n"
+        with mock.patch.object(self.mod, "export_html", self.reading(added)):
+            code, out, err, manifest = self.run_export(SOURCE, "html")
+        self.assertEqual(code, 2)
+        self.assertIn("Zusätzlich im Export", err)
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    def test_reproduce_still_confirms_a_docx_and_an_html_export(self):
+        for fmt in ("html", "docx") if python_docx_available() else ("html",):
+            code, out, err, manifest = self.run_export(SOURCE, fmt, name="rep-" + fmt)
+            self.assertEqual(code, 0, err)
+            self.assertEqual(self.mod.main(["--reproduce", os.path.join(self.tmp, "out", f"rep-{fmt}.{fmt}.manifest.json")]), 0, fmt)
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    @unittest.skipUnless(python_docx_available(), "python-docx is not installed")
+    def test_a_link_is_content_by_its_text_and_not_by_its_target(self):
+        # before F-04 the words of the URL counted as missing in every format and the content check failed
+        source = SOURCE.replace("Python und Kafka;", "Python und Kafka (siehe [Beispielseite](https://beispiel.test/a-b));", 1)
+        for fmt in ("docx", "html"):
+            code, out, err, manifest = self.run_export(source, fmt, name="link-" + fmt)
+            self.assertEqual(code, 0, fmt + err)
+            self.assertEqual(manifest["pruefung"]["inhalt"], "ok", fmt)
+
+    def test_the_pandoc_option_follows_the_version(self):
+        self.assertEqual(self.mod.embed_option("pandoc 2.17.1.1"), "--self-contained")
+        self.assertEqual(self.mod.embed_option("pandoc 2.19.2"), "--embed-resources")
+        self.assertEqual(self.mod.embed_option("pandoc 3.1.3"), "--embed-resources")
+        self.assertEqual(self.mod.embed_option(None), "--embed-resources")
+
+    def test_missing_export_data_and_a_bad_format_are_errors_not_tracebacks(self):
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+
+        err = io.StringIO()
+        with redirect_stdout(io.StringIO()), redirect_stderr(err):
+            code = self.mod.main([os.path.join(self.tmp, "missing.md"), "--format", "md", "--doc-type", "cv", "--out-dir", self.tmp + "/o"])
+        self.assertEqual(code, 1)
+        self.assertIn("Fehler", err.getvalue())
 
 
 class PageNumberTests(unittest.TestCase):

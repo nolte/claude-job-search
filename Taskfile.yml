@@ -58,7 +58,31 @@ tasks:
     cmds:
       - python3 skills/job-application-export/scripts/export_document.py {{.CLI_ARGS}}
 
+  eval:
+    desc: |
+      Run the model-in-the-loop evals (costs money, uses your credentials; see docs/en/evals.md).
+      Usage: task eval -- <trigger|behavior|all|case-glob>   (env: MODEL, JUDGE, MAX_COST_USD, THRESHOLD, RUNS, ABLATION, TRUST)
+    cmds:
+      - evals/run.sh {{.CLI_ARGS}}
+
+  eval:container:
+    desc: |
+      Run the evals inside a container in which the sandbox of the Bash tool can work (docs/en/evals.md, "Running in a container").
+      Usage: task eval:container -- <case-glob>   (same arguments and env as `task eval`; needs docker)
+    cmds:
+      - evals/docker/run.sh {{.CLI_ARGS}}
+
   plugin:reload:
     desc: Start Claude Code with this repo loaded as a plugin (dogfooding)
     cmds:
       - claude --plugin-dir .
+
+  worktree:add:
+    desc: |
+      Create a parallel working copy under ${NOLTE_WORKTREE_ROOT:-~/repos/.worktrees}/<repo>/<slug>/,
+      branched off origin/develop, and seed a .resume/<slug>/plan.md plan stub.
+      Usage: task worktree:add -- <branch> [slug]
+        task worktree:add -- feat/parser-fix
+        task worktree:add -- chore/ci-tidy ci
+    cmds:
+      - ./scripts/worktree_add.sh {{.CLI_ARGS}}

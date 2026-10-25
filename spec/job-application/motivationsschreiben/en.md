@@ -182,16 +182,16 @@ mandatory instruction that is not met is a Blocker.
 | Check | Source rule | Kind | Severity |
 |---|---|---|---|
 | A motivation statement that the user did not state or confirm | MS-3.1, MS-3.2 | review | Blocker |
-| `[ERGÄNZEN: Beweggrund]` left | MS-3.4 | review | Blocker |
-| A fact not traceable to the Grundlage | R-1 | review | Blocker |
+| `[ERGÄNZEN: Beweggrund]` left | MS-3.4 | automated (BR-01, CG-13.6) | Blocker |
+| A fact not traceable to the Grundlage | R-1 | numbers and experience spans automated (BR-02, BR-03, CG-13.6); the rest review | Blocker |
 | A competence without a proof | MS-6.1 | review | Warnung |
-| A leadership claim without `fuehrung: ja` | MS-6.2 | review (CV-16 is only run on the Lebenslauf) | Blocker |
+| A leadership claim without `fuehrung: ja` | MS-6.2 | automated (BR-04, CG-13.6; the mapping to the station is review) | Blocker |
 | A wish used from a Wunschprofil without the user's confirmation, or a `hypothese: ja` wish | MS-3.3 | review | Blocker |
 | Counterpart fact without source, or from a rating portal | MS-3.5 | review | Blocker |
 | The text retells the Lebenslauf | MS-5.3 | review | Warnung |
 | Longer than the limit of the variant (MS-7.1) | MS-7 | export page check (exit code 4 above two pages, R-10.10); below that the page count of the manifest against the variant | Warnung; no exception |
 | Word count outside 300 to 600 | MS-7.2 | review | Hinweis, never a Blocker (also when no PDF exists) |
-| Export manifest missing, or the export file changed after its manifest | R-10.3, CG-12.5 | review | Warnung |
+| Export manifest missing, or the export file changed after its manifest | R-10.3, CG-12.6 | review | Warnung |
 | Manifest source hash differs from the current `motivationsschreiben.md` (stale export) | CG-12.2 | review | Blocker |
 | PDF without extractable text | CG-12.4 | export check | Blocker |
 | `## Auswahl Motivationsschreiben` missing in `pruefbericht.md` | CG-2.3, R-9.11.5 | review | Warnung |

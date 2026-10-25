@@ -1,0 +1,59 @@
+name: evals
+
+# Model-in-the-loop evals (`claude plugin eval`, evals/run.sh). They call a model and cost money, so they never run on a pull
+# request or a push: a maintainer starts them by hand (Actions > evals > Run workflow), and the deterministic checks of
+# `ci.yml` stay free and independent of any credential. Needs the repository secret ANTHROPIC_API_KEY; docs/en/evals.md.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "trigger | behavior | all | a case name or glob (evals/run.sh)"
+        default: trigger
+        required: true
+      runs:
+        description: "Runs per case (empty: the value in each case)"
+        default: ""
+      max_cost_usd:
+        description: "Hard ceiling of each invocation of claude plugin eval"
+        default: "5"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # The version of the suite (evals/docker/Dockerfile).
+      CLAUDE_CODE_VERSION: "2.1.310"
+    steps:
+      - name: Require the API key
+        run: |
+          [ -n "$ANTHROPIC_API_KEY" ] || { echo "::error::The repository secret ANTHROPIC_API_KEY is not set; the evals need it."; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Install Claude Code and the sandbox tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap socat
+          sudo npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+      - name: Run the evals
+        env:
+          # Inputs reach the shell through the environment, never through the script text.
+          TARGET: ${{ inputs.target }}
+          RUNS: ${{ inputs.runs }}
+          MAX_COST_USD: ${{ inputs.max_cost_usd }}
+          TRUST: "1"
+        run: evals/run.sh "$TARGET"
+      - name: Summarize the results
+        if: always()
+        run: |
+          shopt -s nullglob
+          results=(evals/results/last-run*.json)
+          [ "${#results[@]}" -gt 0 ] && python3 evals/summarize.py "${results[@]}" >> "$GITHUB_STEP_SUMMARY" \
+            || echo "No result file: the run ended before claude plugin eval wrote one." >> "$GITHUB_STEP_SUMMARY"

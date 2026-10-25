@@ -89,7 +89,12 @@ Line breaks in the PDF: the Lebenslauf filter (`templates/cv.lua`) keeps product
 capitalised words with an inner capital or a digit (`Argo CD`, `GitLab CI`, `VMware Tanzu`) are bound automatically; other
 names are listed in the document's frontmatter key `keep_together: [Docker Compose]`.
 
-Content check: every word of the source must appear in the export, and no word may be added.
+Content check: every word of the source must appear in the export, and no word may be added (the target of a link is
+no word). The same run checks the symbols of figures (`%`, `€`, `$`, `+`, `&`), that each list item stands as the same
+words in the same order after the item before it (a swapped figure is exit 2), the order of the headings (warning), and for
+DOCX and HTML the structure: headings per level, tables, text boxes, images, header and footer text (warning `Struktur:`).
+The result is in the manifest under `pruefung`. It is a check of the export against its source, nothing more: not of the
+text against the Grundlage, and not of any ATS.
 A difference is reported and the exit code is 2. The file is kept so you can inspect it. CG-12.2 says a difference
 "blocks the export": in practice the file stays, the manifest is written, and the document is not ready to send.
 
@@ -113,13 +118,19 @@ Severity of code 4 is set by the quality gate: Blocker for `cv` (LB-13) and `let
    propose `docx` only when the posting or the portal asks for a Word file (CG-11.5, R-8.3.4). The e-mail text is
    exported only as `md`.
 2. Run `task export -- …` with the arguments. Set `--out-dir` only to a folder inside the Wurzel.
-3. Read the output and the exit code. Report the file path, the number of pages for PDF, and the content check.
+3. Read the output and the exit code. Report the file path, the number of pages for PDF, and the content check. The line `Reihenfolge: Abweichung bei den Überschriften` is a
+   Warnung (the export carries a section in another order than the source); report it and do not call the export ready
+   before the user has looked at it. It does not change the exit code.
 4. On exit 4, report the page overrun with the limit and say that the severity is decided by the quality gate
    (Blocker for Lebenslauf and Anschreiben). Do not shorten the document here: the owning skill does that. On exit 2,
    report the difference and do not call the export ready.
-5. If the report says `grundlage_hash: fehlt`, tell the user that the output cannot be checked against the Grundlage
+5. If the output has the line `Platzhalter: n offen`, tell the user that the document still holds open `[ERGÄNZEN …]` or
+   `[KLÄREN …]` placeholders: they stand visibly in the export, the export is not ready to send, and the quality gate
+   reports them as a Blocker (CV-01, BR-01). The export does not block, and the placeholders do not change its exit code (R-6: export only
+   on request; R-7: the gate blocks).
+6. If the report says `grundlage_hash: fehlt`, tell the user that the output cannot be checked against the Grundlage
    (R-10.3) and that the quality gate cannot compare it.
-6. Report the reproduction level from the manifest (`byte_reproduzierbar`, spec `lebenslauf-versionen` LV-5). Export a
+7. Report the reproduction level from the manifest (`byte_reproduzierbar`, spec `lebenslauf-versionen` LV-5). Export a
    frozen Version (frontmatter `version_datum`) when the PDF is to be sent, then make the sent copy
    `Vorname_Nachname_Lebenslauf.<ext>` (LV-2.3). Only the PDF that was actually sent goes into a private Git
    repository, with its manifest; Arbeitsstand and test exports stay out (LV-4).
@@ -160,5 +171,8 @@ If a tool is missing, the command names it and stops only that format. Install h
    Wurzel (LS-5.7). `--out-dir` points only into the Wurzel; the script refuses the plugin repository, and the skill
    refuses a Wurzel inside it. Intermediate LaTeX files (`.aux`, `.log`, `.out`) are removed. The `.tex` source stays.
 4. **A failed content check is reported, not hidden.** Do not call the export ready while it reports a difference.
+   Report every `Struktur:` line to the user as well. A manifest is not a quality proof (it exists for a failed check too).
+   Never promise that an ATS reads the file: say that the text extraction and the structure were checked, and that the
+   behaviour of a particular ATS is not known.
 5. **Do not invent a format.** Email text is only Markdown, and the review report is only Markdown (requirement FA-O table). `tex` is an export of the Lebenslauf, the Anschreiben and the Motivationsschreiben, not a new document type.
 6. **Export does not change status.** S6 leaves `status` in `vorgang.md` as it is (LS-6).

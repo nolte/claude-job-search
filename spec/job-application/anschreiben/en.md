@@ -226,9 +226,9 @@ not met is a Warnung.
 
 | Check | Source rule | Kind | Severity |
 |---|---|---|---|
-| Placeholder `[ERGÄNZEN` or `[KLÄREN` left | R-1, AS-6.6 | review (quality-gate check; `cv_checks.py` runs on the Lebenslauf only) | Blocker |
+| Placeholder `[ERGÄNZEN` or `[KLÄREN` left | R-1, AS-6.6 | automated (BR-01, CG-13.6) | Blocker |
 | Addressee, Betreff, reference number and contact name equal across the documents | AS-4.4 | review | Blocker |
-| A claim not traceable to the Grundlage | R-1, AS-6.5 | review | Blocker |
+| A claim not traceable to the Grundlage | R-1, AS-6.5 | numbers, experience spans and leadership wording automated (BR-02 to BR-04, CG-13.6); the rest review | Blocker |
 | Number, date, or employer differs from the Lebenslauf | AS-6.5 | review | Blocker |
 | Letter longer than one page | AS-7.1 | export page check (`doc-type letter`, exit code 4); no exception | Blocker |
 | Letter outside 250 to 400 words (also when no PDF exists) | AS-7.2 | review | Hinweis, never a Blocker |
@@ -244,7 +244,7 @@ not met is a Warnung.
 | `grundlage_hash` stale (R-9.5) | R-9.5 | automated | Warnung |
 | Anlagen line names a file that does not exist in the folder | AS-10.4 | review | Blocker |
 | Export manifest missing for an exported file | R-10.3 | review | Warnung |
-| Export file changed after its manifest was written | CG-12.5 | review | Warnung |
+| Export file changed after its manifest was written | CG-12.6 | review | Warnung |
 | Manifest source hash differs from the current `anschreiben.md` (stale export) | CG-12.2 | review | Blocker |
 | PDF without extractable text | CG-12.4 | export check | Blocker |
 | `## Auswahl Anschreiben` missing in `pruefbericht.md` | CG-2.3, R-9.11.5 | review | Warnung |

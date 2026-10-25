@@ -19,6 +19,7 @@ Server besonders ist.
 | [handelsregister-mcp](https://github.com/lexdoudkin/handelsregister-mcp) | Identitätsprüfung einer Firma im Handelsregister | Dokumentiert: [Handelsregister-Zugriff](handelsregister.md) |
 | [open-webSearch](https://github.com/Aas-ee/open-webSearch) | Websuche und Abruf bekannter öffentlicher Seiten | Dokumentiert: [Websuche](websearch.md) |
 | [JobSpy](https://github.com/speedyapply/JobSpy) | Stellensuche auf Jobbörsen | Dokumentiert: [JobSpy](jobspy.md) |
+| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | Eine Anzeigenseite aus einer URL lesen, die einen Browser braucht | Dokumentiert: [Browser-MCP](browser.md); der Anzeigen-Intake nutzt ihn erst, wenn von einem Server belegt ist, dass er die endgültige URL meldet. |
 
 ## Regeln für jeden Server
 

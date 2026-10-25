@@ -70,11 +70,13 @@ plugins:
             Counterparts: Gegenpartei
             Glossary: Glossar
             Export: Export
+            Evaluating the plugin: Das Plugin evaluieren
             Optional MCP servers: Optionale MCP-Server
             LinkedIn: LinkedIn
             Handelsregister: Handelsregister
             Web search: Websuche
             JobSpy: JobSpy
+            Browser MCP: Browser-MCP
 
 markdown_extensions:
   - admonition
@@ -107,8 +109,11 @@ nav:
   - Counterparts: en/counterparts.md
   - Glossary: en/glossary.md
   - Export: en/export.md
-  - Optional MCP servers: en/mcp-servers.md
-  - LinkedIn: en/linkedin.md
-  - Handelsregister: en/handelsregister.md
-  - Web search: en/websearch.md
-  - JobSpy: en/jobspy.md
+  - Evaluating the plugin: en/evals.md
+  - Optional MCP servers:
+      - Overview: en/mcp-servers.md
+      - LinkedIn: en/linkedin.md
+      - Handelsregister: en/handelsregister.md
+      - Web search: en/websearch.md
+      - JobSpy: en/jobspy.md
+      - Browser MCP: en/browser.md

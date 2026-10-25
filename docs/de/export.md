@@ -12,7 +12,8 @@ Markdown-Quelle. PDF und LaTeX-Quelle entstehen daraus.
 
 !!! tip "Welches Format für welchen Empfänger"
     Eine Text-PDF ist der Standard, auch für Bewerbungsportale (ATS): Das Layout ist einspaltig
-    ohne Tabellen, ein Parser liest den Text also in der richtigen Reihenfolge. DOCX erzeugst du
+    ohne Tabellen, was Parser im Allgemeinen der Reihe nach lesen. Das ist eine Layout-Regel und eine Prüfung des
+    ausgelesenen Textes (siehe „Was der Export prüft“), keine Aussage über ein bestimmtes ATS. DOCX erzeugst du
     nur, wenn ein Portal es ausdrücklich verlangt. HTML und Markdown dienen der Ansicht und
     deinen eigenen Unterlagen.
 
@@ -114,8 +115,53 @@ Im Ausgabeordner entstehen:
   von LuaLaTeX werden gelöscht.
 - Seitenzahl und Ergebnis der Inhaltsprüfung auf der Konsole. Eine fehlgeschlagene Inhaltsprüfung wird
   gemeldet, und der Export gilt dann nicht als fertig.
-- ein Manifest (`<name>.<ext>.manifest.json`): Hash von Quelle, Vorlage und Ausgabe, Werkzeugversionen und das
-  verwendete Datum.
+- ein Manifest (`<name>.<ext>.manifest.json`): Hash von Quelle, Vorlage und Ausgabe, Werkzeugversionen, das
+  verwendete Datum und unter `pruefung` das Ergebnis der Prüfungen dieses Laufs (unten).
+
+## Was der Export prüft
+
+!!! warning "Ein gelungener Export ist kein richtiger Lebenslauf und keine ATS-Garantie"
+    Die Prüfungen vergleichen die ausgegebene Datei mit ihrer Markdown-Quelle. Sie vergleichen sie nicht mit deiner
+    Datengrundlage (das macht `cv_checks.py` im Quality Gate), und keine Prüfung bezieht ein Bewerbermanagementsystem
+    ein. Ein Manifest entsteht auch bei einer fehlgeschlagenen Prüfung; es hält fest, was geprüft wurde, und
+    bescheinigt den Lebenslauf nicht.
+
+| Frage | Prüfung | Ergebnis |
+|---|---|---|
+| Wurde die Datei erzeugt? | Exit-Code der Werkzeuge, Datei geschrieben, Seitenzahl (`pdfinfo`) | Fehler (Exit 1) |
+| Sind alle Wörter da und nur diese? | Wortmenge der Quelle gegen den aus dem Export zurückgelesenen Text (Link-Ziele sind kein Text) | Exit 2, `Fehlend` / `Zusätzlich` |
+| Sind Zahlen und Fakten intakt? | Die Zeichen von Zahlen (`% € $ + &`) kommen gleich oft vor; jeder Stichpunkt steht mit denselben Wörtern in derselben Reihenfolge nach dem vorigen (`von 800 ms auf 120 ms` ist nicht `von 120 ms auf 800 ms`) | Exit 2, `Inhaltsabweichung` |
+| Stehen die Abschnitte in Ordnung? | Die Überschriften der Ebenen 1 und 2 folgen der Quelle (Heuristik) | Warnung `Reihenfolge`, Exit-Code unverändert |
+| Hat die Datei die gewollte Struktur? | DOCX und HTML: Überschriften je Ebene gegen die Quelle, Tabellen, Textfelder, Bilder, Text in Kopf- und Fußzeilen | Warnung `Struktur`, Exit-Code unverändert |
+| Ist sie zu lang? | Seitenlimit des Dokumenttyps (PDF) | Exit 4 |
+| Ist sie versandfertig? | offene `[ERGÄNZEN …]` / `[KLÄREN …]` in der ganzen Datei | Warnung, aufgelistet |
+| Ist ein zweiter Lauf gleich? | `--reproduce MANIFEST` baut neu und vergleicht die Bytes | Exit 3 bei Abweichung |
+
+Zurückgelesen wird der reine Text der Datei: `pdftotext` bei der PDF, Absätze und Tabellenzellen bei DOCX, das HTML ohne
+Tags, der LaTeX-Rumpf bei `tex`. Markdown ist eine Kopie der Quelle und wird als `nicht_geprueft` vermerkt. Zeilen- und
+Seitenumbrüche, Trennstriche am Zeilenende, Aufzählungszeichen, die Seitenzahl und die Lage der Kopffelder gelten nicht
+als Abweichung.
+
+Was in diesem Repository getestet wird (`tests/test_export.py`, nur synthetische Daten) und was nicht:
+
+| Aussage | Grundlage |
+|---|---|
+| Der Text der PDF lässt sich auslesen, die Stationszeile liest sich Zeitraum, Position, Arbeitgeber in dieser Reihenfolge, über mehrere Seiten geht keine Zahl und kein Zeichen verloren | getestet mit `pdftotext` |
+| DOCX hat Word-Überschriftenformate in der Reihenfolge der Quelle, Aufzählungen, bei einem normalen Lebenslauf keine Tabelle; eine Tabelle oder ein Textfeld wird gemeldet | getestet mit python-docx |
+| HTML hat `lang="de"`, Überschriften und Listen der Quelle | getestet |
+| Ein bestimmtes ATS liest die Datei richtig | **nicht getestet und nicht behauptet.** Parser unterscheiden sich in Regeln und Formaten, und echte Bewerbungsdaten gehen an keinen externen Parser |
+| Der Text stimmt mit deiner Datengrundlage | vom Export nicht geprüft (`cv_checks.py`, Reviewer) |
+| Das Layout sieht gut aus (Überlauf, hässlicher Seitenumbruch, Leerflächen) | nicht automatisch geprüft; öffne die PDF |
+
+Wo die Prüfungen laufen: Die Tests für DOCX, HTML, Markdown und `tex` laufen in der CI bei jedem Pull Request (pandoc und
+python-docx sind dort installiert). Die PDF-Tests brauchen LuaLaTeX und werden in der CI übersprungen. Sie laufen lokal oder im
+Export-Image (dessen pandoc ist älter; der Exporter fängt das ab):
+
+```bash
+docker build -t claude-job-search-export .
+docker run --rm --entrypoint sh -v "$PWD:/src:ro" claude-job-search-export \
+  -c 'cp -r /src /tmp/w && cd /tmp/w && python3 -m unittest tests.test_export'
+```
 
 ### Reproduzierbare PDFs
 
@@ -198,7 +244,7 @@ task export SLUG=<slug>
 task export SLUG=<slug> FORMAT=tex
 ```
 
-Prüfe das Ergebnis nach jedem Export: Die Konsole muss `Inhaltsprüfung: ok` ausgeben. Eine PDF mit nur
+Prüfe das Ergebnis nach jedem Export: Die Konsole muss `Inhaltsprüfung: ok` ausgeben und keine Zeile `Reihenfolge: Abweichung` oder `Struktur: …` (ein Abschnitt steht anders als in der Quelle, oder die Datei enthält eine Tabelle oder ein Textfeld; Warnungen, der Exit-Code bleibt 0). Eine PDF mit nur
 wenigen Kilobyte und ohne Text ist ein fehlgeschlagener Export, auch wenn die Datei existiert. Nur der
 Export-Skill wird ins Image kopiert (`.dockerignore`), personenbezogene Daten deines Repositories gelangen
 also nie in den Build-Kontext.
