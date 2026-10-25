@@ -7,10 +7,13 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
   CV-02 station header not in R-2.1 form, or a month missing      Warnung
   CV-03 more than 5 bullets in a station / station without bullets Warnung / Hinweis
   CV-04 stations not in reverse chronological order (Warnung);
-        end before start (Blocker)
+        end before start (Blocker); two stations at the same employer that
+        overlap by more than a month (Hinweis; parallel work elsewhere is allowed)
   CV-05 number in a bullet not found in the station record        Blocker when the number is
         nowhere in the Grundlage; Hinweis when it is in another entry of the Grundlage;
-        Warnung when the station holds the number with another unit or noun
+        Warnung when the station holds the number with another unit or noun.
+        The notation is not the figure (`1,5` = `1.5`, `1.000` = `1000`, `5` = `fünf`),
+        a unit conversion is (`500 GB` is not `0,5 TB`)
   CV-06 station period differs from the Grundlage                 Blocker
   CV-07 Muss row marked erfüllt without evidence (analysis)       Blocker
   CV-08 table in the Lebenslauf (Blocker with --ats)              Warnung
@@ -19,23 +22,30 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
   CV-11 generic or evaluative phrase (CG-7.3, CG-8.2.3)           Warnung
   CV-12 bullet longer than two lines (about 180 characters)       Hinweis
   CV-13 employment gap over two months without a gap entry        Blocker
-        between the two stations
+        between the two stations; a gap is time that no station covers, so a short
+        or parallel station inside a longer one hides nothing
   CV-14 analysis status vocabulary or evidence strength invalid   Warnung
   CV-15 station not found in the Grundlage                        Blocker
-        (Warnung when the Grundlage has no station records)
+        (Warnung when the Grundlage has no station records); Hinweis when only the
+        spelling differs (hyphen, case, umlaut, a left-out legal form)
   CV-16 personnel-leadership wording without `fuehrung: ja`        Blocker
-        (`nein`, `ungeklärt` or missing; CG-13.4.3)
+        (`nein`, `ungeklärt` or missing; CG-13.4.3). The people object must be led:
+        `mit dem Team geführt` or `für das Team geleitet` is not
   CV-17 sub-bullets below a bullet (not part of R-2.1)            Hinweis
   CV-18 birthdate of a person in analyse.md or a firm file (RC-5.3 rule 5,
         RC-11 rule 4)                                             Warnung
   CV-19 entry of a list section (skills, languages, certificates, education)
         that stands nowhere in the Grundlage; a number in its qualifier
         that stands nowhere                                       Blocker
+        A certificate keeps its year (Blocker when the Grundlage names another,
+        Warnung when it names none) and its status (Blocker: shown as current while
+        the Grundlage says expired; Warnung: a status the Grundlage does not use)
   CV-20 station used in the Lebenslauf that the Grundlage records with
         `Bestätigt: nein` (R-9.5 point 5)                         Blocker
   CV-21 no content: nothing but the frontmatter and headings        Blocker
   CV-22 wording of ownership, scope or expertise (`eigenverantwortlich`, `gesamte`,
-        `Experte`, …) that the station record does not use          Warnung (CG-7.4)
+        `Experte`, …) or of a project role (`Projektleitung`) that the station record
+        does not use                                                Warnung (CG-7.4)
   CV-23 number that the station record gives as a team result, in a bullet
         without a team reference                                    Warnung (CG-7.4)
   CV-24 analysis row whose status contradicts its column `Offen` (what the
@@ -92,7 +102,8 @@ GRUNDLAGE_HEADER = STATION_HEADER
 HEADER_ANY = re.compile(r"^### ")
 SUB_BULLET = re.compile(r"^\s+- ")
 PLACEHOLDER = re.compile(r"\[(ERGÄNZEN|KLÄREN)")
-NUMBER = re.compile(r"(?<![\d.,])\d+(?:[.,]\d+)?(?![\d])")
+# A figure: `24/7`, a grouped number (`1.000`, `1,000`, `1.234,56`) or a plain number with an optional decimal part.
+NUMBER = re.compile(r"(?<![\d.,])(?:24/7|\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)?)(?![\d])")
 GENERIC = re.compile(
     r"verantwortlich für|zuständig für|involved in|worked on|erfolgreich|innovativ|dynamisch|"
     r"vielfältig|\bdiverse\b|Expertise in|sicher in",
@@ -103,7 +114,8 @@ GENERIC = re.compile(
 # alone they also describe technical leadership, conversations or reporting lines.
 LEADERSHIP_TERMS = re.compile(
     r"\b(?:Teamleitung|Teamleiter(?:in)?|Teamlead|Personalverantwortung|Mitarbeiterführung|"
-    r"Führungsverantwortung|disziplinarisch\w*)\b",
+    r"Führungsverantwortung|disziplinarisch\w*|Abteilungsleit\w*|Gruppenleit\w*|Bereichsleit\w*|Teamführung|Personalführung|"
+    r"Mitarbeiterverantwortung)\b",
     re.IGNORECASE,
 )
 LEADERSHIP_VERB = re.compile(
@@ -117,7 +129,17 @@ LEADERSHIP_VERB_DIRECT = re.compile(
     r"(?:gemanagt|managte|managen|angeleitet|anleitete|anleiten)\b",
     re.IGNORECASE,
 )
-LEADERSHIP_OBJECT = re.compile(r"\b(?:Team|Teams|Mitarbeiter\w*|Abteilung\w*)\b", re.IGNORECASE)
+# The people a lead verb needs as its object. A compound ends in `team(s)` (`Entwicklungsteam`, `Plattformteam`); `Teamsitzung` and
+# `Teamarbeit` are no group of people.
+LEADERSHIP_OBJECT = re.compile(r"\b(?:\w*team(?:s)?|Mitarbeiter\w*|Abteilung\w*|Mitarbeitende\w*)\b", re.IGNORECASE)
+# `Leitung eines Teams`, `Führung der Abteilung`: the noun with the people in the genitive.
+LEADERSHIP_NOUN = re.compile(
+    r"\b(?:Leitung|Führung)\s+(?:des|der|eines|einer|von)\s+(?:[\w-]+\s+){0,2}?(?:\w*team(?:s)?|Mitarbeiter\w*|Abteilung\w*|Mitarbeitende\w*)\b",
+    re.IGNORECASE,
+)
+# A people object behind one of these words is not led: `Gespräche mit dem Team geführt`, `Workshops für das Team geleitet`,
+# `Führung im Team`. The word has to stand in the same clause, at most three words before the object.
+NOT_A_LED_OBJECT = re.compile(r"\b(?:mit|im|in|innerhalb|für|bei|vor|an|unter|vom|aus|durch|zusammen|gemeinsam)\b", re.IGNORECASE)
 # Wording that claims more than participation (CG-7.2, CG-7.4): ownership, scope and expertise. A marker is a finding only when
 # its stem does not stand in the record of the station, so a station that says `eigenverantwortlich` may use the word. The
 # marker does not decide that a claim is false; it asks for the evidence.
@@ -132,6 +154,11 @@ STRENGTH_MARKERS = (
         r"\b(?:Experte[n]?|Expertin(?:nen)?|Fachexperte\w*|Spezialist\w*|Spezialisierung|versiert\w*|Expertise|"
         r"(?:sehr gute|fundierte|tiefgehende|umfassende|ausgeprägte|exzellente|hervorragende)\s+\w*Kenntnisse)\b", re.IGNORECASE)),
 )
+# A role that is not personnel leadership but claims more than taking part: project lead and overall lead (F-05, CG-7.4). Unlike the
+# markers above, the record must use a word of the same family (`Projektleitung` or `Projektleiter`), not just any word that starts
+# with `Projekt`.
+ROLE_MARKER = ("Rolle (Projekt- oder Gesamtleitung)", re.compile(
+    r"\b(?:Projektleitung|Projektleiter(?:in)?|Projektverantwortung|Gesamtleitung|Gesamtprojektleitung)\b", re.IGNORECASE))
 TEAM_REFERENCE = re.compile(r"\b(?:\w*Team\w*|gemeinsam\w*|wir|im Verbund|Projektteam\w*|Kolleg\w+)\b", re.IGNORECASE)
 # Neutral gap wording (CG-9, R-8.1). A gap entry is a line between two stations, not a bullet. The wording
 # opens the entry (`Elternzeit (04/2019 – 08/2019)`, `… | Weiterbildung | …`); a job title that merely
@@ -217,6 +244,29 @@ def read_note(path):
 
 def key_of(position, employer):
     return position.strip().lower(), employer.split(",")[0].strip().lower()
+
+
+LEGAL_FORMS = {"gmbh", "ag", "se", "kg", "ug", "mbh", "ohg", "gbr", "ev", "kgaa", "inc", "ltd", "llc", "co", "gesmbh", "sa", "bv", "nv"}
+
+
+def spelling_key(position, employer):
+    """(position, employer, legal form present) in a spelling that ignores case, umlauts written out, hyphens, spaces,
+    punctuation and a gender mark `(m/w/d)`. Two different names stay different: `Beispiel AG` is not `Beispiel GmbH`; only a
+    legal form that one side leaves out is ignored, so `Musterfirma` finds `Musterfirma GmbH`."""
+    def plain(value):
+        value = re.sub(r"\((?:[mwfdx*]\s*[/|]\s*)+[mwfdx*]\)|\b[mwd]\s*/\s*[wmd]\s*/\s*[dwm]\b", " ", value.lower())
+        return value.translate(str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"}))
+
+    name = re.findall(r"[a-z0-9]+", plain(employer.split(",")[0]))
+    base = [token for token in name if token not in LEGAL_FORMS]
+    return "".join(re.findall(r"[a-z0-9]+", plain(position))), "".join(name), "".join(base), len(base) != len(name)
+
+
+def same_spelling(station_key, record_key):
+    """The two keys name the same position at the same employer, apart from spelling or a left-out legal form."""
+    if station_key[0] != record_key[0]:
+        return False
+    return station_key[1] == record_key[1] or (station_key[2] == record_key[2] and not (station_key[3] and record_key[3]))
 
 
 def is_gap_entry(position):
@@ -399,17 +449,81 @@ def select_record(station, candidates, file):
     return candidates[0]
 
 
+def grouped_number(token):
+    """The match of a number with thousands groups (`1.000`, `1,000.5`), or None. `0,500` is a decimal, not a group."""
+    match = re.fullmatch(r"(\d{1,3}(?:[.,]\d{3})+)(?:[.,](\d+))?", token)
+    return None if match and token[0] == "0" and re.fullmatch(r"0[.,]\d{3}", token) else match
+
+
+def number_variants(token):
+    """The spellings of one figure in German and English notation, so that a bullet may write `1,5` for `1.5` or `1.000`
+    for `1000` (F-05). Only the notation is equated, never the value:
+      - one separator followed by exactly three digits (`1.000`, `1,000`) is a thousands separator, unless the number starts
+        with 0 (`0,500` is a decimal); `1000`, `1 000` and both groupings are the same figure;
+      - a decimal part may use `,` or `.` and may carry trailing zeros (`1,5` = `1.50`);
+      - `1.234,56` and `1,234.56` are the same figure.
+    `1,5` is not `1.500`, and `1.000` is not `1`: a unit conversion (`500 GB` for `0,5 TB`) is no spelling and stays a finding."""
+    if token == "24/7":
+        return {token}
+    grouped = grouped_number(token)
+    if grouped:
+        integer_part, decimals = grouped.group(1), grouped.group(2)
+        # with a decimal part the last separator is the decimal sign, so the groups before it are thousands
+        if decimals is None and len(re.findall(r"[.,]", integer_part)) > 1 and len(set(re.findall(r"[.,]", integer_part))) > 1:
+            return {token}  # `1.234,567` style mix without a decimal part: leave it alone
+        digits = re.sub(r"[.,]", "", integer_part)
+        groups = [digits[max(0, i - 3):i] for i in range(len(digits), 0, -3)][::-1]
+        variants = set()
+        for thousands, decimal in ((".", ","), (",", "."), (" ", ","), ("\u00a0", ","), ("", ",")):
+            number = thousands.join(groups)
+            variants.add(number if decimals is None else f"{number}{decimal}{decimals}")
+        if decimals is not None:
+            variants.add(f"{digits}.{decimals}")
+        return variants
+    plain = re.fullmatch(r"(\d+)[.,](\d+)", token)
+    if plain:
+        whole, decimals = plain.groups()
+        variants = {f"{whole}.{decimals}", f"{whole},{decimals}"}
+        trimmed = decimals.rstrip("0")
+        variants |= {f"{whole}.{trimmed}", f"{whole},{trimmed}"} if trimmed else {whole}
+        return variants
+    if token.isdigit() and len(token) >= 4 and not re.fullmatch(r"(?:19|20)\d{2}", token):
+        # a plain thousand written without a separator (`1000`) may stand grouped in the other text (`1.000`, `1,000`)
+        groups = [token[max(0, i - 3):i] for i in range(len(token), 0, -3)][::-1]
+        return {token, ".".join(groups), ",".join(groups), " ".join(groups)}
+    return {token}
+
+
 def number_pattern(token):
-    return rf"(?<![\d.,]){re.escape(token)}(?![\d]|[.,]\d)"
+    alternatives = [re.escape(variant) for variant in sorted(number_variants(token), key=len, reverse=True)]
+    decimal = re.fullmatch(r"(\d+)[.,](\d*[1-9])0*", token)
+    if not grouped_number(token) and (decimal or re.fullmatch(r"\d+[.,]0+", token)):
+        # trailing zeros of the decimal part are no other figure: `1,5` equals `1,50`
+        whole, trimmed = (decimal.groups() if decimal else (re.match(r"\d+", token).group(0), ""))
+        alternatives.append(rf"{whole}[.,]{trimmed}0*" if trimmed else rf"{whole}(?:[.,]0+)?")
+    return rf"(?<![\d.,])(?:{'|'.join(alternatives)})(?![\d]|[.,]\d)"
+
+
+# A number word of the bullet (`fünf Entwickler`, `drei Standorte`) is a figure like `5` or `3` (F-05). Only the words from two up
+# and only before a capitalised noun count: `ein` is an article, `Vier-Augen-Prinzip` and `acht geben` are no figure.
+SPELLED_NUMBER = re.compile(r"\b((?i:zwei|drei|vier|fünf|sechs|sieben|acht|neun|zehn|elf|zwölf|zwanzig|dreißig|vierzig))\s+(?=[A-ZÄÖÜ])")
+
+
+def spelled_in(word, text):
+    """The number word stands in the text as a word or as its digits (`fünf` for `5`)."""
+    value = NUMBER_WORDS[word.lower()]
+    return re.search(rf"\b{re.escape(word)}\b", text, re.IGNORECASE) is not None or re.search(number_pattern(str(value)), text) is not None
+
+
+def spelled_form_in(token, text):
+    """The figure `token` (`5`) stands in the text as a number word (`fünf`)."""
+    return any(value == int(token) and re.search(rf"\b{word}\b", text, re.IGNORECASE)
+               for word, value in NUMBER_WORDS.items() if token.isdigit() and value >= 2)
 
 
 def source_has(token, text):
-    """The number stands in the text, also written with another thousands separator (`70.000`, `70000`, `70 000`)."""
-    variants = {token}
-    if re.fullmatch(r"\d{1,3}(?:\.\d{3})+", token):
-        plain = token.replace(".", "")
-        variants |= {plain, f"{int(plain):,}".replace(",", " ")}
-    return any(re.search(number_pattern(variant), text) for variant in variants)
+    """The figure stands in the text, in any notation of number_variants (`70.000`, `70000`, `70 000`)."""
+    return re.search(number_pattern(token), text) is not None
 
 
 def has_content(text):
@@ -484,6 +598,12 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
             findings.append(finding("CV-15", "Warnung", file, 0, "Grundlage hat keine Stationen; Abgleich nicht möglich (CV-15)"))
         for s in stations:
             candidates = by_key.get(key_of(s["position"], s["employer"]), [])
+            if not candidates and sources:
+                # F-05: a spelling variant (hyphen, case, umlaut, a left-out legal form) is the same station: Hinweis, no Blocker
+                station_key = spelling_key(s["position"], s["employer"])
+                candidates = [r for r in sources if same_spelling(station_key, spelling_key(r["position"], r["employer"]))]
+                if candidates and not s["gap"]:
+                    findings.append(finding("CV-15", "Hinweis", file, s["line"], f"Schreibweise weicht von der Grundlage ab (CV-15): „{s['position']} | {s['employer']}“ statt „{candidates[0]['position']} | {candidates[0]['employer']}“"))
             if not candidates:
                 if sources and not s["gap"]:
                     findings.append(finding("CV-15", "Blocker", file, s["line"], f"Station nicht in der Grundlage (CV-15): {s['position']} | {s['employer']}"))
@@ -509,16 +629,27 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
             if len(bullet) > MAX_BULLET_CHARS:
                 findings.append(finding("CV-12", "Hinweis", file, number, f"Stichpunkt länger als zwei Zeilen ({len(bullet)} Zeichen, CG-8.1)"))
             if source_text is not None:
+                for match in SPELLED_NUMBER.finditer(bullet):
+                    word = match.group(1)
+                    if record_text is not None and spelled_in(word, record_text):
+                        continue
+                    if spelled_in(word, source_text):
+                        if record_text is not None:
+                            findings.append(finding("CV-05", "Hinweis", file, number, f"Zahlwort „{word}“ nicht im Stationseintrag, aber an anderer Stelle der Grundlage belegt (CV-05): " + bullet))
+                        continue
+                    findings.append(finding("CV-05", "Blocker", file, number, f"Zahlwort „{word}“ nicht in der Grundlage belegt (CV-05): " + bullet))
                 for match in NUMBER.finditer(bullet):
                     token = match.group(0)
                     pattern = number_pattern(token)
+                    if record_text is not None and not re.search(pattern, record_text) and spelled_form_in(token, record_text):
+                        continue  # the record writes the number as a word (`fünf Entwickler`): same figure, no unit to compare
                     if record_text is not None and re.search(pattern, record_text):
                         if not unit_in_record(token, bullet[match.end():], record_text, bullet[:match.start()]):
                             findings.append(finding("CV-05", "Warnung", file, number, f"Zahl „{token}“ steht im Stationseintrag, aber nicht mit dieser Einheit oder diesem Bezug (CV-05): " + bullet))
                         elif team_result(token, bullet, bullet[match.end():], record_text):
                             findings.append(finding("CV-23", "Warnung", file, number, f"Zahl „{token}“ ist in der Grundlage ein Ergebnis des Teams, der Stichpunkt nennt kein Team (CV-23, CG-7.4): " + bullet + " | Beleg: " + closest_source_line(bullet, record_text)))
                         continue
-                    if re.search(pattern, source_text):
+                    if re.search(pattern, source_text) or spelled_form_in(token, source_text):
                         if record_text is not None:
                             findings.append(finding("CV-05", "Hinweis", file, number, f"Zahl „{token}“ nicht im Stationseintrag, aber an anderer Stelle der Grundlage belegt (CV-05): " + bullet))
                         continue
@@ -534,33 +665,73 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
                 findings.append(finding("CV-16", "Blocker", file, number, f"Formulierung zur Personalführung ohne `fuehrung: ja` in der Grundlage (fuehrung: {fuehrung}, CV-16): " + bullet))
 
     if stations:
-        ordered = sorted(stations, key=lambda s: -month_index(s["start"], 1))
-        for older, newer in zip(ordered[1:], ordered):
-            end_index = month_index(older["end"], 12)
-            if end_index is None:
-                continue
-            gap = month_index(newer["start"], 1) - end_index - 1
-            if gap <= GAP_LIMIT_MONTHS:
-                continue
-            first, last = sorted((newer["line"], older["line"]))
-            if not any(first < number < last for number in gap_candidates):
-                findings.append(finding("CV-13", "Blocker", file, newer["line"], f"Lücke von {gap} Monaten zwischen {older['end_raw']} und {newer['start_raw']} ohne neutralen Eintrag (CG-9)"))
+        # F-05: a gap is time that no station covers. A short or parallel station inside a longer one must not hide the end of
+        # the longer one, so the stations are swept by start and the latest end so far is the one the next start is held to.
+        ordered = sorted(stations, key=lambda s: month_index(s["start"], 1))
+        reach = None  # the station whose end reaches furthest; None while the reach is open (`heute`)
+        reach_end = None
+        for newer in ordered:
+            if reach is not None:
+                gap = month_index(newer["start"], 1) - reach_end - 1
+                if gap > GAP_LIMIT_MONTHS:
+                    first, last = sorted((newer["line"], reach["line"]))
+                    if not any(first < number < last for number in gap_candidates):
+                        findings.append(finding("CV-13", "Blocker", file, newer["line"], f"Lücke von {gap} Monaten zwischen {reach['end_raw']} und {newer['start_raw']} ohne neutralen Eintrag (CG-9)"))
+            end_index = month_index(newer["end"], 12)
+            if end_index is None:  # `heute`: nothing after it can be a gap
+                break
+            if reach is None or end_index > reach_end:
+                reach, reach_end = newer, end_index
+        # Two stations at the same employer that overlap by more than a month: a promotion starts where the last role ends. Parallel
+        # work for different employers is allowed and not reported. Only periods with months are compared.
+        def with_months(station):
+            end = station["end"]
+            return bool(station["start"] and station["start"][1] and not station["gap"] and (end == "heute" or (end and end[1])))
+
+        exact = [s for s in stations if with_months(s)]
+        for index, first_station in enumerate(exact):
+            for second in exact[index + 1:]:
+                if spelling_key("", first_station["employer"])[1:3] != spelling_key("", second["employer"])[1:3]:
+                    continue
+                ends = [e for e in (month_index(x["end"], 12) for x in (first_station, second)) if e is not None]
+                overlap = (min(ends) if ends else float("inf")) - max(month_index(first_station["start"], 1), month_index(second["start"], 1)) + 1
+                if 1 < overlap < float("inf"):
+                    findings.append(finding("CV-04", "Hinweis", file, max(first_station["line"], second["line"]), f"Zeiträume beim selben Arbeitgeber überschneiden sich um {overlap} Monate: {first_station['position']} und {second['position']} bei {first_station['employer']}. Auf einen Datenfehler prüfen; parallele Tätigkeit ist erlaubt (CV-04)"))
     if source_text is not None:
         findings += check_list_sections(lines, file, source_text)
     return findings
 
 
 def normalise(value):
-    """Lower case, punctuation to spaces; `+`, `#` and inner dots stay (`C++`, `.NET`, `Node.js`)."""
+    """Lower case, punctuation to spaces; `+`, `#` and inner dots stay (`C++`, `.NET`, `Node.js`). A version marker is dropped
+    (`v4` = `4`: `ITIL v4 Foundation` is `ITIL 4 Foundation`)."""
     value = value.lower().translate(str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss"}))
     value = re.sub(r"[^\w+#.]+", " ", value)
+    value = re.sub(r"(?<![\w.])v(?=\d)", "", value)
     return " ".join(token.rstrip(".") or token for token in value.split())
 
 
-def in_text(item, normalised_source):
-    """True when the item stands in the source as whole words."""
+# Names of the same product or the same abbreviation and its expansion (F-05). A closed list on purpose: it equates spellings, nothing
+# else. `Infrastructure as Code` is not `Terraform`, `Kubernetes Administration` is not `Kubernetes`, `CKA` is not `CKAD`: an entry
+# that names more than the Grundlage does stays a finding (CV-19).
+SPELLING_CLASSES = (
+    {"kubernetes", "k8s"}, {"postgresql", "postgres"}, {"node.js", "nodejs", "node js"}, {"infrastructure as code", "iac"},
+    {"amazon web services", "aws"}, {"google cloud platform", "gcp"},
+)
+
+
+def spellings(item):
+    """The normalised item and, where it belongs to one, the other spellings of its class."""
     item = normalise(item)
-    return bool(item) and re.search(rf"(?<![\w+#.]){re.escape(item)}(?![\w+#])", normalised_source) is not None
+    for names in SPELLING_CLASSES:
+        if item in names:
+            return names
+    return {item}
+
+
+def in_text(item, normalised_source):
+    """True when the item, or another spelling of it (SPELLING_CLASSES), stands in the source as whole words."""
+    return any(name and re.search(rf"(?<![\w+#.]){re.escape(name)}(?![\w+#])", normalised_source) for name in spellings(item))
 
 
 UNIT = re.compile(r"[\s-]*(%|[A-Za-zÄÖÜäöüß]+)")
@@ -645,10 +816,55 @@ def check_list_sections(lines, file, source_text):
                 continue
             if missing(item):
                 findings.append(finding("CV-19", "Blocker", file, number, f"Eintrag „{item}“ steht nirgends in der Grundlage (CV-19): " + entry))
+        if section == "Weiterbildung und Zertifikate":
+            findings += certificate_findings(entry, items, source_text, number, file)
         for qualifier in qualifiers:
             for token in NUMBER.findall(qualifier):
                 if not re.search(rf"(?<![\w.,]){re.escape(token)}(?![\d])", source_text):
                     findings.append(finding("CV-19", "Blocker", file, number, f"Zahl „{token}“ nicht in der Grundlage belegt (CV-19): " + entry))
+    return findings
+
+
+CERTIFICATE_STATUS = re.compile(r"\b(gültig|aktuell|aktiv|in Vorbereitung|geplant|laufend|bestanden|zertifiziert)\b", re.IGNORECASE)
+CURRENT_STATUS = {"gültig", "aktuell", "aktiv"}
+CERTIFICATE_EXPIRED = re.compile(r"abgelaufen|ausgelaufen|erloschen|verfallen|nicht mehr gültig|nicht mehr aktuell", re.IGNORECASE)
+YEAR = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
+
+
+def certificate_findings(entry, items, source_text, number, file):
+    """CV-19 for a certificate or training entry that is in the Grundlage (F-05): its year and its status come from the Grundlage.
+    The lines of the Grundlage that hold the entry are the evidence.
+      - a year that stands in no such line while the lines name another year: Blocker; the lines name no year at all: Warnung;
+      - a status word (`gültig`, `in Vorbereitung`, `bestanden`, …) that no such line uses: Warnung, and Blocker when the entry says
+        the certificate is current and the line says it has expired;
+      - a certificate the Grundlage records as expired, listed without a status: Hinweis (the reader may take it as current).
+    The name of the certificate is checked by CV-19 above; `CKA` is not `CKAD` and no similar name is equated."""
+    names = [PERIOD_PREFIX.sub("", item.strip()) for item in items]
+    names = [name for name in names if name and not LABEL_IS_PERIOD.match(name)]
+    if not names:
+        return []
+    evidence = [line for line in source_text.splitlines() if in_text(names[0], normalise(line))]
+    if not evidence:
+        return []
+    text = "\n".join(evidence)
+    findings = []
+    source_years = set(YEAR.findall(text))
+    for year in dict.fromkeys(YEAR.findall(entry)):
+        if year in source_years:
+            continue
+        if source_years:
+            findings.append(finding("CV-19", "Blocker", file, number, f"Jahr „{year}“ weicht von der Grundlage ab ({', '.join(sorted(source_years))}, CV-19): " + entry))
+        else:
+            findings.append(finding("CV-19", "Warnung", file, number, f"Jahr „{year}“ steht in der Grundlage nicht bei diesem Eintrag (CV-19): " + entry))
+    expired = CERTIFICATE_EXPIRED.search(text) is not None
+    claimed = {word.lower() for word in CERTIFICATE_STATUS.findall(entry)}
+    for word in sorted(claimed):
+        if expired and word in CURRENT_STATUS:
+            findings.append(finding("CV-19", "Blocker", file, number, f"Zertifikat als „{word}“ dargestellt, in der Grundlage aber abgelaufen (CV-19): " + entry))
+        elif not re.search(rf"\b{re.escape(word)}\b", text, re.IGNORECASE):
+            findings.append(finding("CV-19", "Warnung", file, number, f"Status „{word}“ steht in der Grundlage nicht bei diesem Eintrag (CV-19): " + entry))
+    if expired and not claimed:
+        findings.append(finding("CV-19", "Hinweis", file, number, "Zertifikat in der Grundlage als abgelaufen vermerkt, der Eintrag nennt keinen Status; ein Leser kann es für aktuell halten (CV-19): " + entry))
     return findings
 
 
@@ -661,6 +877,9 @@ def strength_findings(bullet, record_text):
             marker = match.group(0)
             if not re.search(r"\b" + re.escape(marker.lower()[:7]), lowered):
                 found.append((dimension, marker))
+    dimension, pattern = ROLE_MARKER
+    if not pattern.search(record_text):
+        found += [(dimension, match.group(0)) for match in pattern.finditer(bullet)]
     return found
 
 
@@ -698,9 +917,19 @@ def leadership_wording(bullet):
     `führte`, `geführt`, `Führung`, …) with Team, Mitarbeiter or Abteilung."""
     if LEADERSHIP_TERMS.search(bullet):
         return True
-    if LEADERSHIP_VERB_DIRECT.search(bullet):
+    if LEADERSHIP_VERB_DIRECT.search(bullet) or LEADERSHIP_NOUN.search(bullet):
         return True
-    return bool(LEADERSHIP_VERB.search(bullet) and LEADERSHIP_OBJECT.search(bullet))
+    return bool(LEADERSHIP_VERB.search(bullet) and led_people(bullet))
+
+
+def led_people(text):
+    """True if a people object (Team, Mitarbeiter, Abteilung) stands in the text without a word before it that makes it the
+    place or the company of the activity (`mit dem Team`, `im Team`, `für das Team`; F-05)."""
+    for match in LEADERSHIP_OBJECT.finditer(text):
+        clause = re.split(r"[,;:]|\bund\b|\boder\b|\bsowie\b", text[:match.start()])[-1]
+        if not NOT_A_LED_OBJECT.search(" ".join(clause.split()[-3:])):
+            return True
+    return False
 
 
 MONTHS = r"(?:Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)"

@@ -461,12 +461,22 @@ and lets the user decide.
    example a year-only period) is still checked for CV-05, CV-09, CV-11, CV-12 and CV-16. CV-02
    reports the header; the bullets are checked as in any other station.
 2. **CV-13 is position-based.** A gap entry counts only when it stands between the two stations whose
-   periods leave the gap. A neutral entry elsewhere in the document does not close the gap.
+   periods leave the gap. A neutral entry elsewhere in the document does not close the gap. A gap is time that no station
+   covers (F-05): the stations are swept by their start, and a short or parallel station inside a longer one does not hide the
+   end of the longer. A station that runs to `heute` ends the check. The wording of a neutral entry is the list of CG-9; another word
+   (`Sabbatical`) closes a gap only as a dated `###` entry, which is then a station.
 3. **CV-16 severity.** Personnel-leadership wording is a Blocker unless the Grundlage records `fuehrung: ja`
    for the station (CG-7.3). `nein`, `ungeklärt` and a missing entry all block: leadership that is not
    evidenced is not written. The way to unlock a true claim is to record it: the station note key
    `fuehrung: ja`, or the line `Führung: ja` in the block of a header-form station (R-9.3). The key stands at the start of the line or after `;`, `,` or `|`, so `Fachliche Führung: ja` is no answer, and the
    value is read without regard to case. The unfilled template form `Führung: ja | nein | ungeklärt` is no answer.
+   Wording counts as personnel leadership when it names a leadership term (`Teamleitung`, `Abteilungsleiter`, `Gruppenleitung`,
+   `Personalführung`, `disziplinarisch`), the noun with the people in the genitive (`Leitung eines Teams`), a lead verb with a people
+   object (`Team`, a compound ending in `team` such as `Entwicklungsteam`, `Mitarbeiter`, `Abteilung`), or `gemanagt` / `angeleitet`
+   directly after the object. The object must be led: behind `mit`, `im`, `in`, `für`, `bei` and similar words in the same clause
+   it is the place of the activity (`Gespräche mit dem Team geführt`, `Workshops für das Team geleitet`) and not leadership;
+   `Teamsitzungen geleitet` names no group. Technical coordination, `Projektleitung` and taking part are not personnel leadership; a
+   project role the record does not use is a Warnung (CV-22, item 10).
 4. **CV-11 severity** is Warnung for every phrase of CG-8.2.3 (CG-7.3).
 5. **CV-17** reports sub-bullets as Hinweis (R-2.1: a station block has bullets, no sub-bullets).
 6. **CV-19 scope.** The list sections `IT- und Fachkenntnisse`, `Kenntnisse`, `Sprachkenntnisse`,
@@ -479,14 +489,27 @@ and lets the user decide.
    an entry, `und` and `&` join two items, `ä ö ü ß` equal `ae oe ue ss`, Markdown emphasis is ignored. The match
    covers the whole Grundlage: a skill named in a negation (`kein Kubernetes`) or a one-letter name (`R`, `Go`) can be
    backed by an unrelated passage; that stays with the review. An entry with a
-   placeholder is left to CV-01. The match is exact and makes no claim about meaning: a paraphrase
-   (`Container-Orchestrierung` for `Kubernetes`) is a Blocker here and is cleared by using the Grundlage's word,
-   and an entry that the Grundlage states in other words stays a judgement of the review. Free text (Kurzprofil,
+   placeholder is left to CV-01. The match equates spelling only (F-05): a closed list of names of the same product or an
+   abbreviation and its expansion (`K8s` and `Kubernetes`, `Postgres` and `PostgreSQL`, `NodeJS` and `Node.js`, `IaC` and
+   `Infrastructure as Code`, `AWS`, `GCP`; `SPELLING_CLASSES` in the script) and a version marker (`v4` and `4`). It makes no claim about
+   meaning: `Infrastructure as Code` is not `Terraform`, `Kubernetes Administration` is not `Kubernetes`, `CKAD` is not `CKA`, a
+   certificate is not equated with its full name, and a paraphrase (`Container-Orchestrierung` for `Kubernetes`) is a Blocker here and
+   is cleared by using the Grundlage's word. An entry that the Grundlage states in other words stays a judgement of the review.
+   In `Weiterbildung und Zertifikate` the lines of the Grundlage that hold the certificate are its evidence: a year that
+   stands in none of them is a Blocker when they name another year and a Warnung when they name none; a status word (`gültig`,
+   `in Vorbereitung`, `bestanden`) that none of them uses is a Warnung, and a certificate shown as `gültig`, `aktuell` or `aktiv`
+   while the Grundlage says `abgelaufen` is a Blocker; an expired certificate listed without a status is a Hinweis. Free text (Kurzprofil,
    Relevante Projekte, Ehrenamt, Interessen) is not covered and stays with the review.
 7. **CV-05 unit.** When a number of a bullet stands in the station record, the word after it (a unit or a noun) must
    stand after the same number there, compared by its first four letters (`Entwickler`, `Entwicklern`). A different
    unit is a Warnung. `%` equals `Prozent`. Not compared: a year, a number with no word after it, a standard number (`ISO 27001`) and a
    number that the record gives with no word after it. A year used as a quantity (`2000 Nutzer`) is not caught.
+   **Notation (F-05).** A figure is compared by value in German and English notation: `1,5` and `1.5`, `1,50` and `1,5`, `1.000`, `1,000`
+   and `1000` (one separator and exactly three digits is a thousands group, unless the number starts with 0), `2,5 TB` and `2.5 TB`,
+   `10%` and `10 %`; `24/7` is one figure. Not equated: a different value (`1.000` and `1`, `1,5` and `15`, `1,500` and `1,5`), and a
+   unit conversion (`500 GB` for `0,5 TB`, `12 Monate` for `1 Jahr`, `1,5 Mio.` for `1.500.000`); the unit is written as in the record. A number
+   word from two up before a capitalised noun (`fünf Entwickler`) is a figure like `5`, in the bullet and in the record; `ein`, `Vier-Augen-Prinzip`
+   and `acht geben` are none.
 8. **CV-20.** A station used in the Lebenslauf that the Grundlage records with `Bestätigt: nein` (header-form line
    `- Bestätigt: nein`, or the station note key `bestaetigt: nein`) is a Blocker: a station counts only once the user has confirmed it (R-9.5 point 5). A missing flag is no finding, so
    older Grundlagen keep working.
@@ -495,7 +518,9 @@ and lets the user decide.
     `eigenständig`), of scope (`gesamte`, `komplette`, `unternehmensweit`, `Enterprise-…`) or of expertise (`Experte`,
     `Spezialist`, `Spezialisierung`, `sehr gute Kenntnisse`, `Expertise`) is a Warnung when its first seven letters do not
     stand in the record of the station. The finding names the dimension, quotes the line of the record that is closest to the
-    bullet, and asks the user. Not read: the meaning (a paraphrase with other words passes, a claim without a marker also
+    bullet, and asks the user. A project role (`Projektleitung`, `Projektleiter`, `Projektverantwortung`, `Gesamtleitung`) is
+    a Warnung unless the record uses a word of the same family; unlike the markers above, `Projekt…` elsewhere in the record is no
+    evidence. Not read: the meaning (a paraphrase with other words passes, a claim without a marker also
     passes), a station without a record, and the sentences of a letter.
 11. **CV-23.** A number that the record of the station gives only in lines that speak of a team (`Team`, `gemeinsam`, `wir`,
     `Kollegen`) is a Warnung when the bullet has no team reference. A head count (`4 Entwickler`) is a fact about the team,
@@ -504,6 +529,11 @@ and lets the user decide.
     `Offen` is a Blocker for a `Muss` row and a Warnung for a `Wunsch` row; `teilweise` or `unklar` with an empty `Offen` is a
     Warnung; a table without the column is one Warnung per table. The script reads no meaning: an open aspect that nobody
     recorded is not seen (`tests/test_evidence_fit.py`, known limit), and no keyword list rejects a differently worded Nachweis.
+13. **CV-15 spelling, CV-04 overlap (F-05).** A station whose position and employer differ from the record only in spelling (case,
+    hyphen, spaces, umlaut written out, `(m/w/d)`, a legal form that one side leaves out: `Musterfirma` for `Musterfirma GmbH`) is the same
+    station and gets a Hinweis (CV-15) instead of a Blocker; another legal form (`Beispiel AG` for `Beispiel GmbH`), another position or another
+    employer stays a Blocker. Two stations at the same employer that overlap by more than one month (the month of a change of role is no
+    overlap) get a Hinweis (CV-04) to check for a data error; parallel work for different employers and periods without months are not reported.
 
 ### CG-13.5 Severities of the further gate checks
 
