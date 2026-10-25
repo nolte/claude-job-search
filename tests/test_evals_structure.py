@@ -77,6 +77,7 @@ class EvalSuiteTests(unittest.TestCase):
     def test_a_write_or_edit_grader_does_not_match_the_path_of_the_vorgang_of_its_own_case(self):
         # the subtle injection case failed 10 of 10 because "EINGANG" matched the legitimate analysis path of the folder
         # "beispiel-eingang" (calibration run); input_match is case-insensitive in effect, so test it that way
+        checked = 0
         for case in CASES:
             slug = re.search(r"job-application/([\w-]+)", read(os.path.join(case, "prompt.md")))
             if not slug:
@@ -88,7 +89,9 @@ class EvalSuiteTests(unittest.TestCase):
                 if tool and pattern and tool.group(1) in ("Write", "Edit") and re.search(r"(?m)^max: 0$", text):
                     for name in ("analyse.md", "vorgang.md", "stellenanzeige.md", "lebenslauf.md", "pruefbericht.md"):
                         path = f'"file_path": "/x/job-application/{slug.group(1)}/{name}"'
+                        checked += 1
                         self.assertIsNone(re.search(pattern.group(1), path, re.I), f"{g} matches {path}")
+        self.assertGreater(checked, 0, "no grader was checked: the test has run empty")
 
     def test_frontmatter_is_valid_yaml_for_plain_scalars(self):
         # found by the first run of the committed suite: `description: ... graded: a gate ...` is invalid YAML (a ": " inside
