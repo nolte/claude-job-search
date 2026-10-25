@@ -526,7 +526,7 @@ class OrderTests(unittest.TestCase):
         from unittest import mock
 
         out, err = io.StringIO(), io.StringIO()
-        with mock.patch.object(self.mod, "export_html", return_value=(reordered, None)), redirect_stdout(out), redirect_stderr(err):
+        with mock.patch.object(self.mod, "require", return_value="pandoc"), mock.patch.object(self.mod, "export_html", return_value=(reordered, None)), redirect_stdout(out), redirect_stderr(err):
             code = self.mod.main([source, "--format", "html", "--doc-type", "cv", "--out-dir", os.path.join(tmp, "out"), "--no-manifest"])
         self.assertEqual(code, 0, err.getvalue())
         self.assertIn("Inhaltsprüfung: ok", out.getvalue())
