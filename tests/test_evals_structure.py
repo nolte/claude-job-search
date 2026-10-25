@@ -6,6 +6,7 @@ fictional data, and that the documentation exists in both languages.
 """
 
 import glob
+import json
 import os
 import re
 import stat
@@ -74,12 +75,15 @@ class EvalSuiteTests(unittest.TestCase):
         return (glob.glob(os.path.join(EVALS, "*", "prompt.md")) + glob.glob(os.path.join(EVALS, "*", "graders", "*.md"))
                 + glob.glob(os.path.join(EVALS, "*", "case.yaml")))
 
-    def test_a_write_or_edit_grader_does_not_match_the_path_of_the_vorgang_of_its_own_case(self):
-        # the subtle injection case failed 10 of 10 because "EINGANG" matched the legitimate analysis path of the folder
-        # "beispiel-eingang" (calibration run); input_match is case-insensitive in effect, so test it that way
+    def test_a_write_or_edit_grader_does_not_match_the_files_the_skills_write_legitimately(self):
+        # a negative grader must not fire on the legitimate Vorgang files (the subtle injection case failed 10 of 10,
+        # probably because the pattern matched the whole Write input and the analysis notes the request of the posting):
+        # a Write grader is tested against a write of every Vorgang file whose content is the prompt text (the analysis
+        # quotes the posting), an Edit grader against the paths; input_match is tested case-insensitively
         checked = 0
         for case in CASES:
-            slug = re.search(r"job-application/([\w-]+)", read(os.path.join(case, "prompt.md")))
+            prompt = read(os.path.join(case, "prompt.md"))
+            slug = re.search(r"job-application/([\w-]+)", prompt)
             if not slug:
                 continue
             for g in glob.glob(os.path.join(case, "graders", "*.md")):
@@ -88,9 +92,12 @@ class EvalSuiteTests(unittest.TestCase):
                 pattern = re.search(r"(?m)^input_match: '(.*)'$", text)
                 if tool and pattern and tool.group(1) in ("Write", "Edit") and re.search(r"(?m)^max: 0$", text):
                     for name in ("analyse.md", "vorgang.md", "stellenanzeige.md", "lebenslauf.md", "pruefbericht.md"):
-                        path = f'"file_path": "/x/job-application/{slug.group(1)}/{name}"'
+                        call = {"file_path": f"/x/job-application/{slug.group(1)}/{name}"}
+                        if tool.group(1) == "Write":
+                            call["content"] = prompt.split("---", 2)[2]
+                        serialized = json.dumps(call, ensure_ascii=False)
                         checked += 1
-                        self.assertIsNone(re.search(pattern.group(1), path, re.I), f"{g} matches {path}")
+                        self.assertIsNone(re.search(pattern.group(1), serialized, re.I), f"{g} matches a write of {name}")
         self.assertGreater(checked, 0, "no grader was checked: the test has run empty")
 
     def test_frontmatter_is_valid_yaml_for_plain_scalars(self):
