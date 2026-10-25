@@ -186,11 +186,36 @@ RUNS=3 MAX_COST_USD=3 TRUST=1 SKIP_PRECHECK=1 task eval:container -- behavior-ga
   repository is read-only except for the results folder. **Not checked:** whether the Bash tool of `claude plugin eval` works in the container; `behavior-bash-works` answers that
   (about 0.15 US dollars). If it is still red, the cause is not the host profile and the container does not help.
 
+## What the CI covers
+
+`task test` runs in the `test` job of `.github/workflows/ci.yml` on every pull request and push. It calls no model and needs no
+credential. The model evals above are a separate workflow, `.github/workflows/evals.yml`, which only starts by hand (below).
+
+| Area | Deterministic, in the CI | Model eval, by hand | Not automated |
+|---|---|---|---|
+| Fact grounding (invented skills, leadership, metrics, certificates; ownership, scope, expertise and team-result wording) | `cv_checks.py` through `test_cv_checks.py`, `test_scenarios.py`, `test_semantic_fidelity.py` | `behavior-no-invented-skills` | Known limits L1 to L3 of `tests/README.md`: only a model review sees them, and no eval case covers the reviewer on them |
+| Target position and audience (specialist, leadership, career changer, beginner) | The checks that need a posting: *Muss* without evidence (CV-07), gaps (CV-13, CV-14), posting numbers as own experience (BR-03, BR-04) on the three personas of `tests/fixtures/szenarien/` | none | Which experience is emphasised and in which order (CG-5), differences between postings, old but relevant experience: review only |
+| Quality gate and reviewer | The gate's severities map to verdicts (`test_semantic_fidelity.py`) | `behavior-gate-runs-script`, `behavior-gate-discloses-missing-script`, `behavior-reviewer-stale-report` | Whether the reviewer catches a subtle fact error in a full application |
+| Skill selection, plan gate, third-party text | Structure of the skills and of the eval suite (`test_skill_structure.py`, `test_evals_structure.py`) | the 14 `trigger-*` cases, `behavior-plan-gate`, `behavior-posting-injection*` | Model changes: repeat the batch after one |
+| Export | Markdown, HTML and DOCX through pandoc (`test_export.py`; content check, manifest, headings in order, page-limit logic) | none | The PDF (LuaLaTeX is not installed in the CI; the two PDF tests run locally) and ATS parsing of the PDF |
+
+Before F-02 the CI job had neither pandoc, python-docx nor PyYAML, so 43 of 280 tests skipped and the job stayed green. The job now
+installs them (`tests/requirements.txt`, apt `pandoc`), and `ToolchainTests` fails in the CI if one is missing. Locally a missing tool still
+only skips the dependent tests.
+
+### Running the evals from GitHub
+
+Actions > evals > Run workflow. It needs the repository secret `ANTHROPIC_API_KEY`, which is billed to that account. Inputs: `target`
+(`trigger`, `behavior`, `all`, or a case or glob), `runs` and `max_cost_usd` (default 5 per invocation). The job summary lists every case,
+its score and each failed grader with the explanation of the tool (`evals/summarize.py`); the job fails when a case is below the threshold
+(0.8). It does not run on pull requests, and it is not a required check: a model eval is noisy (see "Reading and calibrating the result") and
+costs money on every run. Not tested: the workflow itself has not run, and the Bash sandbox of the eval may be restricted on a GitHub runner
+the way it is on some workstations (the preconditions then leave the `needs-bash` cases out and say so in the log).
+
 ## Limits
 
 - The suite measures instruction following on a handful of cases, not the quality of a Lebenslauf or a letter.
 - `llm` graders are unstable on long texts; the suite uses them rarely.
 - The fixtures are fictional and small. A real Grundlage is longer and messier.
 - Runs depend on the model: repeat the batch after a model change.
-- Not a CI check yet. The suite is run by hand; a nightly, non-blocking workflow with a repository secret is the next step
-  once the pass rates are stable.
+- The model evals are not a CI check: they run only when a maintainer starts `evals.yml`, see "What the CI covers". A scheduled run is a decision for the maintainers (cost).

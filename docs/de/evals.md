@@ -190,11 +190,36 @@ RUNS=3 MAX_COST_USD=3 TRUST=1 SKIP_PRECHECK=1 task eval:container -- behavior-ga
   eingebundene Repository ist bis auf den Ergebnisordner schreibgeschützt. **Nicht geprüft:** ob das Bash-Tool von `claude plugin eval` im Container funktioniert;
   das beantwortet `behavior-bash-works` (etwa 0,15 US-Dollar). Bleibt es rot, liegt es nicht am Profil des Hosts, und der Container hilft nicht.
 
+## Was die CI abdeckt
+
+`task test` läuft im Job `test` von `.github/workflows/ci.yml` bei jedem Pull Request und Push. Es ruft kein Modell auf und braucht keine
+Zugangsdaten. Die Modell-Evals oben sind ein eigener Workflow, `.github/workflows/evals.yml`, der nur von Hand startet (unten).
+
+| Bereich | Deterministisch, in der CI | Modell-Eval, von Hand | Nicht automatisiert |
+|---|---|---|---|
+| Faktenbindung (erfundene Skills, Führung, Kennzahlen, Zertifikate; Wortlaut zu Verantwortung, Umfang, Expertise und Teamergebnis) | `cv_checks.py` über `test_cv_checks.py`, `test_scenarios.py`, `test_semantic_fidelity.py` | `behavior-no-invented-skills` | Bekannte Grenzen L1 bis L3 in `tests/README.md`: nur eine Modellprüfung sieht sie, und kein Eval-Fall prüft den Reviewer darauf |
+| Zielposition und Zielgruppe (Spezialist, Führung, Quereinstieg, Einsteiger) | Die Prüfungen, die eine Anzeige brauchen: *Muss* ohne Beleg (CV-07), Lücken (CV-13, CV-14), Anzeigenzahlen als eigene Erfahrung (BR-03, BR-04) an den drei Personas in `tests/fixtures/szenarien/` | keiner | Welche Erfahrung betont wird und in welcher Reihenfolge (CG-5), Unterschiede zwischen Anzeigen, alte, aber relevante Erfahrung: nur Review |
+| Qualitätsprüfung und Reviewer | Die Schweregrade des Gates ergeben die Urteile (`test_semantic_fidelity.py`) | `behavior-gate-runs-script`, `behavior-gate-discloses-missing-script`, `behavior-reviewer-stale-report` | Ob der Reviewer einen subtilen Faktenfehler in einer vollständigen Bewerbung findet |
+| Skill-Auswahl, Plan-Gate, fremder Text | Struktur der Skills und der Eval-Suite (`test_skill_structure.py`, `test_evals_structure.py`) | die 14 `trigger-*`-Fälle, `behavior-plan-gate`, `behavior-posting-injection*` | Modellwechsel: den Stapel danach wiederholen |
+| Export | Markdown, HTML und DOCX über pandoc (`test_export.py`; Inhaltsprüfung, Manifest, Reihenfolge der Überschriften, Seitenlimit-Logik) | keiner | Das PDF (LuaLaTeX ist in der CI nicht installiert; die zwei PDF-Tests laufen lokal) und das ATS-Parsing des PDF |
+
+Vor F-02 hatte der CI-Job weder pandoc noch python-docx noch PyYAML, daher wurden 43 von 280 Tests übersprungen und der Job blieb grün. Der Job
+installiert sie jetzt (`tests/requirements.txt`, apt `pandoc`), und `ToolchainTests` schlägt in der CI fehl, wenn eines fehlt. Lokal überspringt ein
+fehlendes Werkzeug weiterhin nur die abhängigen Tests.
+
+### Die Evals von GitHub aus starten
+
+Actions > evals > Run workflow. Es braucht das Repository-Secret `ANTHROPIC_API_KEY`; die Kosten laufen auf dieses Konto. Eingaben: `target`
+(`trigger`, `behavior`, `all` oder ein Fall bzw. Glob), `runs` und `max_cost_usd` (Standard 5 je Aufruf). Die Job-Zusammenfassung nennt jeden Fall, seinen
+Score und jeden gescheiterten Grader mit der Erklärung des Werkzeugs (`evals/summarize.py`); der Job schlägt fehl, wenn ein Fall unter der Schwelle (0,8)
+liegt. Er läuft nicht bei Pull Requests und ist kein Pflicht-Check: Ein Modell-Eval schwankt (siehe „Ergebnis lesen und kalibrieren“) und kostet bei jedem
+Lauf Geld. Nicht geprüft: Der Workflow selbst ist noch nie gelaufen, und die Bash-Sandbox des Evals kann auf einem GitHub-Runner so eingeschränkt sein wie auf
+manchen Arbeitsrechnern (die Vorbedingungen lassen dann die `needs-bash`-Fälle aus und sagen es im Log).
+
 ## Grenzen
 
 - Die Suite misst das Befolgen von Anweisungen an wenigen Cases, nicht die Qualität eines Lebenslaufs oder Briefs.
 - `llm`-Grader sind bei langen Texten instabil; die Suite setzt sie selten ein.
 - Die Fixtures sind erfunden und klein. Eine echte Grundlage ist länger und unordentlicher.
 - Läufe hängen vom Modell ab: Wiederhole die Läufe nach einem Modellwechsel.
-- Noch kein CI-Check. Die Suite läuft von Hand; ein nächtlicher, nicht blockierender Workflow mit einem Repository-Secret
-  ist der nächste Schritt, sobald die Trefferquoten stabil sind.
+- Die Modell-Evals sind kein CI-Check: Sie laufen nur, wenn ein Maintainer `evals.yml` startet, siehe „Was die CI abdeckt“. Ein zeitgesteuerter Lauf ist eine Entscheidung der Maintainer (Kosten).
