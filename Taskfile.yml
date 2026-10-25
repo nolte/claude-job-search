@@ -72,6 +72,20 @@ tasks:
     cmds:
       - evals/docker/run.sh {{.CLI_ARGS}}
 
+  search:
+    desc: |
+      Deterministic helper of the recurring job search (spec stellensuche ST-13 to ST-20).
+      Usage: task search -- [--konfiguration job-application/konfiguration.md] <anlegen|pruefen|freigeben|faellig|warteschlange|...> ...
+    cmds:
+      - python3 scripts/stellensuche.py {{.CLI_ARGS}}
+
+  search:scheduled:
+    desc: |
+      Start one headless Claude Code session per due Suchauftrag (needs `claude` and the JobSpy MCP server; costs tokens).
+      Usage: task search:scheduled -- job-application/konfiguration.md   (call it from your own cron or timer)
+    cmds:
+      - scripts/stellensuche_geplant.sh {{.CLI_ARGS}}
+
   plugin:reload:
     desc: Start Claude Code with this repo loaded as a plugin (dogfooding)
     cmds:

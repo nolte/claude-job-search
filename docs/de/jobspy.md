@@ -53,8 +53,8 @@ Aufbewahrungsregeln unten.
    Brief sie nennt. **LinkedIn wird nie über JobSpy durchsucht**: LinkedIn läuft über den
    eigenen Server, siehe [LinkedIn-Zugriff](linkedin.md).
 4. Die Grenzen sind bewusst klein: höchstens 20 Ergebnisse je Börse, 3 Börsen je Suche, 5 Suchen
-   je Sitzung und ein begrenztes Alter der Anzeigen (RC-5.8 Regel 4). Es gibt keine geplanten
-   oder wiederkehrenden Suchen. Vollständige Details holt der Skill nur für den Eintrag, den du
+   je Sitzung und ein begrenztes Alter der Anzeigen (RC-5.8 Regel 4). Geplante oder wiederkehrende
+   Suchen gibt es nur als freigegebenen Suchauftrag, siehe *Wiederkehrende Suche* unten. Vollständige Details holt der Skill nur für den Eintrag, den du
    wählst, nie für eine Liste.
 5. Die Shortlist zeigt Vetos aus deinem Wunschprofil mit Grund, statt sie zu streichen, führt
    Doppelte über Börsen und mit deinen vorhandenen Vorgängen zusammen und markiert Anzeigen
@@ -64,6 +64,62 @@ Aufbewahrungsregeln unten.
 7. Brief, Shortlist und deine Entscheidung je Eintrag (`übernommen`, `abgelehnt`, `offen`)
    landen in `suche/<JJJJ-MM-TT>-<slug>.md` in deiner Wurzel. Der Datensatz bleibt 90 Tage
    erhalten. Der Skill listet Datensätze nach Fristende auf und löscht nichts; du entscheidest.
+
+## Wiederkehrende Suche (Suchauftrag)
+
+Für eine Suche, die du wiederholen willst, führt der Skill einen **Suchauftrag**: dein freigegebener Brief plus ein Plan
+(wie oft, wie viel). Gefundene Stellen landen in einer **Warteschlange** (`suche/warteschlange.json`), die deine
+Entscheidungen behält. So wird dieselbe Stelle nicht zweimal angeboten, eine geänderte Anzeige wird markiert und eine
+Stelle mit Vorgang erscheint nicht als neu. Die Regeln stehen in `spec/job-application/stellensuche/en.md` (ST-13 bis ST-20).
+Die Suche selbst braucht weiter den JobSpy-Server in einer Claude-Sitzung; das Hilfsskript `scripts/stellensuche.py`
+übernimmt Speichern, Grenzen und Deduplizierung.
+
+**Was die Freigabe bedeutet.** Sie erlaubt Abfragen mit den freigegebenen Begriffen an die freigegebenen Börsen, höchstens
+3 Börsen mit je 20 Ergebnissen und standardmäßig höchstens 3 Läufe in 7 Tagen (du kannst senken oder bis auf 7 Läufe
+erhöhen), sowie das lokale Speichern von Titel, Firma, Ort, Datum, URL und einem Hash der Beschreibung. Sie erlaubt keine
+Bewerbung, keine Nachricht an einen Arbeitgeber und keine Änderung an einem Vorgang. Ändert sich ein Begriff, der Ort, die
+Börsen, eine Grenze oder der Plan, entfällt die Freigabe; ebenso bei geänderter `wunschprofil.md`, wenn der Suchauftrag daran
+gebunden ist.
+
+Beispiele (sag es Claude, oder rufe das Hilfsskript selbst auf mit
+`python3 <plugin>/scripts/stellensuche.py --konfiguration job-application/konfiguration.md <Befehl>`):
+
+1. **Anlegen:** „Lege einen Suchauftrag für Backend-Stellen in Berlin an.“ Claude baut den Brief aus deinem Wunschprofil und
+   zeigt jeden Begriff mit Quelle. Noch läuft nichts (Status `entwurf`).
+2. **Prüfen und freigeben:** Claude zeigt, was gesendet wird und was nicht, wie oft und wie viel; nach deinem ausdrücklichen Ja
+   folgt `freigeben <id> --ja` (Status `aktiv`).
+3. **Einmal ausführen:** „Führe den Suchauftrag jetzt aus.“ Ergebnis: `ok`, `ok_ohne_treffer` (Erfolg ohne Treffer),
+   `teilweise` oder `fehlgeschlagen` (zum Beispiel `suchdienst_nicht_verfuegbar`, wenn der Server nicht verbunden ist).
+4. **Nach Zeitplan wiederholen:** Das Plugin installiert keinen Timer. Trage `scripts/stellensuche_geplant.sh` in einen
+   Scheduler von dir ein, etwa täglich. Es startet nur für fällige Suchaufträge eine Sitzung (freigegeben, aktiv, Intervall
+   vergangen, noch Läufe im 7-Tage-Fenster übrig). Die headless Sitzung darf nur das Suchwerkzeug des Servers und die
+   Hilfsbefehle `lauf-start`, `board-ergebnis`, `lauf-ende` und `nachtragen` aufrufen sowie Ergebnisdateien nach `suche/eingang/`
+   schreiben (den Ordner legt der Launcher an; das Hilfsskript liest Ergebnisse nur von dort und löscht eine Datei nach dem
+   Speichern). Sie läuft mit eigenem Prompt und ruft den Skill nicht auf. Sie kann keinen Suchauftrag anlegen, ändern, freigeben, fortsetzen oder beenden und keine Entscheidung über eine
+   Stelle treffen: Das bleibt bei dir in einer interaktiven Sitzung, weil ein Inserat Text enthalten könnte, der danach verlangt.
+   **Prüfe deine eigenen Einstellungen:** Der Launcher fügt nur Rechte hinzu; was deine Benutzer- oder Projekteinstellungen
+   schon erlauben (eine breite `Bash`-Regel, Web-Werkzeuge, andere MCP-Server), erbt die Sitzung, und sie liest Text von
+   Jobbörsen. Plane sie aus einem Arbeitsordner, dessen Einstellungen nichts davon erlauben.
+   Es läuft immer nur ein ändernder Befehl (ein zweiter wartet bis zu 30 Sekunden und antwortet dann `beschaeftigt`).
+   Eine nicht lesbare Auftragsdatei wird auf stderr genannt und stoppt die anderen nicht, schau also in dein Log:
+   `17 7 * * * cd /pfad/zum/arbeitsordner && /pfad/zum/plugin/scripts/stellensuche_geplant.sh job-application/konfiguration.md >> ~/suche.log 2>&1`.
+   Der Werkzeugname des Servers ist standardmäßig `mcp__jobspy__search_jobs`; setze `STELLENSUCHE_JOBSPY_TOOL`, wenn du ihn
+   anders genannt hast. Nicht geprüft: Das Plugin hat keine geplante Sitzung gegen den echten Server laufen lassen (es war
+   kein Server verbunden).
+5. **Ansehen und priorisieren:** öffne `suche/warteschlange.md` in deinem Vault (lesbare Übersicht, nach jeder Änderung neu geschrieben; Obsidian zeigt die JSON-Dateien nicht an) oder frag: „Zeige die Warteschlange.“ Die Stellen sind nach `ohne_treffer`, `klaerung` oder `veto`
+   gruppiert, allein aus der Vorprüfung auf strukturierte Felder. Das ist kein Passungswert; den Fit-Check gibt es nach der
+   Übergabe.
+6. **Zurückstellen oder ausschließen:** „Stelle s-… zurückstellen bis 2026-12-01“ oder „ablehnen, Grund: Schichtdienst“. Ein
+   erneuter Fund ändert deine Entscheidung nicht.
+7. **Übergeben:** „Übernimm s-….“ Claude gibt `job-application-solution` die URL als `stellenquelle`; den Text lädt der
+   URL-Intake oder du fügst ihn ein, der Plan braucht weiter deine Freigabe. Ein vorhandener Vorgang wird weiterverwendet.
+8. **Fehlgeschlagenen Lauf untersuchen:** `auftraege` zeigt den letzten Lauf und Fehler; `zeige <id>` listet die letzten 30
+   Läufe mit Code (`board_blockiert`, `verbindung_fehlgeschlagen`, …). Nach 3 Fehlern in Folge stoppen geplante Läufe, bis du
+   fortsetzt. Endete ein Lauf `teilweise`, `fehlgeschlagen` oder `unterbrochen`, obwohl Claude die Antworten eines Boards hatte
+   (das Erfassen scheiterte), lassen sie sich danach mit `nachtragen <id> <lauf> <board>` speichern; Status dieses Laufs und
+   Budget ändern sich dadurch nicht.
+9. **Pausieren und beenden:** „Pausiere den Suchauftrag“ (`pausieren`, später `fortsetzen`) und „Beende den Suchauftrag“
+   (`beenden`, endgültig: für eine neue Suche legst du einen neuen an).
 
 ## Einrichten
 
@@ -142,3 +198,12 @@ hinzu:
    Anzeige kann auf mehreren Börsen stehen und alt oder neu eingestellt sein, deshalb zeigt die
    Shortlist das Datum der Anzeige.
 7. **Ohne den Server.** Füge den Anzeigentext in `job-application-solution` ein.
+8. **Eine gefundene Stelle ist ein Link, kein Text.** Die Suche speichert Titel, Firma, Ort, Datum und URL, nicht die
+   Beschreibung. Für die Übergabe braucht es den Text aus dem URL-Intake von `job-application-posting-analysis`. Jobbörsen
+   verweigern diesen Abruf oft: Ein Test mit dem Web-Search-Server auf einer Indeed-Seite endete mit HTTP 401 (2026-10-25,
+   eine Seite, keine Statistik). Der Skill umgeht so eine Verweigerung nicht (kein Proxy, kein anderer Header, kein
+   Browser). Der Weg, der immer geht: Anzeige im Browser öffnen, den Text kopieren und in `job-application-solution`
+   einfügen; die URL für `stellenquelle` steht im Eintrag der Warteschlange. Der Indeed-Connector für claude.ai
+   (`docs.indeed.com/mcp`) gehört nicht zu diesem Plugin: In Claude Code hat er sich im selben Test nicht verbunden
+   (die Anmeldung wurde beim Wiederverbinden abgelehnt), und seine Bedingungen für die Nutzung außerhalb von claude.ai
+   nennt seine Seite nicht.

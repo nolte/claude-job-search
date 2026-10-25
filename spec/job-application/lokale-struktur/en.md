@@ -65,8 +65,12 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
 │   └── foto.jpg                            optional, referenced from the Grundlage
 ├── firmen/                                 Stammdaten and Notizen of companies, one file each (LS-4)
 │   └── musterfirma-gmbh.md
-├── suche/                                  one record per job search: brief, shortlist, decisions (LS-4, `stellensuche` ST-8)
-│   └── 2026-10-23-backend-berlin.md
+├── suche/                                  job search (LS-4, `stellensuche`)
+│   ├── 2026-10-23-backend-berlin.md        one record per interactive search: brief, shortlist, decisions (ST-8)
+│   ├── auftraege/a-backend-berlin.json     one Suchauftrag with approval, plan and run log (ST-13); a `.lock` file while a Lauf runs
+│   ├── warteschlange.json                  one entry per identified posting with the decision of the user (ST-19)
+│   ├── warteschlange.md                    readable Ableitung of the Warteschlange and the Suchaufträge (ST-19 rule 5)
+│   └── eingang/                            result files of a scheduled session, deleted after reading (ST-16 rule 5)
 ├── lebenslauf-basis/                       one Ausprägung without a Vorgang (lebenslauf-versionen LV-1, LV-2)
 │   ├── lebenslauf.md                       Arbeitsstand
 │   ├── pruefbericht.md                     Auswahl Lebenslauf and Prüfung (LS-7.4)
@@ -95,7 +99,9 @@ the Motivationsschreiben. Both are plain text without frontmatter and are Ableit
 Vorgang.
 
 `suche/` is not a Vorgang and not an Ausprägung: it holds no `vorgang.md`, so a skill never treats it as one.
-A file in it is named `<JJJJ-MM-TT>-<slug>.md` after the date of the search.
+A record of an interactive search in it is named `<JJJJ-MM-TT>-<slug>.md` after the date of the search. The
+Suchaufträge and the Warteschlange are JSON written only by `scripts/stellensuche.py`; they hold postings and firm
+names, no description text and no contact data, and follow the same privacy rule as the records (LS-9 rule 7).
 
 Vorgänge sit directly in the Wurzel, next to `grundlage/`, `rohdaten/`, `firmen/` and `suche/`. They are
 not nested below a `vorgaenge/` folder, so the paths already used by the skills stay valid.
@@ -136,6 +142,7 @@ never a second master.
 | Wunschprofil: wishes, priorities, Ausschlüsse, Hypothesen (preference, not a fact) | `wunschprofil.md` in the Wurzel, next to the Grundlage; versions kept in `Verlauf` (WJ-5) | traumjob-interview (after confirmation) | fit-check, solution (veto before the plan gate) |
 | Passung of one posting against the Wunschprofil | `passung.md`, in the Vorgang folder (WJ-6.4) | fit-check | the user, solution (plan gate) |
 | Job search record: the approved Suchbrief, the shortlist (firm, role, location, date posted, board, URL) and the decision per entry: `übernommen` with the Vorgang slug, `abgelehnt` with a short reason, or `offen`. No contact e-mail addresses and no application state | `suche/<JJJJ-MM-TT>-<slug>.md` (`stellensuche/en.md` ST-8); the posting text of an `übernommen` entry lives in `stellenanzeige.md` of its Vorgang | job-application-job-search | job-application-job-search, solution, the user |
+| Suchauftrag (approved brief, plan, run log) and Warteschlange (identified postings with the decision per posting). No description text, no contact e-mail addresses, no application state | `suche/auftraege/<id>.json`, `suche/warteschlange.json` (`stellensuche/en.md` ST-13, ST-19) | `scripts/stellensuche.py` for job-application-job-search | job-application-job-search, solution (the hand-off sets `stellenquelle`), the user |
 | Counterpart and company roles of a Vorgang | `analyse.md`, frontmatter keys (KK-6) and section `## Unternehmen` (UA-5.1); stable firm facts in `firmen/` (UA-5.2) | posting-analysis | cover-letter-create, email-create, solution, quality-gate |
 | Research record of a Vorgang: level, channels, status per item, signals, assessment, questions to the counterpart. Identity values are not repeated here; they stay in `## Unternehmen` | `analyse.md`, section `## Recherche` (`recherche/en.md` RC-9); date of the last research in `firmen/<firma-slug>.md`, key `recherche_stand` | the skill that runs the research (posting-analysis, `recherche/en.md` RC-11), on the user's request | cover-letter-create, email-create, solution, quality-gate, the user |
 | Ausprägung (Lebenslauf variant without a Vorgang): Arbeitsstand, Versionen, exports | `<wurzel>/<ausprägung>/` (LS-3, `lebenslauf-versionen` LV-2) | cv-create (Arbeitsstand, freeze), export (exports and Manifeste) | cv-create (derive a Vorgang's Lebenslauf from a Version), export, quality-gate |

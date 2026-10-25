@@ -142,7 +142,8 @@ number and add only what is specific to the channel: tools, budget numbers, term
    connected. The result and the route used are stated in the record (RC-9, line `Kanäle`).
 4. **Budget.** Every server has a budget per Vorgang and per research level, stated in the section of the
    channel. Calls run one after the other, never in bulk, and never time-controlled or repeated
-   automatically (RC-1.8). The user may lower the numbers. Levels 1 and 2 share the budget of one Vorgang. For
+   automatically (RC-1.8). **One exception:** the job-board channel runs again by itself only as an approved,
+   active Suchauftrag with its own limits (`stellensuche` ST-13 to ST-16); no other channel does. The user may lower the numbers. Levels 1 and 2 share the budget of one Vorgang. For
    the channels whose count has a fixed form in the line `Kanäle` (RC-9 rules 7 and 8), a run starts from the
    counts of the existing record, also in a new session; without a record the counts start at 0. A job search
    has neither a Vorgang nor a level; its scope is the session (RC-5.8 rule 4).
@@ -402,7 +403,8 @@ route to job-board postings** (RC-5.0 rule 2). The tool names are those of the s
    LinkedIn server (RC-5.4 rule 6); its `search_jobs` is used when that server is connected and the user agrees.
 4. **Budget.** By default at most 20 results per board, at most 3 boards per search, at most 5 searches per
    session, and a limited posting age. The user may lower the numbers (RC-5.0 rule 4). The budgets of the other
-   channels are separate. There are no scheduled or recurring searches. The search option that fetches the full
+   channels are separate. Scheduled or recurring searches exist only as an approved Suchauftrag (`stellensuche` ST-13 to ST-16).
+   The search option that fetches the full
    description of every hit (`fetch_description` in JobSpy's options) is not used for lists; `get_job_details` is
    called only for entries the user picked.
 5. **Rank.** A listing is a posting as posted (rank 2); the board's data about the firm is rank 5 (RC-5.0 rule 6).
