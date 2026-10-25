@@ -165,10 +165,11 @@ Wurzel and the repository boundary are checked by the script (a Blocker line on 
    status (`ok_ohne_treffer` is a success with no hits, `fehlgeschlagen` is not), the counts, the warnings and the new Stellen
    with their class.
    If a Lauf ended `fehlgeschlagen` or `unterbrochen` although the model had the answers of a board (recording failed), pass them with
-   `nachtragen <id> <lauf> <board> --datei …` (ST-15 rule 7); never to get around a limit, and never for a Lauf that ended `ok`.
+   `nachtragen <id> <lauf> <board> --datei …` for a board that did not report `ok` (ST-15 rule 7); never to get around a limit, and never for a Lauf that ended `ok`.
 4. **Scheduled run** (a headless session started by `scripts/stellensuche_geplant.sh`, prompt says „geplanter Lauf“). Same as
    step 3 with `lauf-start <id> --trigger geplant`, write the board answers as files into `<wurzel>/suche/eingang/` and pass
-   them with `--datei`, ask no question, use no other tool, and end with the one-line status. A refusal of
+   them with `--datei` (consumed once stored), ask no question, run only `lauf-start`, `board-ergebnis`, `lauf-ende` and `nachtragen` (the
+   launcher grants no more, and `freigeben` and the other changing commands answer `nur_interaktiv`), use no other tool, and end with the one-line status. A refusal of
    `lauf-start` (`noch_nicht_faellig`, `budget_erschoepft`, `pausiert`, `freigabe_veraltet`, …) ends the session without a search.
 5. **Show the Warteschlange** with `warteschlange` (`--status`, `--auftrag`, `--klasse`): by default the open and due
    postponed Stellen, grouped by class (`ohne_treffer`, `klaerung`, `veto`) as the pre-filter on structured fields; say so

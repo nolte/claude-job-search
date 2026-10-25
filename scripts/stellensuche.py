@@ -29,6 +29,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 import unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -54,6 +55,7 @@ BOARD_CODES = {
 SIGNALS = ("vermittler",)
 MISSED_RUNS = 3
 LOCK_MINUTES = 120
+LOCK_GRACE_SECONDS = 60
 WINDOW_DAYS = 7
 KEEP_RUNS = 30
 KEEP_LOG = 50
@@ -193,12 +195,19 @@ def save_auftrag(wurzel, auftrag):
     atomic_write(auftrag_path(wurzel, auftrag["id"]), auftrag)
 
 
-def all_auftraege(wurzel):
+def all_auftraege(wurzel, defects=None):
+    """All Suchaufträge; an unreadable file is skipped and, when `defects` is a list, reported there."""
     directory = os.path.join(wurzel, "suche", "auftraege")
-    if not os.path.isdir(directory):
-        return []
-    return [load_json(os.path.join(directory, name), {}) for name in sorted(os.listdir(directory))
-            if name.endswith(".json")]
+    found = []
+    for name in sorted(os.listdir(directory)) if os.path.isdir(directory) else []:
+        if not name.endswith(".json"):
+            continue
+        try:
+            found.append(load_json(os.path.join(directory, name), {}))
+        except Refused as error:
+            if defects is not None:
+                defects.append({"datei": name, "meldung": error.meldung})
+    return found
 
 
 def queue_path(wurzel):
@@ -483,6 +492,8 @@ def due(wurzel, auftrag, now):
     plan = auftrag["plan"]
     if auftrag["fehler_in_folge"] >= plan["max_fehler_in_folge"]:
         return False, "gestoppt_nach_fehlern"
+    if len(runs_in_window(auftrag, now)) >= plan["laeufe_pro_woche"]:
+        return False, "budget_erschoepft"
     attempt = auftrag.get("letzter_versuch")
     if attempt is None:
         return True, "erster_lauf"
@@ -525,7 +536,12 @@ def start_run(wurzel, auftrag_id, trigger, now):
         except OSError as error:
             if not isinstance(error, FileExistsError):
                 raise Refused("speichern_fehlgeschlagen", f"Lauf nicht sperrbar: {redact(error)}")
-            held = load_json(path, {})
+            try:
+                held = load_json(path, {})
+            except Refused:  # empty or torn file: the writer died, or is writing right now
+                held = {}
+                if time.time() - os.path.getmtime(path) < LOCK_GRACE_SECONDS:
+                    raise Refused("lauf_aktiv", "Ein Lauf wird gerade gestartet.")
             since = parse_time(held["am"]) if held.get("am") else None
             if since and now - since < dt.timedelta(minutes=LOCK_MINUTES):
                 raise Refused("lauf_aktiv", f"Der Lauf {held.get('lauf', '?')} läuft noch (seit {held['am']}).")
@@ -852,19 +868,19 @@ def record_board(wurzel, auftrag_id, run_id, board, payload, now):
 def add_later(wurzel, auftrag_id, run_id, board, payload, now):
     """Store the answers of a board for a Lauf that ended without them (ST-15 rule 7).
 
-    Only for a `fehlgeschlagen` or `unterbrochen` Lauf, only for an approved board, once per board.
+    Only for a `teilweise`, `fehlgeschlagen` or `unterbrochen` Lauf, only for an approved board that did not report `ok`, once per board.
     The Lauf keeps its status; no success time, failure count, availability or budget changes.
     """
     auftrag = load_auftrag(wurzel, auftrag_id)
     run = find_run(auftrag, run_id)
-    if run["status"] not in ("fehlgeschlagen", "unterbrochen"):
-        raise Refused("nachtrag_nicht_moeglich", f"Der Lauf {run_id} ist {run['status']}; nachgetragen wird nur nach einem Fehler oder Abbruch")
+    if run["status"] not in ("teilweise", "fehlgeschlagen", "unterbrochen"):
+        raise Refused("nachtrag_nicht_moeglich", f"Der Lauf {run_id} ist {run['status']}; nachgetragen wird nur nach einem Fehler, Teilerfolg oder Abbruch")
     problem = approval_problem(wurzel, auftrag)
     if problem:
         raise Refused(*problem)
     if board not in auftrag["brief"]["boards"]:
         raise Refused("board_nicht_freigegeben", f"{redact(board, 30)} gehört nicht zu den freigegebenen Boards")
-    if board in run["boards"] or board in run.setdefault("nachtraege", {}):
+    if run["boards"].get(board, {}).get("status") == "ok" or board in run.setdefault("nachtraege", {}):
         raise Refused("nachtrag_nicht_moeglich", f"Für {board} liegen im Lauf {run_id} schon Ergebnisse vor")
     if not isinstance(payload, dict) or payload.get("status") != "ok" or not isinstance(payload.get("ergebnisse"), list):
         raise Refused("ergebnisdaten_unvollstaendig", 'Ein Nachtrag braucht {"status": "ok", "ergebnisse": [...]}')
@@ -1177,10 +1193,7 @@ def read_payload(args):
     try:
         if args.datei:
             with open(args.datei, encoding="utf-8") as handle:
-                data = json.load(handle)
-            if os.path.basename(os.path.dirname(os.path.abspath(args.datei))) == "eingang":
-                os.unlink(args.datei)
-            return data
+                return json.load(handle)
         return json.load(sys.stdin)
     except (OSError, ValueError) as error:
         raise Refused("ergebnisdaten_unvollstaendig", f"Eingabe ist kein gültiges JSON: {redact(error)}")
@@ -1230,10 +1243,27 @@ def build_parser():
     return parser
 
 
+def consume_input(args, wurzel):
+    """Delete a result file once its answers are stored; only in `<wurzel>/suche/eingang/` (ST-16 rule 5)."""
+    if args.befehl not in ("board-ergebnis", "nachtragen") or not args.datei:
+        return
+    eingang = os.path.realpath(os.path.join(wurzel, "suche", "eingang"))
+    path = os.path.realpath(args.datei)
+    if os.path.dirname(path) == eingang and os.path.isfile(path):
+        os.unlink(path)
+
+
+USER_ONLY = ("anlegen", "aendern", "freigeben", "fortsetzen", "beenden", "entscheiden", "duplikat",
+             "aenderung-gesehen", "uebergabe-fertig", "uebergabe-fehler")
+
+
 def run(args):
     wurzel = find_wurzel(args.konfiguration)
     now = parse_time(args.jetzt) if args.jetzt else dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    if os.environ.get("STELLENSUCHE_GEPLANT") and args.befehl in USER_ONLY:
+        raise Refused("nur_interaktiv", f"{args.befehl} ist in einem geplanten Lauf nicht erlaubt (ST-16 Regel 5)")
     result = dispatch(args, wurzel, now)
+    consume_input(args, wurzel)
     if args.befehl not in READ_ONLY and os.path.isdir(os.path.join(wurzel, "suche")):
         write_overview(wurzel, now)
     return result
@@ -1263,11 +1293,13 @@ def dispatch(args, wurzel, now):
     if cmd == "zeige":
         return {"ok": True, "auftrag": load_auftrag(wurzel, args.id)}
     if cmd in ("auftraege", "faellig"):
-        items = [summary(a, wurzel, now) for a in all_auftraege(wurzel)]
+        defects = []
+        items = [summary(a, wurzel, now) for a in all_auftraege(wurzel, defects)]
         if cmd == "auftraege":
-            return {"ok": True, "auftraege": items}
+            return {"ok": True, "auftraege": items, "defekte_auftraege": defects}
         return {"ok": True, "faellig": [i["id"] for i in items if i["faellig"]],
-                "uebrige": [{"id": i["id"], "grund": i["grund"]} for i in items if not i["faellig"]]}
+                "uebrige": [{"id": i["id"], "grund": i["grund"]} for i in items if not i["faellig"]],
+                "defekte_auftraege": defects}
     if cmd == "lauf-start":
         return start_run(wurzel, args.id, args.trigger, now)
     if cmd == "board-ergebnis":
@@ -1302,7 +1334,10 @@ def main(argv):
         return 1
     except Refused as error:
         print(json.dumps({"ok": False, "code": error.code, "meldung": error.meldung}, ensure_ascii=False))
+        print(f"{error.code}: {error.meldung}", file=sys.stderr)
         return 3
+    for defect in result.get("defekte_auftraege", []):
+        print(f"defekter Suchauftrag {defect['datei']}: {defect['meldung']}", file=sys.stderr)
     if args.befehl == "faellig" and args.nur_ids:
         print("\n".join(result["faellig"]))
     elif args.text and args.befehl == "warteschlange":

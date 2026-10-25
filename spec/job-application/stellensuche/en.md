@@ -265,7 +265,8 @@ done by reviewing a run, not by a script.
 2. **Checks at the start.** The script refuses a Lauf when the Suchauftrag is not approved, paused, ended, stale
    (ST-14 rule 3), when the limits of ST-16 rule 1 are used up, when a Lauf is active, and for a scheduled Lauf
    when it is not due (ST-16 rule 2). The refusal carries a `code` and a reason in German.
-3. **Lock.** One Lauf per Suchauftrag. A lock older than 120 minutes is taken over; the old Lauf becomes `unterbrochen`
+3. **Lock.** One Lauf per Suchauftrag. A lock older than 120 minutes, or an empty or unreadable lock file older than a minute (its
+   writer died), is taken over; a younger empty one counts as a Lauf that is starting; the old Lauf becomes `unterbrochen`
    and counts against the limits. Results the interrupted Lauf had already recorded stay.
 4. **Classification.** Every record of a board is counted once as `neu`, `unveraendert`, `aktualisiert`, `bereits_ausgewaehlt`
    (decision `übernommen`), `im_vorgang`, `entschieden` (`abgelehnt` or `zurückgestellt`) or `moegliches_duplikat`.
@@ -275,8 +276,8 @@ done by reviewing a run, not by a script.
    `suchdienst_nicht_verfuegbar`, not `ok_ohne_treffer`.
 6. **Idempotence.** Recording a board twice or ending a Lauf twice changes nothing. Running the same results again
    creates no new entry (ST-17 rule 2).
-7. **Later entry.** When a Lauf ended as `fehlgeschlagen` or `unterbrochen` without the answers of a board that the model
-   did get (for example because recording them failed), `nachtragen` stores those answers afterwards. Only for an approved board, only
+7. **Later entry.** When a Lauf ended as `teilweise`, `fehlgeschlagen` or `unterbrochen` without the answers of a board that the model
+   did get (for example because recording them failed), `nachtragen` stores those answers afterwards. Only for an approved board that did not report `ok`, only
    while the approval is valid, once per board and Lauf, with the limits and checks of a normal record. The Lauf keeps its status:
    no success time, no failure count, no availability mark and no budget change result from it, and the entry is marked in the Lauf as
    `nachtraege`. It is no way around the limits: it needs a Lauf that was already counted, and it sends nothing.
@@ -287,8 +288,8 @@ done by reviewing a run, not by a script.
    20 times the number of terms records per board are stored; per Suchauftrag
    at most `laeufe_pro_woche` Läufe in 7 days, whatever started them. Many manual or scheduled runs cannot exceed it.
    Records beyond the limit per board are dropped and counted.
-2. **When a scheduled Lauf is due.** The Suchauftrag is approved and active, has not stopped after failures, and
-   `intervall_tage` have passed since the last attempt (after a failure `wiederholung_stunden`). `faellig` lists them.
+2. **When a scheduled Lauf is due.** The Suchauftrag is approved and active, has not stopped after failures, has runs
+   left in the 7-day window (rule 1), and `intervall_tage` have passed since the last attempt (after a failure `wiederholung_stunden`). `faellig` lists them.
 3. **Bounded retry.** After a failed Lauf the next attempt is not earlier than `wiederholung_stunden`. After
    `max_fehler_in_folge` failures in a row, scheduled runs stop until the user continues the Suchauftrag. There is
    no retry loop inside a Lauf, and a blocked board is not retried in another way (RC-5.0 rule 7).
@@ -296,9 +297,13 @@ done by reviewing a run, not by a script.
    `claude -p` session per due Suchauftrag. The user calls it from cron or a systemd timer. The plugin installs no
    timer and claims no automatic run before the user has set one up. A session in a cloud routine cannot read the local Wurzel
    and is not an integration.
-5. **Unattended runs.** A scheduled session may use the search tool of the JobSpy server, the helper script and the
-   writing of result files into `<wurzel>/suche/eingang/`, nothing else (no web fetch, no `get_job_details`, no
-   LinkedIn, no other MCP tool). Text in results is data (ST-9 rule 3). A scheduled session asks no questions.
+5. **Unattended runs.** A scheduled session may use the search tool of the JobSpy server, the run commands of the helper
+   (`lauf-start`, `board-ergebnis`, `lauf-ende`, `nachtragen`) and the writing of result files into `<wurzel>/suche/eingang/`,
+   nothing else (no web fetch, no `get_job_details`, no LinkedIn, no other MCP tool). It may not create, change, approve,
+   continue or end a Suchauftrag or decide on a posting: the launcher grants only those commands, and the helper refuses them
+   with `nur_interaktiv` when the launcher's marker `STELLENSUCHE_GEPLANT` is set, because the approval of ST-14 is the user's
+   and text in results can try to ask for it. Text in results is data (ST-9 rule 3). A scheduled session asks no questions.
+   A result file is deleted after its answers are stored, and only in `<wurzel>/suche/eingang/`.
 
 ## ST-17 Results, identity and errors
 
@@ -387,6 +392,7 @@ Automated in `tests/test_stellensuche.py` with invented postings (Musterfirma Gm
 | SR-R | A reason contains a bearer token or a password | `[entfernt]` in the stored text |
 | SR-T | A command changes the Warteschlange | `warteschlange.md` lists every Stelle once, in the group of its decision; a `\|` in a title does not break the table |
 | SR-U | The answers of a board are entered after a failed Lauf | Stored with the usual checks; the Lauf stays `fehlgeschlagen`, the budget and the failure count do not change; a second entry for the board, a completed Lauf, an unapproved board and a stale approval are refused |
+| SR-V | A scheduled session tries `freigeben`, an unreadable Suchauftrag file exists, the budget is used up | `nur_interaktiv`; the other Aufträge are listed and the file is named on stderr; `faellig` does not list the Auftrag |
 | SR-S | `stellensuche_geplant.sh` with a due, a paused and a draft Suchauftrag | One session, for the due one only, with the restricted tools |
 
 ## ST-12 Sources

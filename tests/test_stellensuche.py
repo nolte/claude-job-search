@@ -745,6 +745,120 @@ class LaterEntryTests(Base):  # SR-U
                          "nicht_freigegeben")
 
 
+class ReviewFixTests(Base):  # findings of the review of PR 65
+    def cli(self, *args, env=None, stdin=None):
+        config = os.path.join(self.w, "konfiguration.md")
+        if not os.path.exists(config):
+            with open(config, "w", encoding="utf-8") as handle:
+                handle.write(f"---\nwurzel: {self.w}\n---\n")
+        result = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "stellensuche.py"), "--konfiguration", config,
+                                 "--jetzt", "2026-11-02T08:00:00Z", *args], input=stdin, capture_output=True, text=True,
+                                env={**os.environ, **(env or {})})
+        return result
+
+    def test_scheduled_session_cannot_approve_or_change_anything(self):
+        aid = self.auftrag(approve=False)
+        for command in (["freigeben", aid, "--ja"], ["fortsetzen", aid], ["beenden", aid]):
+            result = self.cli(*command, env={"STELLENSUCHE_GEPLANT": "1"})
+            self.assertEqual(result.returncode, 3, command)
+            self.assertEqual(json.loads(result.stdout)["code"], "nur_interaktiv")
+        self.assertEqual(ss.load_auftrag(self.w, aid)["status"], "entwurf")
+        self.assertEqual(self.cli("freigeben", aid, "--ja").returncode, 0)  # the same command works for the user
+
+    def test_nachtragen_works_for_a_board_that_reported_an_error_but_not_for_an_ok_board(self):  # teilweise run
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed", "glassdoor"]}, plan={"laeufe_pro_woche": 7})
+        started = ss.start_run(self.w, aid, "manuell", T0)
+        ss.record_board(self.w, aid, started["lauf"], "indeed", {"status": "ok", "ergebnisse": [job()]}, T0)
+        ss.record_board(self.w, aid, started["lauf"], "glassdoor", {"status": "blockiert", "grund": "x"}, T0)
+        ss.finish_run(self.w, aid, started["lauf"], T0)
+        ok_board = (self.w, aid, started["lauf"], "indeed", {"status": "ok", "ergebnisse": []}, later(hours=1))
+        self.assertEqual(self.refused(ss.add_later, *ok_board), "nachtrag_nicht_moeglich")
+        result = ss.add_later(self.w, aid, started["lauf"], "glassdoor",
+                              {"status": "ok", "ergebnisse": [job(id="gd-1", title="Andere Rolle", job_url="https://g.example/1")]}, later(hours=1))
+        self.assertEqual(result["zaehlung"]["neu"], 1)
+
+    def test_result_file_is_deleted_only_after_success_and_only_in_its_own_eingang(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
+        eingang = os.path.join(self.w, "suche", "eingang")
+        os.makedirs(eingang)
+        elsewhere = os.path.join(self.w, "anderswo", "eingang")
+        os.makedirs(elsewhere)
+        payload = json.dumps({"status": "ok", "ergebnisse": [job()]})
+        own, foreign = os.path.join(eingang, "i.json"), os.path.join(elsewhere, "i.json")
+        for path in (own, foreign):
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(payload)
+        # refused: the Lauf does not exist, so nothing is stored and nothing is deleted
+        self.assertEqual(self.cli("board-ergebnis", aid, "l0099", "indeed", "--datei", own).returncode, 3)
+        self.assertTrue(os.path.exists(own))
+        started = ss.start_run(self.w, aid, "manuell", T0)
+        self.assertEqual(self.cli("board-ergebnis", aid, started["lauf"], "indeed", "--datei", foreign).returncode, 0)
+        self.assertTrue(os.path.exists(foreign))  # another directory called eingang is not ours
+        ss.release_lock(self.w, aid)
+        self.assertEqual(self.cli("nachtragen", aid, started["lauf"], "indeed", "--datei", own).returncode, 3)  # run is active
+        self.assertTrue(os.path.exists(own))
+        ss.finish_run(self.w, aid, started["lauf"], T0)
+        ss.start_run(self.w, aid, "manuell", later(days=8))
+        result = self.cli("board-ergebnis", aid, "l0002", "indeed", "--datei", own)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertFalse(os.path.exists(own))
+
+    def test_due_respects_the_weekly_budget(self):
+        aid = self.auftrag(plan={"intervall_tage": 1, "laeufe_pro_woche": 2})
+        self.run_search(aid, [], T0)
+        self.run_search(aid, [], later(days=1))
+        order = ss.load_auftrag(self.w, aid)
+        self.assertEqual(ss.due(self.w, order, later(days=3)), (False, "budget_erschoepft"))
+        self.assertTrue(ss.due(self.w, order, later(days=8))[0])
+
+    def test_empty_lock_is_stale_after_the_grace_period_and_active_before_it(self):
+        aid = self.auftrag(plan={"laeufe_pro_woche": 7})
+        lock = ss.lock_path(self.w, aid)
+        open(lock, "w").close()
+        self.assertEqual(self.refused(ss.start_run, self.w, aid, "manuell", T0), "lauf_aktiv")  # just written
+        old = ss.time.time() - 600
+        os.utime(lock, (old, old))
+        started = ss.start_run(self.w, aid, "manuell", T0)
+        self.assertEqual(started["lauf"], "l0001")
+
+    def test_corrupt_order_does_not_hide_the_others_and_the_launcher_says_so(self):
+        good = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
+        with open(os.path.join(self.w, "suche", "auftraege", "a-kaputt.json"), "w", encoding="utf-8") as handle:
+            handle.write("{kaputt")
+        result = self.cli("faellig", "--nur-ids")
+        self.assertEqual((result.returncode, result.stdout.split()), (0, [good]))
+        self.assertIn("a-kaputt.json", result.stderr)
+        config = os.path.join(self.w, "konfiguration.md")
+        fake = os.path.join(self.w, "claude")
+        with open(fake, "w", encoding="utf-8") as handle:
+            handle.write("#!/usr/bin/env bash\ntrue\n")
+        os.chmod(fake, 0o755)
+        launched = subprocess.run(["bash", os.path.join(ROOT, "scripts", "stellensuche_geplant.sh"), config],
+                                  env={**os.environ, "CLAUDE_BIN": fake}, capture_output=True, text=True)
+        self.assertIn("a-kaputt.json", launched.stderr)
+        self.assertEqual(launched.returncode, 0)
+
+    def test_launcher_allows_only_the_run_commands(self):
+        config = os.path.join(self.w, "konfiguration.md")
+        with open(config, "w", encoding="utf-8") as handle:
+            handle.write(f"---\nwurzel: {self.w}\n---\n")
+        self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
+        log = os.path.join(self.w, "aufrufe.txt")
+        fake = os.path.join(self.w, "claude")
+        with open(fake, "w", encoding="utf-8") as handle:
+            handle.write(f'#!/usr/bin/env bash\nprintf \'%s\\n\' "$STELLENSUCHE_GEPLANT $*" >> "{log}"\n')
+        os.chmod(fake, 0o755)
+        subprocess.run(["bash", os.path.join(ROOT, "scripts", "stellensuche_geplant.sh"), config],
+                       env={**os.environ, "CLAUDE_BIN": fake}, capture_output=True, text=True, check=True)
+        with open(log, encoding="utf-8") as handle:
+            call = handle.read()
+        self.assertTrue(call.startswith("1 "))
+        for allowed in ("lauf-start:*", "board-ergebnis:*", "lauf-ende:*", "nachtragen:*"):
+            self.assertIn(allowed, call)
+        for forbidden in ("freigeben", "anlegen", "aendern", "fortsetzen", "beenden", "entscheiden", "stellensuche.py:*"):
+            self.assertNotIn(forbidden, call)
+
+
 class OverviewTests(Base):  # SR-T
     def test_overview_lists_each_stelle_once_in_the_group_of_its_decision(self):
         aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
@@ -807,15 +921,15 @@ class CommandLineTests(Base):
         self.assertIn(sid, text)
         self.assertEqual(self.cli("faellig", "--nur-ids")[1].strip(), "")
 
-    def test_input_file_in_eingang_is_removed_after_reading(self):
+    def test_a_spec_file_in_eingang_is_kept_by_anlegen(self):
         folder = os.path.join(self.w, "suche", "eingang")
         os.makedirs(folder)
-        path = os.path.join(folder, "indeed.json")
+        path = os.path.join(folder, "auftrag.json")
         with open(path, "w", encoding="utf-8") as handle:
             json.dump({"name": "Testsuche", "brief": {"begriffe": [{"text": "Python", "quelle": "x"}]}}, handle)
         code, out = self.cli("anlegen", "--datei", path)
         self.assertEqual(code, 0)
-        self.assertFalse(os.path.exists(path))
+        self.assertTrue(os.path.exists(path))  # only result files are consumed
 
 
 class LauncherTests(Base):
