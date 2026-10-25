@@ -135,6 +135,23 @@ own words.
    write back from `versendet`, `rückmeldung` or a later value (S7 and S8 are the user's statements, LS-6 rules 4, 7).
    A Verlauf line is added only for an actual change.
 
+## Workflow (optional)
+
+`python3 <plugin-root>/scripts/workflow.py --konfiguration job-application/konfiguration.md <befehl>` keeps the order of the
+steps, their dependencies, attempts and the user's approvals of the send package across sessions (spec
+`workflow/en.md` WF-1 to WF-14). It is not required for this skill and changes none of its gates. It writes only
+`<wurzel>/workflow/` and reads the Vorgang; the status of the application stays in `vorgang.md`.
+
+- After S1 run `starten <slug>`. Before continuing a Vorgang, or when the user asks "what is next", run `naechste` and say which
+  tasks are ready for you, which wait for the user and which wait for an approval.
+- Before doing a step as an agent, run `uebernehmen <aufgabe>`: it refuses when another session has the task. After the step,
+  run `fertig <aufgabe>`; the script checks the result in the files. If you cannot finish, run `fehler <aufgabe> --klasse <klasse>
+  --grund "<kurz>"` (classes: `vorlaeufig`, `dienst`, `zeitlimit`, `eingabe`, `freigabe`, `berechtigung`, `qualitaet`, `daten`,
+  `dauerhaft`, `unklar`). A `fertig` without the result counts as a failed attempt.
+- **Never approve for the user.** `freigeben`, `ablehnen`, `ausfuehren`, `ausgang`, `wiederholen`, `abbrechen`, `anlegen` and
+  `grenzen` are the user's. `freigeben <aufgabe> --ja` is run only after the user said yes to exactly these documents; it
+  expires when a document changes. The plan gate (step 3) and sending (S7) stay as written above; the workflow observes them.
+
 ## Resume
 
 If `ziel_ordner` already exists, read `vorgang.md` first: its `status` names the last completed stage (LS-6), and

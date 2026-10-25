@@ -186,7 +186,10 @@ Wurzel and the repository boundary are checked by the script (a Blocker line on 
    the Veto stop stay as they are; this skill sends nothing and sets no Vorgang status.
 8. **Pause, continue, end.** `pausieren`, `fortsetzen`, `beenden` on the user's request only. `beenden` is final.
    `auftraege` lists status, last run and errors; `zeige <id>` shows one Suchauftrag including its last runs.
-9. **Scheduling is the user's step.** If the user wants repetition, explain that the plugin installs no timer and give the
+9. **A `suche` task of the workflow** (`scripts/workflow.py`, spec `workflow/en.md` WF-3) is taken with `uebernehmen <aufgabe>` before
+   step 3 and reported with `fertig <aufgabe>` (or `fehler`) after `lauf-ende`. The approval of the Suchauftrag stays here; the
+   workflow never approves it, and a run is still refused by `stellensuche.py` when the limits of ST-16 are used up.
+10. **Scheduling is the user's step.** If the user wants repetition, explain that the plugin installs no timer and give the
    line to add to cron or a systemd timer for `scripts/stellensuche_geplant.sh` (docs page *JobSpy*). Do not claim the
    search runs by itself until the user says it is set up.
 

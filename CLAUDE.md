@@ -16,9 +16,9 @@ The conventions are in `spec/job-application/konventionen/en.md`.
 - `.claude-plugin/plugin.json` — plugin manifest (name, version, author)
 - `.claude-plugin/marketplace.json` — marketplace catalog (downstream install source)
 - `skills/<name>/SKILL.md` — reusable skills; each folder is one skill
-- `scripts/` — helper scripts shared by skills, for example `grundlage_hash.py` (Datengrundlage hash and `stand`, spec R-9.5) and `posting_url.py` (URL cleaning and refused targets of the posting intake, spec UE-2), `stellensuche.py` (Suchauftrag, run log, Warteschlange and hand-off of the recurring search, spec ST-13 to ST-20) with the launcher `stellensuche_geplant.sh`
+- `scripts/` — helper scripts shared by skills, for example `grundlage_hash.py` (Datengrundlage hash and `stand`, spec R-9.5) and `posting_url.py` (URL cleaning and refused targets of the posting intake, spec UE-2), `stellensuche.py` (Suchauftrag, run log, Warteschlange and hand-off of the recurring search, spec ST-13 to ST-20) with the launcher `stellensuche_geplant.sh`, `workflow.py` (tasks, dependencies, attempts and approvals of the whole application process, spec WF-1 to WF-14)
 - `agents/<name>.md` — reusable sub-agents
-- `spec/` — specifications (EN canonical; DE translation pending). Fourteen specs under `spec/job-application/`: `konventionen`, `cv-generierung`, `lebenslauf`, `lebenslauf-versionen`, `anschreiben`, `motivationsschreiben`, `kontaktklassifikation`, `unternehmensanalyse`, `recherche`, `traumjob-interview`, `lokale-struktur`, `stellensuche`, `stellenanzeige-url`, `mail-verwaltung` (specification only, no skill yet). Index with one line per spec: `spec/README.md`
+- `spec/` — specifications (EN canonical; DE translation pending). Fifteen specs under `spec/job-application/`: `konventionen`, `cv-generierung`, `lebenslauf`, `lebenslauf-versionen`, `anschreiben`, `motivationsschreiben`, `kontaktklassifikation`, `unternehmensanalyse`, `recherche`, `traumjob-interview`, `lokale-struktur`, `stellensuche`, `stellenanzeige-url`, `workflow`, `mail-verwaltung` (specification only, no skill yet). Index with one line per spec: `spec/README.md`
 - `docs/` — MkDocs source (EN and DE)
 - `design/` — logo, icon, mascot and README banner: reproducible image prompts (`prompts/`), chosen results with their prompt sidecars (`assets/`), and `scripts/add_wordmark.py` that sets the title onto the banner (see `design/README.md`)
 - `project/` — mission, roadmap, requirements
@@ -32,6 +32,7 @@ Plugin skills are namespaced by plugin name — for example `/claude-job-search:
 - `task test` — test suite (stdlib unittest: CV checks, export, skill structure, spec index)
 - `task docs` — build the MkDocs site
 - `task export -- <datei.md> --format <pdf|docx|html|md|tex> --doc-type <cv|letter|motivation|email>` (`email` only with `md`; exit code 4 = page limit exceeded) — export a Bewerbungsdokument (skill `job-application-export`); `task export -- --reproduce <datei>.manifest.json` rebuilds an export from its manifest and compares it
+- `task workflow -- <befehl>` — run the workflow orchestration (`scripts/workflow.py`): `starten`, `laufen` (for a scheduler), `naechste`, `uebersicht`, `freigeben`, …; it executes no skill and sends nothing
 - `task search -- <befehl>` — run the deterministic helper of the recurring job search (`scripts/stellensuche.py`); `task search:scheduled -- <konfiguration.md>` starts one headless session per due Suchauftrag (needs `claude` and the JobSpy server)
 - `task plugin:reload` — launch Claude Code with this repo loaded as a plugin (dogfooding)
 

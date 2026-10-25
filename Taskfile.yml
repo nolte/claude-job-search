@@ -72,6 +72,13 @@ tasks:
     cmds:
       - evals/docker/run.sh {{.CLI_ARGS}}
 
+  workflow:
+    desc: |
+      Workflow orchestration of the application process (spec workflow WF-1 to WF-14): tasks, dependencies, approvals.
+      Usage: task workflow -- <starten|laufen|naechste|uebersicht|freigeben|...> ...   (executes no skill and sends nothing)
+    cmds:
+      - python3 scripts/workflow.py {{.CLI_ARGS}}
+
   search:
     desc: |
       Deterministic helper of the recurring job search (spec stellensuche ST-13 to ST-20).

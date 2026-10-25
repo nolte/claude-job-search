@@ -525,12 +525,14 @@ def release_lock(wurzel, auftrag_id, run_id=None):
 
 
 @contextlib.contextmanager
-def exclusive(wurzel):
-    """One state-changing command at a time per Wurzel: queue and orders are read, changed and rewritten whole."""
+def exclusive(wurzel, bereich="suche", name=".stellensuche.lock"):
+    """One state-changing command at a time per Wurzel: queue and orders are read, changed and rewritten whole.
+
+    `bereich` and `name` let the workflow keep its own lock next to its own files (`workflow.py`)."""
     if fcntl is None:
         yield
         return
-    path = os.path.join(wurzel, "suche", ".stellensuche.lock")
+    path = os.path.join(wurzel, bereich, name)
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         handle = open(path, "a")
