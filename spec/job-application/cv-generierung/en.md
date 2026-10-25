@@ -189,8 +189,38 @@ The skill may reformulate verified content. It may not add facts.
 - *automated* (CV-16): leadership wording (`geleitet`, `Teamleitung`, `führte`, `Personalverantwortung`
   and similar) is a Blocker unless the station note records `fuehrung: ja` (`nein`, `ungeklärt` and a missing entry
   all block, CG-13.4.3). With `fuehrung: ja` there is no finding (CG-7.2, leadership);
-- *review*: the remaining semantic checks of CG-7.2 (ownership, expertise, proficiency) are made by
-  the generating skill and the reviewer agent. They are not decided by the script.
+- *automated* (CV-22, CV-23): wording of ownership, scope or expertise that the station record does not use, and a team
+  result without a team reference (CG-7.4, CG-13.4.10, CG-13.4.11). Both are a Warnung: the script asks for the
+  evidence, it does not decide that a claim is false;
+- *review*: the remaining semantic checks of CG-7.2 and CG-7.4 are made by the generating skill and the reviewer agent.
+  They are not decided by the script.
+
+### CG-7.4 Semantic fidelity
+
+A rewording keeps the factual meaning. Six dimensions describe what a statement claims; a statement may move up in none of
+them unless the station record of the Grundlage says so. The levels are ordered, the examples are illustrative.
+
+| Dimension | Levels, weak to strong | Moving up needs |
+|---|---|---|
+| Activity | took part, implemented, operated, coordinated, designed, reviewed, led | the verb, or a stronger one, in the record |
+| Responsibility | contribution, shared responsibility, operational responsibility, technical ownership, project responsibility, organizational responsibility | a record that names the level (`gemeinsam`, `eigenverantwortlich`, `Projektleitung`) |
+| Leadership | technical coordination, technical leadership, project leadership, personnel management, organizational leadership | personnel management and above: `fuehrung: ja` (CV-16); the lower levels: the record |
+| Expertise | exposure, practical use, repeated use, specialization, documented expert responsibility | a record that states the level; the presence of a technology in a skill list states none |
+| Scope | task, component, service, project, platform, organization | the record names the object; `die gesamte …`, `unternehmensweit` need it too |
+| Outcome | activity, deliverable, contribution, team outcome, individual outcome, quantified result | a result of the team stays a team result; a number needs its source (CV-05) |
+
+Allowed: shorter, clearer, more professional wording, a better sentence structure, selecting and ordering by the posting
+(CG-5), and replacing a vague phrase by the exact one of the same entry (CG-7.1). `Mitarbeit am Betrieb einer
+Kubernetes-Plattform` may become `an dem Betrieb von Kubernetes-Plattformen mitgewirkt`; `Koordination technischer
+Aufgaben im Team` may become `technische Arbeit im Team koordiniert`.
+
+Not allowed without a record: `die gesamte Plattform eigenverantwortlich betrieben` for the first, `das Engineering-Team
+gemanagt` for the second, `Terraform-Experte` for `Terraform in einem Projekt eingesetzt`, `die gesamte Enterprise-Architektur
+verantwortet` for a contribution to one service, and a team's `Latenz um 40 % gesenkt` as the candidate's own.
+
+An ambiguous record (it names the activity but not the level) gives a Warnung and a question to the user; the skill does
+not choose the stronger reading. A statement that matches the record in meaning is no finding, even when no word is the same.
+Only the user changes the Grundlage; the skills, the script and the reviewer never write into it.
 
 ## CG-8 Achievements and results
 
@@ -228,8 +258,8 @@ The skill may reformulate verified content. It may not add facts.
 1. **Verbs.** Use the past participle of a concrete activity verb: `aufgebaut`, `betrieben`,
    `eingeführt`, `entwickelt`, `automatisiert`, `migriert`, `integriert`, `konzipiert`, `gesenkt`,
    `gesteigert`, `betreut`, `begleitet`, `umgesetzt`. The verb says what the candidate did (CG-8.4).
-2. **Leadership verbs** (`geleitet`, `verantwortet`, `Teamleitung`) need `fuehrung: ja` in the station
-   note (CV-16).
+2. **Leadership verbs** (`geleitet`, `gemanagt`, `angeleitet`, `Teamleitung`) need `fuehrung: ja` in the station
+   note (CV-16). `verantwortet` and other wording of ownership are checked against the station record (CV-22, CG-7.4).
 3. **Forbidden phrases.** `verantwortlich für`, `zuständig für`, `involved in`, `worked on`,
    `erfolgreich`, `innovativ`, `dynamisch`, `diverse`, `vielfältig`, `Expertise in`, `sicher in` are not
    used. CV-11 enforces the whole set and reports a Warnung (CG-7.3). `Expertise in` and `sicher in`
@@ -371,7 +401,7 @@ and lets the user decide.
 
 | # | Dimension | Check | Kind | Rule |
 |---|---|---|---|---|
-| 1 | Factual integrity | Numbers traceable to the Grundlage, with their unit or noun; entries of the list sections (skills, languages, certificates, education) present in the Grundlage; stations confirmed | automated | CV-05, CV-19, CV-20 |
+| 1 | Factual integrity | Numbers traceable to the Grundlage, with their unit or noun; entries of the list sections (skills, languages, certificates, education) present in the Grundlage; stations confirmed; wording of ownership, scope and expertise and team results backed by the record (CG-7.4) | automated and review | CV-05, CV-19, CV-20, CV-22, CV-23 |
 | 2 | Source traceability | Entry references in `pruefbericht.md` | review | CG-2.3 |
 | 3 | Target-role relevance | Selection follows CG-5 | review | CG-5 |
 | 4 | Muss coverage | Muss rows not marked `erfüllt` without evidence | automated | CV-07 |
@@ -434,6 +464,15 @@ and lets the user decide.
    `- Bestätigt: nein`, or the station note key `bestaetigt: nein`) is a Blocker: a station counts only once the user has confirmed it (R-9.5 point 5). A missing flag is no finding, so
    older Grundlagen keep working.
 9. **CV-21.** A Lebenslauf with nothing but frontmatter and headings is a Blocker: every other rule passes on an empty document, so an empty file would read as clean.
+10. **CV-22.** Wording of ownership or independence (`eigenverantwortlich`, `Gesamtverantwortung`, `verantwortet`,
+    `eigenständig`), of scope (`gesamte`, `komplette`, `unternehmensweit`, `Enterprise-…`) or of expertise (`Experte`,
+    `Spezialist`, `Spezialisierung`, `sehr gute Kenntnisse`, `Expertise`) is a Warnung when its first seven letters do not
+    stand in the record of the station. The finding names the dimension, quotes the line of the record that is closest to the
+    bullet, and asks the user. Not read: the meaning (a paraphrase with other words passes, a claim without a marker also
+    passes), a station without a record, and the sentences of a letter.
+11. **CV-23.** A number that the record of the station gives only in lines that speak of a team (`Team`, `gemeinsam`, `wir`,
+    `Kollegen`) is a Warnung when the bullet has no team reference. A head count (`4 Entwickler`) is a fact about the team,
+    not a result, and is left to CV-05. A result without a number (`Umsatz gesteigert`) is not read: it stays with the review.
 
 ### CG-13.5 Severities of the further gate checks
 
@@ -536,8 +575,9 @@ fixtures (`tests/fixtures/szenarien/README.md`).
 | Year-only periods | No `[ERGÄNZEN: Monat]` placeholder, no completion of the station note required (CG-2.4, CG-9) | done (decision) |
 | Gap wording | Neutral wording chosen by the user from the list in CG-9; `Auszeit` is not a default | done (decision) |
 | DOCX metadata | The DOCX export clears the author fields (`dc:creator`, `cp:lastModifiedBy`) in `export_document.py` (CG-11.5); a fresh pandoc DOCX carries no revisions or comments | done (export, 0.2.0) |
-| CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-21 are the whole automated set (R-7, CG-13.4.5) | done (script) |
+| CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-23 are the whole automated set (R-7, CG-13.4.5) | done (script) |
 | BR-01 to BR-05 | `cv_checks.py --doc-type letter, motivation or email` checks placeholders, numbers, experience spans and leadership wording of the letters (CG-13.6, audit finding FF-002) | done (script) |
+| CV-22, CV-23 | Wording of ownership, scope and expertise and team results are checked against the station record; the rest of CG-7.4 is review (audit finding F-01) | done (script) |
 | CV-19, CV-20, CV-05 unit | List-entry grounding, unconfirmed stations and unit comparison (CG-13.4.6 to 13.4.8, audit findings FF-001, FF-003) | done (script) |
 | Page limit | Exit code 4 of `export_document.py` (R-10.10); the gate sets the severity (CG-12.4, CG-13.5) | done (export) |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

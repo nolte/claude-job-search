@@ -165,7 +165,9 @@ with the city of the address and the date of generation (LB-9.2, LB-9.4); an unk
    - "und" joins at most two items; a technology list may name three (CG-8.1.7).
 
    Use the verbs and avoid the forbidden phrases of CG-8.2; write measured values as digits with unit (CG-8.3). Leadership
-   verbs (`geleitet`, `verantwortet`, `Teamleitung`) only when the station note has `fuehrung: ja` (CG-8.2.2, CV-16);
+   verbs (`geleitet`, `gemanagt`, `Teamleitung`) only when the station note has `fuehrung: ja` (CG-8.2.2, CV-16); wording of
+   ownership, scope and expertise (`verantwortet`, `eigenverantwortlich`, `gesamte`, `Experte`) only when the station record uses it (CG-7.4, CV-22);
+   a result that the record gives to the team stays a team result (`im Team`, CV-23);
    when the source says the candidate took part, use a participation form such as `mitgearbeitet an` or `beteiligt an`
    (CG-8.2.5). Use a number only if the Grundlage states it. Otherwise write a qualitative result **that the Grundlage
    states**; if it states none, keep the task without a result (CG-8 Nr. 1 and Nr. 2). A routine task without a
@@ -301,7 +303,8 @@ own words.
 7. **Signature line:** `Ort, TT.MM.JJJJ`. A handwritten signature only for a paper copy (R-2, LB-9).
 8. **Controlled rewriting only** (CG-7). Shorten, reorder and reword verified content. Never add a number, team size,
    title, technology, or level, and never turn participation into ownership, assistance into leadership, exposure into
-   expertise, or familiarity into proficiency (CG-7.2).
+   expertise, or familiarity into proficiency (CG-7.2), and never widen the scope or the responsibility level of an entry
+   (task to platform, contribution to ownership; the table of CG-7.4). If the record is ambiguous about the level, ask the user.
 9. **Conflicts stop the draft.** A date or title that differs between the profile and the Grundlage, or a *Muss*
    requirement without evidence, is reported to the user and not resolved by choosing a value (CG-2.2, CG-4.5).
 10. **Only the Wurzel is written** (LS-5.7): the Vorgang folder or Ausprägungsordner with `lebenslauf.md` and
