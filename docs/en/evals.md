@@ -163,6 +163,29 @@ A suite proves nothing unless it can fail. Each probe weakens an instruction in 
 - Do not tighten a rubric until it passes. A grader that fails for a legitimate answer is wrong; fix the grader, not the skill.
 - Leave the threshold at 0.8 until the pass rates of ten-run batches are known.
 
+## Running in a container
+
+On a machine where the Bash tool of the eval fails with `apply-seccomp: … nested userns is capability-restricted`, the cases that need
+Bash (`behavior-gate-runs-script`, the precondition `behavior-bash-works`) cannot run. `evals/docker/run.sh` (`task eval:container`)
+runs `evals/run.sh` inside a container instead; it takes the same arguments and variables.
+
+```bash
+TRUST=1 task eval:container -- behavior-bash-works     # first: does Bash work in the container?
+TRUST=1 task eval:container -- behavior-python-works
+RUNS=3 MAX_COST_USD=3 TRUST=1 SKIP_PRECHECK=1 task eval:container -- behavior-gate-runs-script
+```
+
+- The image (`evals/docker/Dockerfile`, built by the script) holds only tools: Claude Code in the version of the suite, `bubblewrap`,
+  `socat`, `git` and `python3`. The repository is mounted at run time, results land in `evals/results/`. No credential is baked in; the
+  variables `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` are passed by name from your environment. A login in
+  `~/.claude` is not available inside the container.
+- The container runs as your user, drops all capabilities and sets `no-new-privileges`. It has to relax three defaults of Docker that
+  block the user namespaces which `bubblewrap` creates: the seccomp profile, the AppArmor profile and the masked paths of `/proc`. This
+  lowers the isolation between the container and the host. Use it only for this trusted plugin and only if that is acceptable on your machine.
+- Checked without a model call: `bubblewrap` creates a nested namespace as a non-root user with these options, and the mounted repository
+  is writable. **Not checked:** whether the Bash tool of `claude plugin eval` works in the container; `behavior-bash-works` answers that
+  (about 0.15 US dollars). If it is still red, the cause is not the host profile and the container does not help.
+
 ## Limits
 
 - The suite measures instruction following on a handful of cases, not the quality of a Lebenslauf or a letter.
