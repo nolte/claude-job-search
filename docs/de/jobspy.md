@@ -91,7 +91,12 @@ Beispiele (sag es Claude, oder rufe das Hilfsskript selbst auf mit
 3. **Einmal ausführen:** „Führe den Suchauftrag jetzt aus.“ Ergebnis: `ok`, `ok_ohne_treffer` (Erfolg ohne Treffer),
    `teilweise` oder `fehlgeschlagen` (zum Beispiel `suchdienst_nicht_verfuegbar`, wenn der Server nicht verbunden ist).
 4. **Nach Zeitplan wiederholen:** Das Plugin installiert keinen Timer. Trage `scripts/stellensuche_geplant.sh` in einen
-   Scheduler von dir ein, etwa täglich (es startet nur für fällige Suchaufträge eine Sitzung mit eingeschränkter Werkzeugliste):
+   Scheduler von dir ein, etwa täglich. Es startet nur für fällige Suchaufträge eine Sitzung (freigegeben, aktiv, Intervall
+   vergangen, noch Läufe im 7-Tage-Fenster übrig). Die headless Sitzung darf nur das Suchwerkzeug des Servers und die
+   Hilfsbefehle `lauf-start`, `board-ergebnis`, `lauf-ende` und `nachtragen` aufrufen sowie Ergebnisdateien nach `suche/eingang/`
+   schreiben. Sie kann keinen Suchauftrag anlegen, ändern, freigeben, fortsetzen oder beenden und keine Entscheidung über eine
+   Stelle treffen: Das bleibt bei dir in einer interaktiven Sitzung, weil ein Inserat Text enthalten könnte, der danach verlangt.
+   Eine nicht lesbare Auftragsdatei wird auf stderr genannt und stoppt die anderen nicht, schau also in dein Log:
    `17 7 * * * cd /pfad/zum/arbeitsordner && /pfad/zum/plugin/scripts/stellensuche_geplant.sh job-application/konfiguration.md >> ~/suche.log 2>&1`.
    Der Werkzeugname des Servers ist standardmäßig `mcp__jobspy__search_jobs`; setze `STELLENSUCHE_JOBSPY_TOOL`, wenn du ihn
    anders genannt hast. Nicht geprüft: Das Plugin hat keine geplante Sitzung gegen den echten Server laufen lassen (es war
@@ -105,7 +110,9 @@ Beispiele (sag es Claude, oder rufe das Hilfsskript selbst auf mit
    URL-Intake oder du fügst ihn ein, der Plan braucht weiter deine Freigabe. Ein vorhandener Vorgang wird weiterverwendet.
 8. **Fehlgeschlagenen Lauf untersuchen:** `auftraege` zeigt den letzten Lauf und Fehler; `zeige <id>` listet die letzten 30
    Läufe mit Code (`board_blockiert`, `verbindung_fehlgeschlagen`, …). Nach 3 Fehlern in Folge stoppen geplante Läufe, bis du
-   fortsetzt.
+   fortsetzt. Endete ein Lauf `teilweise`, `fehlgeschlagen` oder `unterbrochen`, obwohl Claude die Antworten eines Boards hatte
+   (das Erfassen scheiterte), lassen sie sich danach mit `nachtragen <id> <lauf> <board>` speichern; Status dieses Laufs und
+   Budget ändern sich dadurch nicht.
 9. **Pausieren und beenden:** „Pausiere den Suchauftrag“ (`pausieren`, später `fortsetzen`) und „Beende den Suchauftrag“
    (`beenden`, endgültig: für eine neue Suche legst du einen neuen an).
 

@@ -86,7 +86,11 @@ Examples (say it to Claude, or run the helper yourself with
 3. **Run once:** "Führe den Suchauftrag jetzt aus." Result: `ok`, `ok_ohne_treffer` (a success without hits),
    `teilweise` or `fehlgeschlagen` (for example `suchdienst_nicht_verfuegbar` when the server is not connected).
 4. **Repeat on a schedule:** the plugin installs no timer. Add `scripts/stellensuche_geplant.sh` to a scheduler of yours, for
-   example once a day (it starts a run only for due Suchaufträge, with a restricted tool list):
+   example once a day. It starts a run only for Suchaufträge that are due (approved, active, interval passed, runs left in the
+   7-day window). The headless session may call only the search tool of the server and the helper commands `lauf-start`,
+   `board-ergebnis`, `lauf-ende` and `nachtragen`, and write result files into `suche/eingang/`. It cannot create, change, approve,
+   continue or end a Suchauftrag, nor decide on a posting: that stays with you in an interactive session, because a posting could
+   contain text that asks for it. An unreadable Suchauftrag file is named on stderr and does not stop the others, so check your log:
    `17 7 * * * cd /pfad/zum/arbeitsordner && /pfad/zum/plugin/scripts/stellensuche_geplant.sh job-application/konfiguration.md >> ~/suche.log 2>&1`.
    The tool name of the server defaults to `mcp__jobspy__search_jobs`; set `STELLENSUCHE_JOBSPY_TOOL` if you named it differently.
    Not verified here: the plugin has not run a scheduled session against the real server (no server was connected).
@@ -97,7 +101,9 @@ Examples (say it to Claude, or run the helper yourself with
 7. **Hand over:** "Übernimm s-…." Claude gives `job-application-solution` the URL as `stellenquelle`; the text is loaded
    through the URL intake or pasted by you, the plan still needs your approval. An existing Vorgang is reused.
 8. **Investigate a failed run:** `auftraege` shows the last run and error; `zeige <id>` lists the last 30 runs with the code
-   (`board_blockiert`, `verbindung_fehlgeschlagen`, …). After 3 failures in a row scheduled runs stop until you continue.
+   (`board_blockiert`, `verbindung_fehlgeschlagen`, …). After 3 failures in a row scheduled runs stop until you continue. If a run
+   ended `teilweise`, `fehlgeschlagen` or `unterbrochen` although Claude had the answers of a board (recording failed), they can be
+   stored afterwards with `nachtragen <id> <lauf> <board>`; this changes neither the status of that run nor the budget.
 9. **Pause and end:** "Pausiere den Suchauftrag" (`pausieren`, later `fortsetzen`) and "Beende den Suchauftrag" (`beenden`,
    final: create a new one to search again).
 
