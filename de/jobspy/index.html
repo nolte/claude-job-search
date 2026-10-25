@@ -1,0 +1,1555 @@
+
+<!doctype html>
+<html lang="de" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Claude Code skills for German-speaking job applications (Bewerbungsunterlagen) — packaged as the claude-job-search plugin.">
+      
+      
+        <meta name="author" content="nolte">
+      
+      
+        <link rel="canonical" href="https://nolte.github.io/claude-job-search/de/jobspy/">
+      
+      
+        <link rel="prev" href="../websearch/">
+      
+      
+        <link rel="next" href="../browser/">
+      
+      
+        
+          <link rel="alternate" href="../../jobspy/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="de">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>JobSpy - claude-job-search</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#jobspy" class="md-skip">
+          Zum Inhalt
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Kopfzeile">
+    <a href="../" title="claude-job-search" class="md-header__button md-logo" aria-label="claude-job-search" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            claude-job-search
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              JobSpy
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Zum Dunkelmodus wechseln"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Zum Dunkelmodus wechseln" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Zum Hellmodus wechseln"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Zum Hellmodus wechseln" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Sprache wechseln">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../jobspy/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="de" class="md-select__link">
+              Deutsch
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Suche" placeholder="Suche" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Suche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Zurücksetzen" aria-label="Zurücksetzen" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Suche wird initialisiert
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/nolte/claude-job-search" title="Zum Repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    nolte/claude-job-search
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Hauptnavigation" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Startseite
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Erste Schritte
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../use-cases/" class="md-tabs__link">
+          
+  
+  
+  Anwendungsfälle
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../skills/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Skills
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../counterparts/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Gegenpartei
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../glossary/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Glossar
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../export/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Export
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../evals/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Das Plugin evaluieren
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../mcp-servers/" class="md-tabs__link">
+          
+  
+  
+  Optionale MCP-Server
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../" title="claude-job-search" class="md-nav__button md-logo" aria-label="claude-job-search" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    claude-job-search
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/nolte/claude-job-search" title="Zum Repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    nolte/claude-job-search
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Startseite
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Erste Schritte
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anwendungsfälle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Anwendungsfälle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Übersicht
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../use-cases/posting-application/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auf eine Anzeige bewerben
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../use-cases/recruiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Über Recruiter oder Agentur
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../use-cases/career-change/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Berufswechsel und Stellensuche
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../use-cases/initiative-and-motivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Initiativbewerbung und Motivationsschreiben
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../use-cases/maintain-and-variants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Daten und Lebensläufe aktuell halten
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skills
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../counterparts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gegenpartei
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Das Plugin evaluieren
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optionale MCP-Server
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Optionale MCP-Server
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mcp-servers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Übersicht
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../linkedin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LinkedIn
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../handelsregister/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Handelsregister
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../websearch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Websuche
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JobSpy
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JobSpy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#was-der-server-tut" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was der Server tut
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#so-nutzt-der-skill-ihn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        So nutzt der Skill ihn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#einrichten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Einrichten
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#was-er-abdeckt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was er abdeckt
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regeln-speziell-fur-jobspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regeln speziell für JobSpy
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../browser/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Browser-MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#was-der-server-tut" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was der Server tut
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#so-nutzt-der-skill-ihn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        So nutzt der Skill ihn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#einrichten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Einrichten
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#was-er-abdeckt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was er abdeckt
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regeln-speziell-fur-jobspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regeln speziell für JobSpy
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="jobspy">JobSpy<a class="headerlink" href="#jobspy" title="Permanent link">&para;</a></h1>
+<p>Passende Stellen zu finden ist für die meisten noch Handarbeit: Du suchst auf mehreren Jobbörsen,
+kopierst einen Text und startest die Bewerbung. Das quelloffene Projekt
+<a href="https://github.com/speedyapply/JobSpy">JobSpy</a> (MIT) bietet eine gemeinsame Abfrage über mehrere
+Börsen, und sein MCP-Server (<code>mcp-jobspy</code> auf PyPI) gibt die Ergebnisse an Claude weiter. Der
+Skill <code>job-application-job-search</code> nutzt ihn, um aus deinem Wunschprofil eine Shortlist zu
+bauen.</p>
+<div class="admonition note">
+<p class="admonition-title">Bevorzugter Weg zu Jobbörsen, aber nicht Teil dieses Plugins</p>
+<p>Diese Seite behandelt nur den JobSpy-Server. Die Regeln, die für alle optionalen Server
+gelten (Zustimmung, ein Weg je Quelle, Budget, Rang der Quelle, keine Umgehung), stehen auf
+<a href="../mcp-servers/">Optionale MCP-Server</a>. Ist der Server verbunden, werden Jobbörsen über ihn
+durchsucht und nicht per Websuche oder Seitenabruf. Das ist die Arbeitsregel des
+Rechercheverfahrens (<code>spec/job-application/recherche/en.md</code>, RC-5.8); der Suchschritt selbst
+ist in <code>spec/job-application/stellensuche/en.md</code> festgelegt. Kein Skill braucht den Server.
+Ohne ihn fügst du eine Anzeige in <code>job-application-solution</code> ein, wie in
+<a href="../getting-started/">Erste Schritte</a> beschrieben. Das Plugin installiert nichts und liefert
+keine <code>.mcp.json</code>: Die Konfiguration unten trägst du selbst ein. Der Server ist ein
+eigenständiges Projekt und steht in keiner Verbindung zu diesem Plugin.</p>
+</div>
+<p>Jede Aussage über JobSpy auf dieser Seite ist die des Projekts selbst, wie seine READMEs sie
+nennen, geprüft gegen <strong>Version 1.4.1</strong> (laut PyPI am 23. Oktober 2026 veröffentlicht). Das
+Plugin hat den Server nicht gegen die Börsen getestet und bestätigt diese Aussagen nicht. Prüfe
+die README auf Neueres.</p>
+<h2 id="was-der-server-tut">Was der Server tut<a class="headerlink" href="#was-der-server-tut" title="Permanent link">&para;</a></h2>
+<p>Der MCP-Server bietet zwei Tools, wie seine README sie beschreibt:</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Was es tut</th>
+<th>Nutzung im Skill</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>search_jobs</code></td>
+<td>Durchsucht die gewählten Börsen und liefert eine Vorschau mit einer Such-ID; die Ergebnisse lassen sich optional als <code>.csv</code>, <code>.json</code> oder <code>.jsonl</code> exportieren</td>
+<td>Die Shortlist</td>
+</tr>
+<tr>
+<td><code>get_job_details</code></td>
+<td>Liefert die vollständigen Datensätze gewählter Stellen aus einer Suche, ohne erneut zu suchen</td>
+<td>Der eine Eintrag, den du wählst, für die Übergabe</td>
+</tr>
+</tbody>
+</table>
+<p>Die README des MCP-Servers listet die Parameter der Tools nicht auf, deshalb tut es diese Seite
+auch nicht. Der Skill übergibt nur, was dein freigegebener Suchbrief enthält. Den Export nutzt
+das Plugin nicht von sich aus; wünschst du einen, landet er in deiner Wurzel und folgt den
+Aufbewahrungsregeln unten.</p>
+<h2 id="so-nutzt-der-skill-ihn">So nutzt der Skill ihn<a class="headerlink" href="#so-nutzt-der-skill-ihn" title="Permanent link">&para;</a></h2>
+<p><code>job-application-job-search</code> ist ein optionaler Schritt vor der Bewerbung. Er läuft so:</p>
+<ol>
+<li>Er baut aus deinem bestätigten Wunschprofil und <code>profil.md</code> einen <strong>Suchbrief</strong> und <strong>zeigt
+   ihn zuerst</strong>: Suchbegriffe, Ort und Umkreis, Remote, Anstellungsart, höchstes Alter der
+   Anzeige, Börsen, Ergebnisse je Börse und die Quelle jedes Begriffs. Der Brief enthält nur
+   Begriffe, die du selbst in eine Börse tippen würdest. Ausschlussgründe, Gehaltswunsch,
+   persönliche Umstände und Text aus deiner Datengrundlage gehören nie hinein.</li>
+<li>Vor deinem Ja wird nichts gesendet. Nur die Begriffe des freigegebenen Briefs gehen an die
+   Börsen.</li>
+<li>Standardbörsen sind <strong>Indeed und Glassdoor</strong>. Weitere Börsen nutzt der Skill nur, wenn dein
+   Brief sie nennt. <strong>LinkedIn wird nie über JobSpy durchsucht</strong>: LinkedIn läuft über den
+   eigenen Server, siehe <a href="../linkedin/">LinkedIn-Zugriff</a>.</li>
+<li>Die Grenzen sind bewusst klein: höchstens 20 Ergebnisse je Börse, 3 Börsen je Suche, 5 Suchen
+   je Sitzung und ein begrenztes Alter der Anzeigen (RC-5.8 Regel 4). Es gibt keine geplanten
+   oder wiederkehrenden Suchen. Vollständige Details holt der Skill nur für den Eintrag, den du
+   wählst, nie für eine Liste.</li>
+<li>Die Shortlist zeigt Vetos aus deinem Wunschprofil mit Grund, statt sie zu streichen, führt
+   Doppelte über Börsen und mit deinen vorhandenen Vorgängen zusammen und markiert Anzeigen
+   eines Vermittlers oder ohne Arbeitgebername. Ein Fit-Check läuft nur auf Wunsch, je Eintrag.</li>
+<li>Du wählst einen Eintrag; der Skill übergibt ihn an <code>job-application-solution</code>, mit dem
+   Anzeigentext wie veröffentlicht und der URL als <code>stellenquelle</code>.</li>
+<li>Brief, Shortlist und deine Entscheidung je Eintrag (<code>übernommen</code>, <code>abgelehnt</code>, <code>offen</code>)
+   landen in <code>suche/&lt;JJJJ-MM-TT&gt;-&lt;slug&gt;.md</code> in deiner Wurzel. Der Datensatz bleibt 90 Tage
+   erhalten. Der Skill listet Datensätze nach Fristende auf und löscht nichts; du entscheidest.</li>
+</ol>
+<h2 id="einrichten">Einrichten<a class="headerlink" href="#einrichten" title="Permanent link">&para;</a></h2>
+<p>Du brauchst <a href="https://docs.astral.sh/uv/getting-started/installation/">uv</a>. Die README des
+MCP-Servers ist maßgeblich für aktuelle Schritte und Optionen. Für Claude Code:</p>
+<div class="highlight"><pre><span></span><code>claude<span class="w"> </span>mcp<span class="w"> </span>add<span class="w"> </span>jobspy<span class="w"> </span>--<span class="w"> </span>uvx<span class="w"> </span>mcp-jobspy@latest
+</code></pre></div>
+<p>Oder als Eintrag im Abschnitt <code>mcpServers</code> deiner MCP-Konfiguration:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"mcpServers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"jobspy"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"command"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uvx"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"args"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"mcp-jobspy@latest"</span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>@latest</code> hält den Server selbst aktuell, sodass er mit den wechselnden Seiten der Börsen
+funktioniert, führt aber auch neuen Code ohne deine Prüfung aus. Legst du Wert darauf, pinne
+stattdessen eine Version: Schreibe <code>mcp-jobspy@&lt;version&gt;</code> mit einer Versionsnummer aus den
+Releases des Projekts. Die für diese Seite geprüfte Version ist 1.4.1.</p>
+<h2 id="was-er-abdeckt">Was er abdeckt<a class="headerlink" href="#was-er-abdeckt" title="Permanent link">&para;</a></h2>
+<p>Laut README verhalten sich die Börsen bei einer Suche im deutschsprachigen Raum so:</p>
+<table>
+<thead>
+<tr>
+<th>Börse</th>
+<th>In DACH</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Indeed</td>
+<td>Unterstützt Deutschland, Österreich und die Schweiz. Standardbörse</td>
+</tr>
+<tr>
+<td>Glassdoor</td>
+<td>Unterstützt Deutschland, Österreich und die Schweiz. Standardbörse, mit dem bekannten Problem unten</td>
+</tr>
+<tr>
+<td>LinkedIn</td>
+<td>Von JobSpy unterstützt, aber dieses Plugin nutzt es nie über JobSpy; es läuft über den <a href="../linkedin/">LinkedIn-Server</a></td>
+</tr>
+<tr>
+<td>ZipRecruiter</td>
+<td>USA und Kanada: gilt nicht</td>
+</tr>
+<tr>
+<td>Bayt, Naukri, BDJobs, HelloWork</td>
+<td>Andere Regionen (Naukri: Indien, BDJobs: Bangladesch, HelloWork: Frankreich): gelten nicht für DACH</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Nicht abgedeckt:</strong> StepStone, XING und die Jobbörse der Bundesagentur für Arbeit. Eine Suche
+über JobSpy übersieht deshalb viele deutsche Anzeigen. Sieh die Shortlist als Ausschnitt des
+Marktes, nicht als dessen Gesamtheit.</p>
+<p><strong>Ein bekanntes Glassdoor-Problem.</strong> Ein offenes Issue (#438 im JobSpy-Repository, offen am
+23. Oktober 2026) meldet, dass Glassdoor den Ort „Berlin, Germany“ nicht findet, während
+„Berlin“ und „Berlin, Deutschland“ funktionierten. Eine Korrektur ist vorgeschlagen, aber nicht
+übernommen. Fällt Glassdoor aus, meldet der Skill das und überspringt die Börse; die anderen
+Börsen laufen weiter.</p>
+<h2 id="regeln-speziell-fur-jobspy">Regeln speziell für JobSpy<a class="headerlink" href="#regeln-speziell-fur-jobspy" title="Permanent link">&para;</a></h2>
+<p>Die allgemeinen Regeln stehen auf <a href="../mcp-servers/">Optionale MCP-Server</a>. Für JobSpy kommt
+hinzu:</p>
+<ol>
+<li><strong>Sperren.</strong> Die README sagt, die Jobbörsen „are aggressive with blocking“, und empfiehlt
+   Proxys. <strong>Dieses Plugin empfiehlt oder konfiguriert keine Proxys oder andere Maßnahmen, um
+   Sperren zu umgehen.</strong> Eine blockierte Börse wird dir gemeldet und aus der Suche
+   ausgelassen.</li>
+<li><strong>Nutzungsbedingungen.</strong> Die Bedingungen der Börsen können automatisierten Zugriff
+   einschränken. Sie unterscheiden sich je Börse, und du prüfst sie selbst. Keine der beiden READMEs nimmt zu
+   den Nutzungsbedingungen Stellung. Der Einsatz des Servers ist deine Entscheidung und dein
+   Risiko, wie bei LinkedIn und dem Handelsregister.</li>
+<li><strong>Budget.</strong> Höchstens 20 Ergebnisse je Börse, 3 Börsen je Suche, 5 Suchen je Sitzung. Du
+   kannst die Zahlen senken.</li>
+<li><strong>Personenbezogene Daten.</strong> Ein Datensatz enthält ein Feld <code>emails</code> und Kontaktdaten der
+   Firma. Sie werden nicht gespeichert und nicht in der Shortlist gezeigt: Die Shortlist behält
+   Firma, Rolle, Ort, Datum und URL. Was der Server liest, wird trotzdem Teil der
+   Claude-Sitzung und geht an den Modellanbieter.</li>
+<li><strong>Anzeigentext sind Daten.</strong> Eine Anzeige von einer Börse kann Anweisungen enthalten. Der
+   Skill behandelt sie als Daten und befolgt sie nie.</li>
+<li><strong>Qualität der Daten.</strong> Ein Eintrag ist eine Anzeige, wie veröffentlicht (Rang 2), für
+   Anforderungen und Bewerbungsweg; die Angaben der Börse zur Firma sind Rang 5. Eine
+   Gehaltsspanne kann aus der Beschreibung gelesen sein (<code>salary_source: description</code>); der
+   Skill zeigt sie mit diesem Hinweis und nutzt sie nie als Tatsache in einem Dokument. Dieselbe
+   Anzeige kann auf mehreren Börsen stehen und alt oder neu eingestellt sein, deshalb zeigt die
+   Shortlist das Datum der Anzeige.</li>
+<li><strong>Ohne den Server.</strong> Füge den Anzeigentext in <code>job-application-solution</code> ein.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Zurück zum Seitenanfang
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 nolte
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "In Zwischenablage kopiert", "clipboard.copy": "In Zwischenablage kopieren", "search.result.more.one": "1 weiteres Suchergebnis auf dieser Seite", "search.result.more.other": "# weitere Suchergebnisse auf dieser Seite", "search.result.none": "Keine Suchergebnisse", "search.result.one": "1 Suchergebnis", "search.result.other": "# Suchergebnisse", "search.result.placeholder": "Suchbegriff eingeben", "search.result.term.missing": "Es fehlt", "select.version": "Version ausw\u00e4hlen"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
