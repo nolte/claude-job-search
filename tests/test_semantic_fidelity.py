@@ -219,7 +219,7 @@ class ApprovalAndGate(unittest.TestCase):
     def test_without_a_record_the_semantic_rules_stay_silent(self):
         found = cv_checks.check_cv(HEAD + "- Eigenverantwortlich die gesamte Plattform betrieben.\n", "lebenslauf.md")
         self.assertEqual([f["regel"] for f in found if f["regel"] in ("CV-22", "CV-23")], [])
-        self.assertIn("CV-01 to CV-23", subprocess.run([sys.executable, SCRIPT, "--help"], capture_output=True, text=True).stdout)
+        self.assertIn("CV-01 to CV-24", subprocess.run([sys.executable, SCRIPT, "--help"], capture_output=True, text=True).stdout)
 
 
 class Documentation(unittest.TestCase):

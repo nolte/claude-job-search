@@ -29,15 +29,24 @@ then hands the posting to the analysis.
 The analysis creates the folder `musterfirma-senior-backend/` and records each requirement with
 evidence from your Datengrundlage:
 
-| Requirement | Status | Evidence |
-|---|---|---|
-| 5+ years Java | erfüllt | Station "Beispiel AG, 2019–2025", bullet 2 |
-| Kubernetes in production | teilweise | One project, no operating role |
-| Team lead experience | nicht belegt | no entry in the Datengrundlage |
+| Requirement | Status | Evidence | Open |
+|---|---|---|---|
+| 5+ years Java | erfüllt | Station "Beispiel AG, 2019–2025", bullet 2 | — |
+| Kubernetes in production | teilweise | One project, no operating role | production operation |
+| Team lead experience | nicht belegt | no entry in the Datengrundlage | — |
 
 It also notes the tone of the posting (Sie or du), the requested documents and the counterpart
 (here: employer directly, department). Gaps are not papered over: *nicht belegt* stays a gap,
 and the plan shows how the letter handles it honestly.
+
+Naming the same technology is not enough for *erfüllt*. For each requirement the analysis checks what it demands
+(use or operation, a component or a platform, taking part or being responsible, an effect) against the quoted
+phrase of your Datengrundlage, and writes what the phrase does not show into *Open*. If something is open, the row is
+*teilweise*, and the Lebenslauf describes the experience as it is: "used Kubernetes in a development project", not
+"operated the platform". Another wording of the same activity counts; a missing keyword is no reason to reject it.
+The check of the status against *Open* is automatic (rule CV-24); whether the open aspects were found correctly is
+checked by the reviewer, so read the *Open* column and correct it if you know more than your Datengrundlage says
+(then add that to the Datengrundlage).
 
 ### 3. Approve the plan
 

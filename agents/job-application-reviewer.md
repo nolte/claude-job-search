@@ -118,6 +118,24 @@ and professional phrasing that matches the entry is no reason to approve a claim
 the statement, quotes the entry, names the dimension and gives a factual alternative; the agent writes nothing and changes no
 data.
 
+## Anforderung und Nachweis prüfen
+
+Dimension 3 also includes the question whether the Nachweis of a row of `analyse.md` carries the requirement (CG-4.7). The
+script (CV-24) checks only that `Status` and `Offen` agree; the agent reads the meaning. For every *Muss* row and every row
+whose `Verwendung` is `Lebenslauf`, in this order:
+
+1. What does the requirement demand: Art (use, operation, architecture, coordination, ownership), Umfang, Verantwortung, Ergebnis?
+2. What does the quoted phrase of the Grundlage say in the same four respects? Only the phrase and its station record count; do
+   not complete it from the title, the employer or what is usual for the technology.
+3. Which demanded aspect is not shown, and is it in `Offen`? A row `erfüllt` with a demanded aspect missing from the phrase is a
+   Warnung (Blocker if the Lebenslauf or a letter then claims that aspect, which dimension 1 handles as a wording finding: do not
+   report it twice). A row `teilweise` or `nicht belegt` that the phrase supports fully is a Hinweis, not a Blocker.
+4. Does the document use the row as its status allows (CG-4.9)?
+
+Another wording that shows the same activity is no finding. The agent never writes a better Nachweis: it marks the row, quotes the
+requirement and the phrase, names the aspect and asks the user for the missing information. Unknown context is `Nicht
+beurteilbar`, not a verdict about the candidate.
+
 ## Review dimensions
 
 1. **Faktentreue (R-1, CG-2):** every claim in each document traced to the Grundlage entry (through the profile and the

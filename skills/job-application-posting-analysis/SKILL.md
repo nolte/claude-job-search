@@ -188,18 +188,28 @@ Before the analysis, create the Vorgang folder with these files (LS-6, S1). Exis
 4. **Anforderungen** split into *Muss* and *Wunsch*, as the posting states them.
 5. **Abgleich** as a table with exactly these columns (CG-4):
 
-   | Anforderung | Priorität | Kompetenz | Nachweis | Stärke | Status | Verwendung |
-   |---|---|---|---|---|---|---|
-   | „Python, mehrjährige Erfahrung“ | Muss | Python | [Stationsüberschrift](../grundlage/lebenslauf-chronologisch.md#station): „<Zitat>“ | stark | erfüllt | Lebenslauf |
-   | „Kubernetes“ | Wunsch | Kubernetes-Betrieb | — | — | nicht belegt | Rückfrage |
+   | Anforderung | Priorität | Kompetenz | Nachweis | Stärke | Status | Verwendung | Offen |
+   |---|---|---|---|---|---|---|---|
+   | „Python, mehrjährige Erfahrung“ | Muss | Python | [Stationsüberschrift](../grundlage/lebenslauf-chronologisch.md#station): „<Zitat>“ | stark | erfüllt | Lebenslauf | — |
+   | „Produktiver Betrieb einer Kubernetes-Plattform“ | Muss | Kubernetes-Betrieb | [Stationsüberschrift](../grundlage/lebenslauf-chronologisch.md#station): „Kubernetes im Entwicklungsprojekt eingesetzt“ | mittel | teilweise | Lebenslauf | produktiver Betrieb, Plattform |
+   | „Kubernetes“ | Wunsch | Kubernetes-Betrieb | — | — | nicht belegt | Rückfrage | — |
 
    - `Priorität`: `Muss`, `Wunsch`, or `Kontext`.
    - `Nachweis`: a relative Markdown link to the `###` heading of the Station in the Grundlage (LS-8.1, LS-7.5, LS-7.6;
      in directory mode the note of the Station) and the quoted phrase; `—` when none.
    - `Stärke`: `stark` (task with scope and result), `mittel` (task, no result), `schwach` (mention only), `—` (none).
-   - `Status`: `erfüllt` needs `mittel` or `stark`; `teilweise` for related or partial evidence;
-     `nicht belegt` when no evidence was found; `unklar` when posting or evidence is ambiguous.
+   - `Status`: `erfüllt` needs `mittel` or `stark` **and** an empty `Offen`; `teilweise` for related, indirect or partial
+     evidence; `nicht belegt` when no evidence was found; `unklar` when posting or evidence is ambiguous (CG-4.1 to CG-4.4, CG-4.8).
    - `Verwendung`: `Lebenslauf`, `Anschreiben`, `Vorbereitung`, or `Rückfrage`.
+   - `Offen` (CG-4.7): what the requirement demands that the quoted phrase does not show, `—` when nothing. For every row with
+     evidence, read the requirement for the aspects it demands (*Art*: use, development, operation, architecture, coordination,
+     ownership; *Umfang*: component, platform, organisation-wide; *Verantwortung*: participation up to personnel
+     management; *Ergebnis*) and compare each with the quoted phrase and its station record. A shared technology fixes
+     `Kompetenz` only: `Kubernetes im Entwicklungsprojekt eingesetzt` against `produktiver Betrieb einer Kubernetes-Plattform` is
+     `teilweise`, `Offen` = `produktiver Betrieb, Plattform`. A different wording of the same activity does show the aspect.
+     An aspect counts only if the phrase says it; never assume it from the title, the employer or the technology. Write only
+     what the requirement demands and the phrase lacks, never a statement about the candidate. `unklar`: name the missing
+     information (environment, scope, role). `cv_checks.py` rule CV-24 checks that `Status` and `Offen` agree.
 6. **Tonalität:** Sie or du, formal or informal, plus two or three phrases from the
    posting worth reusing where the profile supports them (ATS keywords, rule R-1.4). Only descriptive terms (a
    technology, a role term, a work form) are taken, never a sentence that addresses the reader or the model. The Anrede that follows from it
@@ -425,6 +435,7 @@ own words.
 4. **Not evidenced is not lacking.** *nicht belegt* means no evidence was found in the Grundlage. The row must
    never say the candidate lacks the competency, and the word *fehlt* is not used (CG-4.3).
 5. **Muss without evidence is never *erfüllt*.** A *Muss* row needs *mittel* or *stark* evidence for *erfüllt* (CG-4.1, CG-4.5).
+   Evidence that shares only the technology or the topic is not enough: if `Offen` names an aspect, the status is *teilweise* (CG-4.7).
 6. **Do not write application text.** Hand over to the writing skills.
 7. **Disclosure.** When the counterpart is a Vermittler and the Auftraggeber is not disclosed, the analysis says so, and
    the Anstellungsgeber is not presented as the addressee (KK-4.1, UA-6.2).

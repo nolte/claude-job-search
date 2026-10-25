@@ -38,6 +38,10 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
         `Experte`, …) that the station record does not use          Warnung (CG-7.4)
   CV-23 number that the station record gives as a team result, in a bullet
         without a team reference                                    Warnung (CG-7.4)
+  CV-24 analysis row whose status contradicts its column `Offen` (what the
+        Nachweis does not show of the requirement, CG-4.7): erfüllt with an open
+        aspect (Blocker for Muss, else Warnung), teilweise or unklar without one,
+        or no column `Offen` at all                                 (CG-4.7 to CG-4.9)
 
 Letters (`--doc-type letter|motivation|email`, CG-13.6) run a smaller set on anschreiben.md,
 motivationsschreiben.md and email.md:
@@ -738,6 +742,7 @@ def check_analysis(text, file):
     """Run the rules for analyse.md (CG-4): Muss evidence and status vocabulary."""
     findings = birthdate_findings(text, file)
     columns = None
+    saw_table = has_open_column = False
     for number, line in enumerate(text.splitlines(), 1):
         if not line.lstrip().startswith("|"):
             columns = None if line.strip() == "" else columns
@@ -746,6 +751,8 @@ def check_analysis(text, file):
         if columns is None:
             if "Priorität" in cells and "Status" in cells:
                 columns = {name: idx for idx, name in enumerate(cells)}
+                saw_table = True
+                has_open_column = has_open_column or "Offen" in columns
             continue
         if set("".join(cells)) <= set("-: "):
             continue
@@ -767,6 +774,15 @@ def check_analysis(text, file):
                 findings.append(finding("CV-14", "Warnung", file, number, "erfüllt setzt Stärke mittel oder stark voraus (CG-4.1)"))
         if priority == "Muss" and status in ("nicht belegt", "teilweise"):
             findings.append(finding("CV-07", "Warnung", file, number, f"Muss-Lücke ({status}), Verwendung prüfen (CG-4.5): " + row.get("Anforderung", "")))
+        if "Offen" in columns:
+            open_aspect = row.get("Offen", "")
+            if status == "erfüllt" and open_aspect not in EMPTY:
+                severity = "Blocker" if priority == "Muss" else "Warnung"
+                findings.append(finding("CV-24", severity, file, number, f"erfüllt, aber der Nachweis zeigt nicht: {open_aspect}. Status teilweise setzen (CG-4.7): " + row.get("Anforderung", "")))
+            if status in ("teilweise", "unklar") and open_aspect in EMPTY:
+                findings.append(finding("CV-24", "Warnung", file, number, f"{status} ohne Angabe in „Offen“: welcher Aspekt der Anforderung ist nicht belegt bzw. welche Information fehlt (CG-4.8)? " + row.get("Anforderung", "")))
+    if saw_table and not has_open_column:
+        findings.append(finding("CV-24", "Warnung", file, 1, "Spalte „Offen“ fehlt: ob der Nachweis die Anforderung in Art, Umfang, Verantwortung und Ergebnis trägt, ist nicht prüfbar; Analyse mit job-application-posting-analysis neu schreiben (CG-4.7)"))
     return findings
 
 
@@ -953,7 +969,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Deterministic checks for a Lebenslauf (CG-13) or a letter (CG-13.6).")
     parser.add_argument("lebenslauf", help="path to lebenslauf.md, or to the letter with --doc-type")
     parser.add_argument("--doc-type", choices=("cv", "letter", "motivation", "email"), default="cv",
-                        help="cv (default): the rules CV-01 to CV-23; letter, motivation, email: the rules BR-01 to BR-05")
+                        help="cv (default): the rules CV-01 to CV-24; letter, motivation, email: the rules BR-01 to BR-05")
     parser.add_argument("--grundlage", action="append", default=[], help="Grundlage file or directory (repeatable: directory and index note)")
     parser.add_argument("--analyse", help="path to analyse.md")
     parser.add_argument("--stellenanzeige", help="path to stellenanzeige.md (letters: numbers of the posting are no proof of the candidate)")

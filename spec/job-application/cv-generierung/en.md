@@ -91,9 +91,10 @@ fixed:
 | Priorität | `Muss`, `Wunsch`, or `Kontext` (business context, tone, working model). |
 | Kompetenz | Normalised competency, for example `Kubernetes-Betrieb`. Used for matching only. |
 | Nachweis | Grundlage entry reference (file and heading) and a quoted phrase. `—` when none. |
-| Stärke | `stark`: a described task with its scope in the Grundlage, and a result. `mittel`: a described task without result. `schwach`: mention only (skill list, one project line). `—`: none. |
+| Stärke | How much the entry describes, independent of the requirement: `stark`: a described task with its scope in the Grundlage, and a result. `mittel`: a described task without result. `schwach`: mention only (skill list, one project line). `—`: none. It does not say that the entry shows what *this* requirement demands (CG-4.7). |
 | Status | `erfüllt`, `teilweise`, `nicht belegt`, or `unklar` (CG-4.3). |
 | Verwendung | `Lebenslauf`, `Anschreiben`, `Vorbereitung`, or `Rückfrage`. |
+| Offen | What the requirement demands that the Nachweis does not show, in a few words (CG-4.7), or the missing information for `unklar`. `—` when nothing is open. |
 
 1. **`erfüllt`** requires evidence of strength `mittel` or `stark`.
 2. **`teilweise`** means related evidence only, or evidence that covers part of the requirement.
@@ -106,6 +107,32 @@ fixed:
 6. **Keywords.** A posting term is used in the CV only where the requirement has status
    `erfüllt` or `teilweise` with matching evidence (R-1.4). Terms are not added to improve ATS
    matching.
+
+7. **Fit of the evidence (audit finding F-03).** A technology or topic that the Nachweis shares with the requirement fixes
+   `Kompetenz` only. Before a status is set, the requirement is read for the aspects it demands and each one is compared with
+   the quoted phrase of the Grundlage:
+   - *Art*: use, development, implementation, architecture, operation and maintenance, coordination, ownership;
+   - *Umfang*: single component or application against platform, project against organisation-wide, one-off against continuous;
+   - *Verantwortung*: participation, independent execution, technical coordination, responsibility for a topic or operation,
+     personnel management (`fuehrung`, CV-16);
+   - *Ergebnis*: effect or figure demanded, activity only recorded (CV-05).
+
+   An aspect counts as shown only if the quoted phrase or its station record says it; it is not inferred from the title, the
+   employer or what is usual for the technology. Another wording of the same activity shows the aspect (`Laufender
+   Clusterbetrieb` for `Betrieb einer Container-Orchestrierung`); a missing keyword is no reason to reject. Every aspect that is
+   demanded and not shown goes into `Offen`. `Stärke` and `Offen` are independent: a `mittel` entry can still leave the
+   demanded aspect open.
+8. **Status follows `Offen`.** `erfüllt` only with `Offen` `—`. If an aspect is open, the status is `teilweise`: related or
+   indirect evidence belongs here, and `Offen` says what the requirement still demands. `teilweise` and `unklar` need an entry in
+   `Offen` (what is missing or which information would decide). `nicht belegt` has none. A model does not fill `Offen` with
+   assumptions about the candidate; it names only what the requirement demands and the phrase lacks. `cv_checks.py` rule CV-24
+   checks that status and `Offen` do not contradict each other; it cannot judge whether the aspects were identified correctly
+   (review, CG-13).
+9. **Use of a `teilweise` row.** The row stays usable: the Lebenslauf states what the Nachweis shows, in its scope and with its
+   activity verb (CG-7.4, CG-8.1), and never the word of the requirement for the aspect named in `Offen` (no `Betrieb` for a use,
+   no `verantwortet` for a participation, no `Plattform` for a component, no result without one in the Grundlage). A `Muss` row
+   that is `teilweise` or `unklar` is a gap for the Anschreiben or a `Rückfrage` (CG-4.5). An old `analyse.md` without the
+   column `Offen` is read as unchecked: CV-24 asks to write the analysis again, the status is not changed by the script.
 
 ## CG-5 Relevance-based selection
 
@@ -404,9 +431,9 @@ and lets the user decide.
 | 1 | Factual integrity | Numbers traceable to the Grundlage, with their unit or noun; entries of the list sections (skills, languages, certificates, education) present in the Grundlage; stations confirmed; wording of ownership, scope and expertise and team results backed by the record (CG-7.4) | automated and review | CV-05, CV-19, CV-20, CV-22, CV-23 |
 | 2 | Source traceability | Entry references in `pruefbericht.md` | review | CG-2.3 |
 | 3 | Target-role relevance | Selection follows CG-5 | review | CG-5 |
-| 4 | Muss coverage | Muss rows not marked `erfüllt` without evidence | automated | CV-07 |
+| 4 | Muss coverage | Muss rows not marked `erfüllt` without evidence, and not `erfüllt` while `Offen` names an aspect the Nachweis does not show (CG-4.7, CG-4.8); whether the aspects were identified correctly is review | automated and review | CV-07, CV-24 |
 | 5 | Wunsch coverage | Wunsch gaps reported | review | CG-4.2, report |
-| 6 | Evidence strength | Stärke of rows used in the CV | review | CG-4 |
+| 6 | Evidence strength | Stärke of rows used in the CV; fit of the Nachweis to the demanded Art, Umfang, Verantwortung and Ergebnis (CG-4.7) | review | CG-4 |
 | 7 | Seniority and role positioning | Titles as in the Grundlage; leadership only with `fuehrung: ja` (Blocker with `nein`, `ungeklärt` or missing) | automated and review | CV-15, CV-16; CG-7.2 |
 | 8 | Relevance of entries | Stations and projects per CG-5 | review | CG-5 |
 | 9 | Skills ordering | Skills appear with posting relevance and evidence | review | CG-5 |
@@ -473,6 +500,10 @@ and lets the user decide.
 11. **CV-23.** A number that the record of the station gives only in lines that speak of a team (`Team`, `gemeinsam`, `wir`,
     `Kollegen`) is a Warnung when the bullet has no team reference. A head count (`4 Entwickler`) is a fact about the team,
     not a result, and is left to CV-05. A result without a number (`Umsatz gesteigert`) is not read: it stays with the review.
+12. **CV-24.** In `analyse.md` the status must not contradict the column `Offen` (CG-4.7, CG-4.8): `erfüllt` with an entry in
+    `Offen` is a Blocker for a `Muss` row and a Warnung for a `Wunsch` row; `teilweise` or `unklar` with an empty `Offen` is a
+    Warnung; a table without the column is one Warnung per table. The script reads no meaning: an open aspect that nobody
+    recorded is not seen (`tests/test_evidence_fit.py`, known limit), and no keyword list rejects a differently worded Nachweis.
 
 ### CG-13.5 Severities of the further gate checks
 
@@ -554,6 +585,7 @@ Each scenario states the expected behaviour. The column *Verification* tells how
 | F | Missing metrics | Bullets without numbers kept; no numbers added | `tests/test_cv_checks.py` (CV-05) |
 | G | Conflicting dates | Blocker on each conflict | `tests/test_cv_checks.py` (CV-06) |
 | H | Unsupported Muss requirement | Not `erfüllt` | `tests/test_cv_checks.py` (CV-07) |
+| N | Evidence that names the technology but not the demanded Art, Umfang, Verantwortung or Ergebnis | `teilweise` with `Offen`; usable in the Lebenslauf in its real scope | `tests/test_evidence_fit.py` (CV-24; groups A to J); the model's assessment: reviewer and eval case `behavior-evidence-fit` |
 | I | ATS-specific posting | Standard headings, no tables, text PDF (DOCX only when the portal requires it) | `tests/test_cv_checks.py` (CV-08, CV-10); `tests/test_export.py` |
 | J | Output consistency | Same content in every format | `tests/test_export.py` (DOCX, HTML, Markdown) |
 | K | Unresolved placeholders | Blocker | `tests/test_cv_checks.py` (CV-01) |
@@ -575,8 +607,9 @@ fixtures (`tests/fixtures/szenarien/README.md`).
 | Year-only periods | No `[ERGÄNZEN: Monat]` placeholder, no completion of the station note required (CG-2.4, CG-9) | done (decision) |
 | Gap wording | Neutral wording chosen by the user from the list in CG-9; `Auszeit` is not a default | done (decision) |
 | DOCX metadata | The DOCX export clears the author fields (`dc:creator`, `cp:lastModifiedBy`) in `export_document.py` (CG-11.5); a fresh pandoc DOCX carries no revisions or comments | done (export, 0.2.0) |
-| CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-23 are the whole automated set (R-7, CG-13.4.5) | done (script) |
+| CV-17 | `cv_checks.py` reports sub-bullets as Hinweis; CV-01 to CV-24 are the whole automated set (R-7, CG-13.4.5) | done (script) |
 | BR-01 to BR-05 | `cv_checks.py --doc-type letter, motivation or email` checks placeholders, numbers, experience spans and leadership wording of the letters (CG-13.6, audit finding FF-002) | done (script) |
+| CV-24 | Fit of a Nachweis to its requirement: column `Offen`, status follows it; identification of the open aspects is model judgement and review (audit finding F-03) | done (script for consistency), review for meaning |
 | CV-22, CV-23 | Wording of ownership, scope and expertise and team results are checked against the station record; the rest of CG-7.4 is review (audit finding F-01) | done (script) |
 | CV-19, CV-20, CV-05 unit | List-entry grounding, unconfirmed stations and unit comparison (CG-13.4.6 to 13.4.8, audit findings FF-001, FF-003) | done (script) |
 | Page limit | Exit code 4 of `export_document.py` (R-10.10); the gate sets the severity (CG-12.4, CG-13.5) | done (export) |
