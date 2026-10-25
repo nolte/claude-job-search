@@ -752,6 +752,37 @@ class StructureAndManifestTests(unittest.TestCase):
         self.assertEqual(manifest["pruefung"]["reihenfolge_ueberschriften"], "nicht_geprueft")
 
     @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    @unittest.skipUnless(python_docx_available(), "python-docx is not installed")
+    def test_a_frozen_docx_takes_its_dates_from_version_datum_and_says_so(self):
+        import zipfile
+
+        frozen = SOURCE.replace("format: chronologisch\n", "format: chronologisch\nversion_datum: 2026-10-01\n", 1)
+        digests = []
+        for _ in range(2):
+            code, out, err, manifest = self.run_export(frozen, "docx", name="frozen")
+            self.assertEqual(code, 0, err)
+            digests.append(manifest["ausgabe"]["sha256"])
+        self.assertEqual(digests[0], digests[1])
+        self.assertTrue(manifest["byte_reproduzierbar"])
+        self.assertIn("python-docx", manifest["werkzeuge"])
+        self.assertNotIn("Hinweis: kein version_datum", err)
+        with zipfile.ZipFile(os.path.join(self.tmp, "out", "frozen.docx")) as archive:
+            # the dates themselves, not the luck of two exports in one second
+            self.assertEqual({info.date_time for info in archive.infolist()}, {(2026, 10, 1, 0, 0, 0)})
+            self.assertEqual({info.create_system for info in archive.infolist()}, {3})
+            self.assertIn("2026-10-01T00:00:00Z", archive.read("docProps/core.xml").decode("utf-8"))
+        self.assertEqual([name for name in os.listdir(os.path.join(self.tmp, "out")) if name.endswith(".tmp")], [])
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    @unittest.skipUnless(python_docx_available(), "python-docx is not installed")
+    def test_an_unfrozen_docx_says_that_it_carries_the_time_of_the_export(self):
+        code, out, err, manifest = self.run_export(SOURCE, "docx", name="unfrozen")
+        self.assertEqual(code, 0, err)
+        self.assertIn("Hinweis: kein version_datum", err)
+        self.assertIn("DOCX", err)
+        self.assertFalse(manifest["byte_reproduzierbar"])
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
     def test_an_added_statement_is_found_as_an_extra_word(self):
         from unittest import mock
 
@@ -763,8 +794,10 @@ class StructureAndManifestTests(unittest.TestCase):
 
     @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
     def test_reproduce_still_confirms_a_docx_and_an_html_export(self):
-        for fmt in ("html", "docx") if python_docx_available() else ("html",):
-            code, out, err, manifest = self.run_export(SOURCE, fmt, name="rep-" + fmt)
+        # a DOCX is byte-identical only for a frozen Version (LV-5 rule 2); an unfrozen one carries the clock of the export
+        frozen = SOURCE.replace("format: chronologisch\n", "format: chronologisch\nversion_datum: 2026-10-01\n", 1)
+        for fmt, source in (("html", SOURCE), ("docx", frozen)) if python_docx_available() else (("html", SOURCE),):
+            code, out, err, manifest = self.run_export(source, fmt, name="rep-" + fmt)
             self.assertEqual(code, 0, err)
             self.assertEqual(self.mod.main(["--reproduce", os.path.join(self.tmp, "out", f"rep-{fmt}.{fmt}.manifest.json")]), 0, fmt)
 
