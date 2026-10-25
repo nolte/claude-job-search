@@ -75,8 +75,9 @@ class EvalSuiteTests(unittest.TestCase):
                 + glob.glob(os.path.join(EVALS, "*", "case.yaml")))
 
     def test_a_write_or_edit_grader_does_not_match_the_path_of_the_vorgang_of_its_own_case(self):
-        # the subtle injection case failed 10 of 10 because "EINGANG" matched the legitimate analysis path of the folder
-        # "beispiel-eingang" (calibration run); input_match is case-insensitive in effect, so test it that way
+        # a negative grader must not fire on the legitimate Vorgang files (the subtle injection case failed 10 of 10 on a
+        # pattern that matched the whole Write input, content included); this test covers the paths, the content stays
+        # a matter of the pattern (match the "file_path" only); input_match is tested case-insensitively
         checked = 0
         for case in CASES:
             slug = re.search(r"job-application/([\w-]+)", read(os.path.join(case, "prompt.md")))
