@@ -173,3 +173,11 @@ The general rules are on [Optional MCP servers](mcp-servers.md). For JobSpy they
    uses it as a fact in a document. The same posting can appear on several boards and may be
    old or reposted, so the shortlist shows the posting date.
 7. **Without the server.** Paste the posting text into `job-application-solution`.
+8. **A found posting is a link, not a text.** The search stores title, firm, location, date and URL, not the description.
+   The hand-off then needs the text from the URL intake of `job-application-posting-analysis`. Job boards often refuse
+   that fetch: a test with the web-search server on an Indeed page ended with HTTP 401 (2026-10-25, one page, not a
+   statistic). The skill does not work around such a refusal (no proxy, no other header, no browser). The way
+   that always works: open the posting in your browser, copy the text and paste it into `job-application-solution`; the
+   queue entry gives you the URL for `stellenquelle`. The Indeed connector for claude.ai (`docs.indeed.com/mcp`) is
+   not part of this plugin: in Claude Code it did not connect in the same test (the sign-in was rejected on reconnect), and
+   its terms for use outside claude.ai are not stated on its page.

@@ -186,3 +186,12 @@ hinzu:
    Anzeige kann auf mehreren Börsen stehen und alt oder neu eingestellt sein, deshalb zeigt die
    Shortlist das Datum der Anzeige.
 7. **Ohne den Server.** Füge den Anzeigentext in `job-application-solution` ein.
+8. **Eine gefundene Stelle ist ein Link, kein Text.** Die Suche speichert Titel, Firma, Ort, Datum und URL, nicht die
+   Beschreibung. Für die Übergabe braucht es den Text aus dem URL-Intake von `job-application-posting-analysis`. Jobbörsen
+   verweigern diesen Abruf oft: Ein Test mit dem Web-Search-Server auf einer Indeed-Seite endete mit HTTP 401 (2026-10-25,
+   eine Seite, keine Statistik). Der Skill umgeht so eine Verweigerung nicht (kein Proxy, kein anderer Header, kein
+   Browser). Der Weg, der immer geht: Anzeige im Browser öffnen, den Text kopieren und in `job-application-solution`
+   einfügen; die URL für `stellenquelle` steht im Eintrag der Warteschlange. Der Indeed-Connector für claude.ai
+   (`docs.indeed.com/mcp`) gehört nicht zu diesem Plugin: In Claude Code hat er sich im selben Test nicht verbunden
+   (die Anmeldung wurde beim Wiederverbinden abgelehnt), und seine Bedingungen für die Nutzung außerhalb von claude.ai
+   nennt seine Seite nicht.
