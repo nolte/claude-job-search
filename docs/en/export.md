@@ -12,7 +12,8 @@ source are generated from it.
 
 !!! tip "Which format for which recipient"
     A text PDF is the default, also for application portals (ATS): the layout is one column
-    without tables, so a parser reads the text in order. Produce DOCX only when a portal
+    without tables, which parsers in general read in order. That is a layout rule and a check of the extracted text
+    (see "What the export checks"), not a statement about any particular ATS. Produce DOCX only when a portal
     explicitly demands it. HTML and Markdown are for viewing and for your own records.
 
 ## What is needed
@@ -114,7 +115,51 @@ In the output folder the export writes:
 - the page count and the result of the content check on the console. A content check that fails is
   reported, and the export is not presented as ready,
 - a manifest (`<name>.<ext>.manifest.json`): hash of the source, of the template and of the output, tool
-  versions and the date used.
+  versions, the date used, and under `pruefung` the result of the checks of this run (below).
+
+## What the export checks
+
+!!! warning "A successful export is not a correct CV and not an ATS guarantee"
+    The checks compare the exported file with its Markdown source. They do not compare it with your Datengrundlage
+    (that is `cv_checks.py` in the quality gate), and no check involves an applicant tracking system. A manifest
+    exists for a failed check as well; it records what was checked, it does not certify the CV.
+
+| Question | Check | Result |
+|---|---|---|
+| Was the file produced? | tool exit code, file written, page count (`pdfinfo`) | error (exit 1) |
+| Are all words there, and only those? | word multiset of the source against the text read back from the export (link targets are not text) | exit 2, `Fehlend` / `Zusätzlich` |
+| Are figures and facts intact? | the symbols of figures (`% € $ + &`) count the same; every list item stands as the same words in the same order, after the item before it (`von 800 ms auf 120 ms` is not `von 120 ms auf 800 ms`) | exit 2, `Inhaltsabweichung` |
+| Are the sections in order? | the headings of level 1 and 2 follow the source (heuristic) | warning `Reihenfolge`, exit code unchanged |
+| Is the structure as intended? | DOCX and HTML: headings per level against the source, tables, text boxes, images, text in headers and footers | warning `Struktur`, exit code unchanged |
+| Is it too long? | page limit of the document type (PDF) | exit 4 |
+| Is it ready to send? | open `[ERGÄNZEN …]` / `[KLÄREN …]` over the whole file | warning, listed |
+| Is it the same on a second run? | `--reproduce MANIFEST` rebuilds and compares the bytes | exit 3 on a difference |
+
+The read-back is the plain text of the file: `pdftotext` for the PDF, the paragraphs and table cells for the DOCX, the
+HTML without tags, the LaTeX body for `tex`. Markdown is a copy of the source and is recorded as `nicht_geprueft`. Line
+and page breaks, hyphenation at the line end, bullet signs, the page number and the position of header fields do not
+count as differences.
+
+What is tested in this repository (`tests/test_export.py`, synthetic data only) and what is not:
+
+| Statement | Basis |
+|---|---|
+| Text of the PDF can be extracted, the station line reads period, position, employer in order, no figure or symbol is lost over several pages | tested with `pdftotext` |
+| DOCX has Word heading styles in the source order, bullets, no table for a normal CV; a table or a text box is reported | tested with python-docx |
+| HTML has `lang="de"`, headings and lists from the source | tested |
+| Any particular ATS reads the file correctly | **not tested and not claimed.** Parsers differ in rules and formats, and no real application data goes to an external parser |
+| The text is true against your Datengrundlage | not checked by the export (`cv_checks.py`, reviewer) |
+| Layout looks right (overflow, ugly page break, empty areas) | not checked automatically; open the PDF |
+
+Where the checks run: the DOCX, HTML, Markdown and `tex` tests run in the CI on every pull request (pandoc and
+python-docx are installed there). The PDF tests need LuaLaTeX and are skipped in the CI. They run locally, or in the export
+image (its pandoc is older; the exporter handles that):
+
+```bash
+docker build -t claude-job-search-export .
+docker run --rm --entrypoint sh -v "$PWD:/src:ro" claude-job-search-export \
+  -c 'cp -r /src /tmp/w && cd /tmp/w && python3 -m unittest tests.test_export'
+```
 
 ### Reproducible PDFs
 
@@ -197,7 +242,7 @@ task export SLUG=<slug>
 task export SLUG=<slug> FORMAT=tex
 ```
 
-Check the result after every export: the console must print `Inhaltsprüfung: ok` and no line `Reihenfolge: Abweichung` (a section stands in another order than in the source; a warning, the exit code stays 0). A PDF that is only a
+Check the result after every export: the console must print `Inhaltsprüfung: ok` and no line `Reihenfolge: Abweichung` or `Struktur: …` (a section stands in another order than in the source, or a table or text box is in the file; warnings, the exit code stays 0). A PDF that is only a
 few kilobytes large and has no text is a failed export, even if a file exists. Only the export skill is
 copied into the image (`.dockerignore`), so personal data of your repository never enters the build context.
 
