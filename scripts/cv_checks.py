@@ -103,7 +103,14 @@ LEADERSHIP_TERMS = re.compile(
     re.IGNORECASE,
 )
 LEADERSHIP_VERB = re.compile(
-    r"\b(?:geleitet|leitete|leite|geführt|führte|führe|führen|Führung|gemanagt|managte|managen|angeleitet|anleitete|anleiten)\b",
+    r"\b(?:geleitet|leitete|leite|geführt|führte|führe|führen|Führung)\b",
+    re.IGNORECASE,
+)
+# `managen` and `anleiten` also take technical objects (`Cloud-Kosten im Team gemanagt`): they count as personnel leadership
+# only when the people object stands directly before the verb, not behind a preposition.
+LEADERSHIP_VERB_DIRECT = re.compile(
+    r"(?<!\bim )(?<!\bin )(?<!\bmit )(?<!\bfür )\b(?:Team|Teams|Mitarbeiter\w*|Abteilung\w*|Kolleg\w+)\s+"
+    r"(?:gemanagt|managte|managen|angeleitet|anleitete|anleiten)\b",
     re.IGNORECASE,
 )
 LEADERSHIP_OBJECT = re.compile(r"\b(?:Team|Teams|Mitarbeiter\w*|Abteilung\w*)\b", re.IGNORECASE)
@@ -116,12 +123,12 @@ STRENGTH_MARKERS = (
         r"verantwortlich\w*|Verantwortung|eigenständig\w*|selbstständig\w*|selbständig\w*|allein)\b", re.IGNORECASE)),
     ("Umfang", re.compile(
         r"\b(?:gesamte[nrms]?|komplette[nrms]?|ganze[nrms]?|unternehmensweit\w*|konzernweit\w*|firmenweit\w*|"
-        r"organisationsweit\w*|Enterprise-?\w*)\b", re.IGNORECASE)),
+        r"organisationsweit\w*|Enterprise-?(?:Architektur|weit)\w*)\b", re.IGNORECASE)),
     ("Expertise", re.compile(
         r"\b(?:Experte[n]?|Expertin(?:nen)?|Fachexperte\w*|Spezialist\w*|Spezialisierung|versiert\w*|Expertise|"
         r"(?:sehr gute|fundierte|tiefgehende|umfassende|ausgeprägte|exzellente|hervorragende)\s+\w*Kenntnisse)\b", re.IGNORECASE)),
 )
-TEAM_REFERENCE = re.compile(r"\b(?:Team\w*|gemeinsam\w*|wir|im Verbund|Projektteam\w*|Kolleg\w+)\b", re.IGNORECASE)
+TEAM_REFERENCE = re.compile(r"\b(?:\w*Team\w*|gemeinsam\w*|wir|im Verbund|Projektteam\w*|Kolleg\w+)\b", re.IGNORECASE)
 # Neutral gap wording (CG-9, R-8.1). A gap entry is a line between two stations, not a bullet. The wording
 # opens the entry (`Elternzeit (04/2019 – 08/2019)`, `… | Weiterbildung | …`); a job title that merely
 # contains one of the words (`Referent Weiterbildung`) is a station.
@@ -648,7 +655,7 @@ def strength_findings(bullet, record_text):
     for dimension, pattern in STRENGTH_MARKERS:
         for match in pattern.finditer(bullet):
             marker = match.group(0)
-            if marker.lower()[:7] not in lowered:
+            if not re.search(r"\b" + re.escape(marker.lower()[:7]), lowered):
                 found.append((dimension, marker))
     return found
 
@@ -686,6 +693,8 @@ def leadership_wording(bullet):
     """True for personnel-leadership wording (CG-7.2, CG-7.3): a leadership term, or a lead verb (`geleitet`,
     `führte`, `geführt`, `Führung`, …) with Team, Mitarbeiter or Abteilung."""
     if LEADERSHIP_TERMS.search(bullet):
+        return True
+    if LEADERSHIP_VERB_DIRECT.search(bullet):
         return True
     return bool(LEADERSHIP_VERB.search(bullet) and LEADERSHIP_OBJECT.search(bullet))
 

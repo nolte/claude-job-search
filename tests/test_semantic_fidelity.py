@@ -132,6 +132,29 @@ class ScenarioTable(unittest.TestCase):
         self.assertEqual([f["regel"] for f in found].count("CV-22"), 1)
 
 
+class FalsePositivesStaySilent(unittest.TestCase):
+    """Review of the remediation: wording that looks like a marker but is not a claim."""
+
+    def test_managen_with_a_technical_object_is_not_personnel_leadership(self):
+        for bullet in ("Cloud-Kosten im Team gemanagt.", "Releases im Team gemanagt.", "Entwickler-Team bei Scrum angeleitet."):
+            self.assertNotIn(("CV-16", "Blocker"), check(["Mitarbeit an der Plattform"], bullet), bullet)
+
+    def test_managen_directly_after_a_people_object_is_still_a_blocker(self):
+        self.assertIn(("CV-16", "Blocker"), check(["Mitarbeit an der Plattform"], "Mitarbeiter angeleitet."))
+        self.assertIn(("CV-16", "Blocker"), check(["Mitarbeit an der Plattform"], "Team gemanagt."))
+
+    def test_a_product_name_with_enterprise_is_not_a_scope_claim(self):
+        self.assertEqual([], [f for f in check(["Betrieb von RHEL-Servern"], "Red Hat Enterprise Linux Server betrieben.") if f[0] == "CV-22"])
+
+    def test_a_compound_team_word_in_the_record_counts_as_team_reference(self):
+        found = check(["Das Entwicklerteam senkte die Kosten um 40 %."], "Kosten um 40 % gesenkt.")
+        self.assertIn(("CV-23", "Warnung"), found)
+
+    def test_a_marker_stem_inside_a_compound_of_the_record_does_not_license_it(self):
+        found = check(["Teilverantwortung für Monitoring ausgeübt"], "Eigenverantwortlich den Betrieb übernommen.")
+        self.assertIn(("CV-22", "Warnung"), found)
+
+
 class ExistingChecksStay(unittest.TestCase):
     """G: the semantic rules sit next to the existing fact checks and replace none of them."""
 

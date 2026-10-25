@@ -92,7 +92,7 @@ a Blocker exists. Its rule IDs:
 | CV-13 | Employment gap over two months without a neutral entry between the two stations | Blocker |
 | CV-14 | Invalid status or strength in the analysis (e.g. `fehlt`) | Warnung |
 | CV-15 | Station title or employer not in the Grundlage (note `titel` and `arbeitgeber`, or an R-2.1 header) | Blocker (Warnung if the Grundlage has no station records) |
-| CV-16 | Personnel-leadership wording (`Teamleitung`, `Personalverantwortung`, `disziplinarisch`, `geleitet` with Team, Mitarbeiter or Abteilung) without `fuehrung: ja` (`nein`, `ungeklärt` or missing; the Grundlage records it as the station note key or the line `Führung: ja`) | Blocker (CG-13.4.3) |
+| CV-16 | Personnel-leadership wording (`Teamleitung`, `Personalverantwortung`, `disziplinarisch`, `geleitet` with Team, Mitarbeiter or Abteilung; `gemanagt` or `angeleitet` directly after Team or Mitarbeiter) without `fuehrung: ja` (`nein`, `ungeklärt` or missing; the Grundlage records it as the station note key or the line `Führung: ja`) | Blocker (CG-13.4.3) |
 | CV-17 | Sub-bullets below a bullet (R-2.1) | Hinweis |
 | CV-18 | Birthdate of a person (`Geburtsdatum`, `geb.`, `geboren` or `*` with a date) in `analyse.md` or a firm file passed with `--firma` (RC-5.3 rule 5, RC-11 rule 4) | Warnung |
 | CV-19 | Entry of a list section (skills, languages, certificates, education) that stands nowhere in the Grundlage, or a number in its parenthesis that stands nowhere (CG-13.4.6) | Blocker |
