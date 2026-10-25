@@ -27,7 +27,7 @@ see_also:
 Spec: `spec/job-application/stellensuche/en.md` ST-1 to ST-12 (ST-2 brief, ST-3 boards and volume, ST-4 de-duplication,
 ST-5 shortlist, ST-7 hand-off, ST-8 Suchprotokoll, ST-9 personal data, ST-10 scenarios SS-A to SS-U; the recurring search:
 ST-13 Suchauftrag, ST-14 approval, ST-15 run, ST-16 limits and scheduling, ST-17 identity and errors, ST-18 pre-filter,
-ST-19 Warteschlange and hand-off, ST-20 scenarios SR-A to SR-AB). Channel:
+ST-19 Warteschlange and hand-off, ST-20 scenarios SR-A to SR-AH). Channel:
 `spec/job-application/recherche/en.md` RC-5.0 (rules for optional network channels) and RC-5.8 (JobSpy), RC-5.4 (LinkedIn).
 Privacy exception: `spec/job-application/traumjob-interview/en.md` WJ-8.2. Fit check and veto: WJ-6, WJ-6.3. Paths:
 `spec/job-application/lokale-struktur/en.md` LS-2, LS-3, LS-4, LS-9 rule 7. Signals and double submission:
@@ -160,7 +160,7 @@ Wurzel and the repository boundary are checked by the script (a Blocker line on 
    started, so nothing is recorded as a success). `lauf-start <id>` returns the brief and the allowed calls. Call
    `search_jobs` once per approved term and board (`aufrufe_erlaubt`), each call with that one term only and `results_wanted` as in the brief,
    never `linkedin`, never `get_job_details`. Merge the answers of one board into one JSON object `{"status": "ok"|"nicht_verfuegbar"|"verbindung"|"blockiert"|"fehler", "grund": "<short>",
-   "ergebnisse": [<records as the server returned them>]}` and pass it to `board-ergebnis <id> <lauf> <board>`. A board that
+   "je_begriff": [<records per term, in the order of the brief>], "ergebnisse": [<records as the server returned them>]}` and pass it to `board-ergebnis <id> <lauf> <board>`. A board that
    fails is reported with its status and reason; no retry, no proxy. Then `lauf-ende <id> <lauf>`. Report in German the
    status (`ok_ohne_treffer` is a success with no hits, `fehlgeschlagen` is not), the counts, the warnings and the new Stellen
    with their class.

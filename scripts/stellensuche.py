@@ -49,6 +49,7 @@ MAX_BOARDS = 3
 MAX_RESULTS = 20
 MAX_TERMS = 8
 JOBTYPES = ("fulltime", "parttime", "internship", "contract")
+JOBTYPE_WORDS = {"vollzeit": "fulltime", "teilzeit": "parttime", "praktikum": "internship", "vertrag": "contract"}
 EXCLUDE_FIELDS = ("titel", "ort", "remote", "jobtyp")
 DECISIONS = ("offen", "zurückgestellt", "abgelehnt", "übernommen")
 BOARD_STATUS = ("ok", "nicht_verfuegbar", "verbindung", "blockiert", "fehler")
@@ -304,6 +305,11 @@ def validate_excludes(excludes):
             raise Refused("suchauftrag_ungueltig", f"Ein Ausschluss braucht feld ({', '.join(EXCLUDE_FIELDS)}), wert und quelle")
         if field == "remote" and value not in ("ja", "nein"):
             raise Refused("suchauftrag_ungueltig", "Ausschluss auf remote hat den Wert ja oder nein")
+        if field == "jobtyp":  # the boards report English tokens; accept the German words the user types
+            value = JOBTYPE_WORDS.get(fold(value), value)
+            if value not in JOBTYPES:
+                raise Refused("suchauftrag_ungueltig", f"Ausschluss auf jobtyp hat einen Wert aus {', '.join(JOBTYPES)} "
+                                                       f"(oder {', '.join(JOBTYPE_WORDS)})")
         checked.append({"feld": field, "wert": value, "quelle": source})
     return checked
 
@@ -473,6 +479,10 @@ def end_auftrag(wurzel, auftrag_id, now):
         raise Refused("status_unveraendert", "Der Suchauftrag ist schon beendet")
     auftrag["status"] = "beendet"
     auftrag["geaendert"] = stamp(now)
+    for run in auftrag["laeufe"]:
+        if run["status"] == "laeuft":
+            run.update(status="unterbrochen", ende=stamp(now),
+                       fehler={"code": "lauf_unterbrochen", "meldung": "Der Suchauftrag wurde beendet."})
     release_lock(wurzel, auftrag_id)
     save_auftrag(wurzel, auftrag)
     return auftrag
@@ -756,12 +766,30 @@ def prefilter_class(entry):
     return "ohne_treffer"
 
 
+def vorgang_meta(path):
+    """Frontmatter of a vorgang.md; tolerant of CRLF and a BOM, None when the file cannot be read."""
+    try:
+        with open(path, encoding="utf-8-sig", errors="replace") as handle:
+            text = handle.read().replace("\r\n", "\n")
+    except OSError:
+        return None
+    match = re.match(r"^---\n(.*?)\n---(?:\n|$)", text, re.S)
+    data = {}
+    for line in (match.group(1).splitlines() if match else []):
+        pair = re.match(r"^([A-Za-z_][A-Za-z0-9_]*):\s*(.*?)\s*$", line)
+        if pair:
+            data[pair.group(1)] = pair.group(2).strip("\"'")
+    return data
+
+
 def scan_vorgaenge(wurzel):
     found = []
     for name in sorted(os.listdir(wurzel)) if os.path.isdir(wurzel) else []:
         path = os.path.join(wurzel, name, "vorgang.md")
         if os.path.isfile(path):
-            meta = read_frontmatter(path)
+            meta = vorgang_meta(path)
+            if meta is None:
+                continue
             found.append({"slug": name, "firma": meta.get("firma", ""), "stelle": meta.get("stelle", ""),
                           "quelle": meta.get("stellenquelle", ""), "status": meta.get("status", "")})
     return found
@@ -802,16 +830,26 @@ def new_entry(stelle, keys, now):
 def refresh_derived(entry, auftrag):
     entry["unvollstaendig"] = [name for name, value in (("firma", entry["firma"]), ("ort", entry["ort"]), ("url", entry["url"]))
                                if not value]
-    if not entry["firma"]:
-        entry["signale"] = sorted(set(entry["signale"]) | {"kein_arbeitgeber"})
+    signals = set(entry["signale"]) - {"kein_arbeitgeber"}
+    entry["signale"] = sorted(signals | (set() if entry["firma"] else {"kein_arbeitgeber"}))
     if entry["bearbeitung"] in ("offen", "zurückgestellt"):
-        entry["vorpruefung"] = prefilter(auftrag, entry)
+        # each Suchauftrag judges with its own exclusions; the Stelle shows the union of the orders that found it
+        per_order = entry.setdefault("vorpruefung_je_auftrag", {})
+        per_order[auftrag["id"]] = prefilter(auftrag, entry)
+        results = list(per_order.values())
+        entry["vorpruefung"] = {
+            "geprueft": any(r["geprueft"] for r in results),
+            "veto": [v for r in results for v in r["veto"]],
+            "unklar": sorted({u for r in results for u in r["unklar"]}),
+        }
 
 
 def flag_duplicates(entries, entry, others):
     for other in others:
         if other == entry["id"] or other not in entries:
             continue
+        if other in entry.get("kein_duplikat", []) or entry["id"] in entries[other].get("kein_duplikat", []):
+            continue  # the user already decided these are two postings
         for left, right in ((entry, other), (entries[other], entry["id"])):
             if right not in left["duplikat_kandidaten"]:
                 left["duplikat_kandidaten"].append(right)
@@ -931,8 +969,12 @@ def record_board(wurzel, auftrag_id, run_id, board, payload, now):
     records = payload.get("ergebnisse") or []
     if not isinstance(records, list):
         raise Refused("ergebnisdaten_unvollstaendig", "ergebnisse muss eine Liste sein")
+    per_term = payload.get("je_begriff")
+    if per_term is not None and not (isinstance(per_term, list) and len(per_term) <= MAX_TERMS
+                                      and all(bounded_int(n, 0, 1000) for n in per_term)):
+        raise Refused("ergebnisdaten_unvollstaendig", "je_begriff ist eine Liste von Anzahlen, eine je Suchbegriff")
     entry = {"status": payload["status"], "grund": redact(payload.get("grund")), "anzahl": 0, "abgeschnitten": 0,
-             "defekt": 0, "zaehlung": {}, "neue": []}
+             "defekt": 0, "zaehlung": {}, "neue": [], "je_begriff": per_term}
     if payload["status"] == "ok":
         limit = auftrag["brief"]["ergebnisse_pro_board"] * len(auftrag["brief"]["begriffe"])
         taken = records[:limit]
@@ -976,6 +1018,16 @@ def add_later(wurzel, auftrag_id, run_id, board, payload, now):
     run["nachtraege"][board] = result
     save_auftrag(wurzel, auftrag)
     return {"ok": True, "lauf": run_id, "lauf_status": run["status"], "board": board, **result}
+
+
+def list_not_full(result, auftrag, cap):
+    """A board's answer is complete when no single term hit the cap. Without per-term counts: an empty answer, or one term."""
+    per_term = result.get("je_begriff")
+    if per_term:
+        return max(per_term) < cap
+    if len(auftrag["brief"]["begriffe"]) == 1:
+        return result["anzahl"] + result["defekt"] < cap
+    return result["anzahl"] + result["defekt"] == 0
 
 
 def mark_missing(queue, auftrag, seen_key, complete):
@@ -1026,7 +1078,7 @@ def finish_run(wurzel, auftrag_id, run_id, now):
     queue = load_queue(wurzel)
     if status in ("ok", "ok_ohne_treffer"):
         cap = auftrag["brief"]["ergebnisse_pro_board"]
-        complete = {b for b, r in boards.items() if r["status"] == "ok" and r["anzahl"] + r["defekt"] < cap and not r["abgeschnitten"]}
+        complete = {b for b, r in boards.items() if r["status"] == "ok" and not r["abgeschnitten"] and list_not_full(r, auftrag, cap)}
         run["vollstaendige_boards"] = sorted(complete)
         total["nicht_mehr_gesehen"] = mark_missing(queue, auftrag, f"{auftrag_id}/{run_id}", complete)
         atomic_write(queue_path(wurzel), queue)
@@ -1133,7 +1185,9 @@ def resolve_duplicate(wurzel, entry_id, other_id, now):
         for other in entry["duplikat_kandidaten"]:
             if other in stellen:
                 stellen[other]["duplikat_kandidaten"] = [i for i in stellen[other]["duplikat_kandidaten"] if i != entry_id]
+                stellen[other]["kein_duplikat"] = sorted(set(stellen[other].get("kein_duplikat", [])) | {entry_id})
                 drop_flag(stellen[other])
+        entry["kein_duplikat"] = sorted(set(entry.get("kein_duplikat", [])) | set(entry["duplikat_kandidaten"]))
         entry["duplikat_kandidaten"] = []
         drop_flag(entry)
         log(entry, now, "kein Duplikat (Entscheidung des Nutzers)")
@@ -1261,15 +1315,20 @@ def write_overview(wurzel, now):
             lines.append(f"| {i['id']} | {cell(i['firma']) or '?'} | {cell(i['titel'])} | {cell(i['ort']) or '?'} | {i['datum']} | "
                          f"{i['klasse']} | {cell(', '.join(notes))} | {link} |")
     path = os.path.join(wurzel, "suche", "warteschlange.md")
+    temp = None
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as out:
+        handle, temp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".tmp-")
+        with os.fdopen(handle, "w", encoding="utf-8") as out:
             out.write("\n".join(lines) + "\n")
+        os.replace(temp, path)
     except OSError as error:
+        if temp and os.path.exists(temp):
+            os.unlink(temp)
         raise Refused("speichern_fehlgeschlagen", f"Übersicht nicht schreibbar: {redact(error)}")
 
 
-READ_ONLY = ("wurzel", "pruefen", "zeige", "auftraege", "faellig", "warteschlange", "uebergabe")
+READ_ONLY = ("wurzel", "pruefen", "zeige", "auftraege", "faellig", "warteschlange")
 
 
 # ---------------------------------------------------------------- CLI
@@ -1345,7 +1404,7 @@ def consume_input(args, wurzel):
 
 
 USER_ONLY = ("anlegen", "aendern", "freigeben", "fortsetzen", "beenden", "entscheiden", "duplikat",
-             "aenderung-gesehen", "uebergabe-fertig", "uebergabe-fehler")
+             "aenderung-gesehen", "uebergabe", "uebergabe-fertig", "uebergabe-fehler")
 
 
 def inside_eingang(wurzel, path):
@@ -1373,7 +1432,11 @@ def run(args):
         result = dispatch(args, wurzel, now)
         consume_input(args, wurzel)
         if os.path.isdir(os.path.join(wurzel, "suche")):
-            write_overview(wurzel, now)
+            try:  # the overview is a derivation: its failure must not hide the outcome of the command
+                write_overview(wurzel, now)
+            except Refused as error:
+                result["warnung_uebersicht"] = error.meldung
+                print(f"warteschlange.md nicht aktualisiert: {error.meldung}", file=sys.stderr)
     return result
 
 

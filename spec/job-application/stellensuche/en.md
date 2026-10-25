@@ -282,8 +282,12 @@ done by reviewing a run, not by a script.
    no success time, no failure count, no availability mark and no budget change result from it, and the entry is marked in the Lauf as
    `nachtraege`. It is no way around the limits: it needs a Lauf that was already counted, and it sends nothing.
 8. **One state-changing command at a time.** Every command that changes state runs under one file lock on the Wurzel
-   (`suche/.stellensuche.lock`), because the queue and the Suchaufträge are read, changed and rewritten whole. A second command
-   waits up to 30 seconds and then answers `beschaeftigt`; reading commands do not wait.
+   (`suche/.stellensuche.lock`), because the queue and the Suchaufträge are read, changed and rewritten whole. That includes
+   `uebergabe`, which records the hand-off state. A second command waits up to 30 seconds and then answers `beschaeftigt`; only
+   commands that write nothing do not wait. The derived overview is written afterwards; if that fails, the command keeps its
+   result and carries `warnung_uebersicht`.
+9. **Ending closes the run.** `beenden` marks a Lauf that is still open as `unterbrochen`; the answers it had already recorded stay.
+   A Lauf that is running when the user pauses the order still records its answers: the queries were approved when they were sent.
 
 ## ST-16 Limits and repetition
 
@@ -336,16 +340,21 @@ done by reviewing a run, not by a script.
    `password:`, keys, `user:pw@`) are replaced by `[entfernt]`.
 5. **Availability.** A Stelle that three complete runs (`ok` or `ok_ohne_treffer`) of its Suchauftrag did not return
    is `nicht_mehr_gesehen`; a later find makes it available again. This is an inference, not a statement of the
-   employer. A failed run never counts, and a board counts only when its list was not full (fewer records than
-   `ergebnisse_pro_board`, nothing cut): on a full list a missing posting may just rank lower. The run records
-   `vollstaendige_boards`.
+   employer. A failed run never counts, and a board counts only when its list was not full: no single term reached
+   `ergebnisse_pro_board` and nothing was cut. `board-ergebnis` therefore takes `je_begriff`, the number of records per term in
+   the order of the brief. Without it, only an empty answer (or an order with one term and fewer records than the cap) counts as
+   complete. On a full list a missing posting may just rank lower. The run records `vollstaendige_boards`.
 
 ## ST-18 Pre-filter and assessment
 
 1. **Veto on structured fields.** The exclusions are compared with title, location, remote and job type (ST-5 rule 2),
    by whole words, ignoring case and diacritics; an exclusion of five or more letters also matches inside a German compound
    (`Schicht` in `Schichtdienst`), a shorter one does not (`IT` does not hit `Architekt`, `Ulm` does not hit `Ulmen`).
-   A hit is a Veto with its reason and its source; the Stelle stays in the Warteschlange.
+   A hit is a Veto with its reason and its source; the Stelle stays in the Warteschlange. An exclusion on `jobtyp` takes the
+   words the boards report (`fulltime`, `parttime`, `internship`, `contract`) or `Vollzeit`, `Teilzeit`, `Praktikum`, `Vertrag`,
+   which are stored as the English token; any other value is refused, so an exclusion cannot silently never match. Each
+   Suchauftrag judges with its own exclusions (`vorpruefung_je_auftrag`); a Stelle shows the union of the Vetos of the orders that
+   found it.
 2. **Missing is unclear.** A field the record does not give is listed as `unklar`. It is never a Veto and never a
    statement about the candidate (WJ-6.3).
 3. **No score, no fit claim.** The Warteschlange classes are `ohne_treffer`, `klaerung` (unclear field, missing data,
@@ -414,6 +423,12 @@ Automated in `tests/test_stellensuche.py` with invented postings (Musterfirma Gm
 | SR-Z | Many state-changing commands run at once; one waits too long | No update is lost; the late one answers `beschaeftigt` |
 | SR-AA | A scheduled session passes a result file from elsewhere, standard input, or `--trigger manuell` | `nur_interaktiv`; the file stays |
 | SR-AB | A title holds `[x](http://…)`, HTML, a backtick or a pipe | Escaped in `warteschlange.md`, no split row, no link from an unsafe URL |
+| SR-AC | `uebergabe` while another command runs; the same in a scheduled session | `beschaeftigt`; `nur_interaktiv` |
+| SR-AD | An exclusion `Teilzeit` against a `parttime` posting; `Halbtags` | Veto; the exclusion is refused when it is created |
+| SR-AE | A posting without firm gets one later; two orders judge the same posting | The signal `kein_arbeitgeber` goes; the Stelle keeps the Veto of the order that has the exclusion |
+| SR-AF | Several terms, one list per term is full; none is full | No posting is marked gone; with `je_begriff` all below the cap, a missing posting is marked after three runs |
+| SR-AG | The overview cannot be written; a `vorgang.md` is not UTF-8 or has CRLF | The command keeps its result with `warnung_uebersicht`; the scan skips the first and reads the second |
+| SR-AH | The user decided "no duplicate"; a record carries the keys of both | They are not flagged again |
 | SR-S | `stellensuche_geplant.sh` with a due, a paused and a draft Suchauftrag | One session, for the due one only, with the restricted tools |
 
 ## ST-12 Sources

@@ -1024,6 +1024,138 @@ class ReviewRoundTwoTests(Base):  # findings of the second review of PR 65
         self.assertEqual(cli("lauf-ende", aid, started["lauf"], env=env).returncode, 0)
 
 
+class ReviewRoundThreeTests(Base):  # findings of the third review of PR 65
+    def config(self):
+        config = os.path.join(self.w, "konfiguration.md")
+        with open(config, "w", encoding="utf-8") as handle:
+            handle.write(f"---\nwurzel: {self.w}\n---\n")
+        return config
+
+    def one_board(self, **extra):
+        return self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"], **extra.pop("brief", {})}, plan={"laeufe_pro_woche": 7},
+                            **extra)
+
+    def test_handoff_preparation_changes_state_so_it_locks_and_is_not_for_a_scheduled_session(self):
+        self.assertNotIn("uebergabe", ss.READ_ONLY)
+        self.assertIn("uebergabe", ss.USER_ONLY)
+        aid = self.one_board()
+        self.run_search(aid, [job()], T0)
+        sid = next(iter(self.queue()))
+        args = ss.build_parser().parse_args(["--konfiguration", self.config(), "uebergabe", sid])
+        with unittest.mock.patch.object(ss, "LOCK_WAIT_SECONDS", 0.2), ss.exclusive(self.w):
+            with self.assertRaises(ss.Refused) as caught:
+                ss.run(args)
+        self.assertEqual(caught.exception.code, "beschaeftigt")
+        with unittest.mock.patch.dict(os.environ, {"STELLENSUCHE_GEPLANT": "1"}):
+            with self.assertRaises(ss.Refused) as caught:
+                ss.run(args)
+        self.assertEqual(caught.exception.code, "nur_interaktiv")
+
+    def test_a_jobtyp_exclusion_in_german_hits_the_english_token_of_the_board(self):
+        excl = [{"feld": "jobtyp", "wert": "Teilzeit", "quelle": "Wunschprofil"}]
+        self.assertEqual(ss.validate_excludes(excl)[0]["wert"], "parttime")
+        with self.assertRaises(ss.Refused):
+            ss.validate_excludes([{"feld": "jobtyp", "wert": "Halbtags", "quelle": "x"}])
+        aid = self.one_board(ausschluesse=excl)
+        self.run_search(aid, [job(job_type="parttime"), job(id="in-2", job_type="fulltime", job_url="https://x.example/2",
+                                                            title="Andere Rolle")], T0)
+        by_title = {e["titel"]: ss.prefilter_class(e) for e in self.queue().values()}
+        self.assertEqual(by_title, {"Backend Engineer (m/w/d)": "veto", "Andere Rolle": "ohne_treffer"})
+
+    def test_the_signal_no_employer_goes_away_when_the_firm_becomes_known(self):
+        aid = self.one_board()
+        self.run_search(aid, [job(company="")], T0)
+        self.assertIn("kein_arbeitgeber", next(iter(self.queue().values()))["signale"])
+        self.run_search(aid, [job()], later(days=1))
+        entry = next(iter(self.queue().values()))
+        self.assertNotIn("kein_arbeitgeber", entry["signale"])
+        self.assertEqual(entry["firma"], "Musterfirma GmbH")
+
+    def test_a_board_is_complete_when_no_single_term_hit_the_cap(self):
+        aid = self.one_board(brief={"ergebnisse_pro_board": 5})
+        order = ss.load_auftrag(self.w, aid)
+        self.assertEqual(len(order["brief"]["begriffe"]), 2)
+        for per_term, anzahl, expected in (([3, 4], 7, True), ([5, 1], 6, False), (None, 0, True), (None, 6, False)):
+            result = {"je_begriff": per_term, "anzahl": anzahl, "defekt": 0}
+            self.assertEqual(ss.list_not_full(result, order, 5), expected, per_term)
+        one = {**order, "brief": {**order["brief"], "begriffe": order["brief"]["begriffe"][:1]}}
+        self.assertTrue(ss.list_not_full({"je_begriff": None, "anzahl": 4, "defekt": 0}, one, 5))
+        self.assertFalse(ss.list_not_full({"je_begriff": None, "anzahl": 5, "defekt": 0}, one, 5))
+
+    def test_a_posting_missing_from_complete_multi_term_lists_is_marked(self):
+        aid = self.one_board(brief={"ergebnisse_pro_board": 5})
+        def run_with(records, now):
+            started = ss.start_run(self.w, aid, "manuell", now)
+            ss.record_board(self.w, aid, started["lauf"], "indeed",
+                            {"status": "ok", "je_begriff": [len(records), 0], "ergebnisse": records}, now)
+            return ss.finish_run(self.w, aid, started["lauf"], now)
+        run_with([job()], T0)
+        other = job(id="in-2", title="Andere Rolle", job_url="https://x.example/2")
+        for day in (1, 2, 3):
+            done = run_with([other], later(days=day))
+        self.assertEqual(done["zaehlung"]["nicht_mehr_gesehen"], 1)
+        self.assertEqual(self.refused(ss.record_board, self.w, aid, "l0001", "indeed", {"status": "ok", "je_begriff": ["x"]}, T0),
+                         "lauf_nicht_aktiv")
+
+    def test_a_bad_je_begriff_is_refused(self):
+        aid = self.one_board()
+        started = ss.start_run(self.w, aid, "manuell", T0)
+        for bad in ("x", [1, "a"], [-1], list(range(20))):
+            self.assertEqual(self.refused(ss.record_board, self.w, aid, started["lauf"], "indeed",
+                                          {"status": "ok", "je_begriff": bad, "ergebnisse": []}, T0), "ergebnisdaten_unvollstaendig")
+
+    def test_an_unwritable_overview_does_not_hide_the_outcome_of_the_command(self):
+        aid = self.one_board()
+        os.makedirs(os.path.join(self.w, "suche", "warteschlange.md"))  # a directory where the file should go
+        args = ss.build_parser().parse_args(["--konfiguration", self.config(), "pausieren", aid])
+        result = ss.run(args)
+        self.assertEqual(result["auftrag"]["status"], "pausiert")
+        self.assertIn("warnung_uebersicht", result)
+
+    def test_unreadable_or_crlf_vorgang_files_do_not_break_the_scan(self):
+        for name, raw in (("kaputt", b"---\nfirma: \xff\xfe\nstatus: erfasst\n---\n"),
+                          ("windows", "---\r\nfirma: Musterfirma GmbH\r\nstelle: Backend Engineer (m/w/d)\r\nstatus: erfasst\r\n---\r\n".encode())):
+            os.makedirs(os.path.join(self.w, name))
+            with open(os.path.join(self.w, name, "vorgang.md"), "wb") as handle:
+                handle.write(raw)
+        aid = self.one_board()
+        self.run_search(aid, [job()], T0)
+        entry = next(iter(self.queue().values()))
+        self.assertEqual(entry["vorgang"], "windows")
+        self.assertIn("bereits_beworben", entry["hinweise"])
+
+    def test_each_order_judges_with_its_own_exclusions_and_the_stelle_keeps_every_veto(self):
+        a = self.one_board(ausschluesse=[{"feld": "titel", "wert": "Backend", "quelle": "A"}])
+        b = self.auftrag({**SPEC, "name": "Ohne Ausschluss", "ausschluesse": []}, brief={**SPEC["brief"], "boards": ["indeed"]},
+                         plan={"laeufe_pro_woche": 7})
+        for order, day in ((a, 0), (b, 1), (a, 2), (b, 3)):
+            self.run_search(order, [job()], later(days=day))
+            entry = next(iter(self.queue().values()))
+            self.assertEqual(ss.prefilter_class(entry), "veto", (order, day))
+        self.assertEqual(sorted(entry["vorpruefung_je_auftrag"]), sorted([a, b]))
+
+    def test_no_duplicate_stays_decided_when_a_record_carries_both_keys(self):
+        aid = self.one_board()
+        x = job(id="in-1", job_url="https://x.example/1")
+        y = job(id="in-2", job_url="https://x.example/2")
+        self.run_search(aid, [x, y], T0)
+        first, second = sorted(self.queue())
+        ss.resolve_duplicate(self.w, first, None, later(hours=1))
+        both = job(id="in-1", job_url="https://x.example/2")  # id of the first, URL of the second
+        self.run_search(aid, [both], later(days=1))
+        for entry in self.queue().values():
+            self.assertEqual(entry["duplikat_kandidaten"], [], entry["id"])
+            self.assertNotIn("moegliches_duplikat", entry["hinweise"])
+
+    def test_ending_an_order_closes_its_open_run(self):
+        aid = self.one_board()
+        started = ss.start_run(self.w, aid, "manuell", T0)
+        ss.end_auftrag(self.w, aid, later(hours=1))
+        run = ss.load_auftrag(self.w, aid)["laeufe"][0]
+        self.assertEqual((run["lauf"], run["status"], run["fehler"]["code"]), (started["lauf"], "unterbrochen", "lauf_unterbrochen"))
+        self.assertFalse(os.path.exists(ss.lock_path(self.w, aid)))
+
+
 class OverviewTests(Base):  # SR-T
     def test_overview_lists_each_stelle_once_in_the_group_of_its_decision(self):
         aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})
