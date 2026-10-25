@@ -315,6 +315,10 @@ done by reviewing a run, not by a script.
    (`nur_interaktiv`). The launcher creates the folder `suche/eingang/` itself and grants the file rule as `Edit(//<wurzel>/suche/eingang/*)`:
    in Claude Code a `Write(...)` rule is not matched and a path with one slash is relative to the project; this was
    checked with `claude -p` on 2026-10-25 and is the behaviour of that version, not a stable promise.
+   **Known limit.** The launcher adds an allow list; it does not deny what the user's own Claude Code settings already allow
+   (for example `Bash`, a web tool or another MCP server). A session reading untrusted posting text inherits those. Until the
+   launcher passes `--strict-mcp-config` and a deny list, the user runs it with settings that allow none of them (docs page
+   *JobSpy*).
 
 ## ST-17 Results, identity and errors
 

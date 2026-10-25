@@ -97,6 +97,9 @@ Beispiele (sag es Claude, oder rufe das Hilfsskript selbst auf mit
    schreiben (den Ordner legt der Launcher an; das Hilfsskript liest Ergebnisse nur von dort und löscht eine Datei nach dem
    Speichern). Sie läuft mit eigenem Prompt und ruft den Skill nicht auf. Sie kann keinen Suchauftrag anlegen, ändern, freigeben, fortsetzen oder beenden und keine Entscheidung über eine
    Stelle treffen: Das bleibt bei dir in einer interaktiven Sitzung, weil ein Inserat Text enthalten könnte, der danach verlangt.
+   **Prüfe deine eigenen Einstellungen:** Der Launcher fügt nur Rechte hinzu; was deine Benutzer- oder Projekteinstellungen
+   schon erlauben (eine breite `Bash`-Regel, Web-Werkzeuge, andere MCP-Server), erbt die Sitzung, und sie liest Text von
+   Jobbörsen. Plane sie aus einem Arbeitsordner, dessen Einstellungen nichts davon erlauben.
    Es läuft immer nur ein ändernder Befehl (ein zweiter wartet bis zu 30 Sekunden und antwortet dann `beschaeftigt`).
    Eine nicht lesbare Auftragsdatei wird auf stderr genannt und stoppt die anderen nicht, schau also in dein Log:
    `17 7 * * * cd /pfad/zum/arbeitsordner && /pfad/zum/plugin/scripts/stellensuche_geplant.sh job-application/konfiguration.md >> ~/suche.log 2>&1`.
