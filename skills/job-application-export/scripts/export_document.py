@@ -43,6 +43,7 @@ import argparse
 import datetime
 import hashlib
 import html
+import importlib.metadata
 import json
 import os
 import platform
@@ -52,6 +53,7 @@ import subprocess
 import sys
 import tempfile
 import unicodedata
+import zipfile
 from collections import Counter
 from pathlib import Path
 
@@ -347,28 +349,37 @@ def export_docx(pandoc, source, out_file, name, grundlage_hash, epoch=None):
     doc.core_properties.comments = ""
     if grundlage_hash:
         doc.core_properties.keywords = f"grundlage_hash:{grundlage_hash}"
+    moment = None
     if epoch is not None:
         # a frozen Version: the dates of the document and of its zip entries come from `version_datum`, not from the clock
-        moment = datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc).replace(tzinfo=None)
-        doc.core_properties.created = doc.core_properties.modified = moment
+        moment = datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc)
+        doc.core_properties.created = doc.core_properties.modified = moment.replace(tzinfo=None)
     doc.save(out_file)
-    if epoch is not None:
-        fix_zip_dates(out_file, epoch)
+    if moment is not None:
+        fix_zip_dates(out_file, moment)
     return docx_text(Document(out_file)), None
 
 
-def fix_zip_dates(path, epoch):
-    """Rewrite a zip with one fixed date for every entry (the clock time of the export would differ by the second)."""
-    import zipfile
+def fix_zip_dates(path, moment):
+    """Rewrite a zip with one fixed date for every entry (the clock time of the export would differ by the second).
 
-    stamp = max(datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc).timetuple()[:6], (1980, 1, 1, 0, 0, 0))
-    with zipfile.ZipFile(path) as source:
-        entries = [(info, source.read(info.filename)) for info in source.infolist()]
-    with zipfile.ZipFile(path, "w") as target:
-        for info, data in entries:
-            fixed = zipfile.ZipInfo(info.filename, date_time=stamp)
-            fixed.compress_type, fixed.external_attr = info.compress_type, info.external_attr
-            target.writestr(fixed, data)
+    The new file is written beside the old one and replaces it, so an interruption leaves the finished DOCX intact.
+    The entries get the same creator system on every host, so the bytes do not depend on the operating system.
+    """
+    stamp = max(moment.timetuple()[:6], (1980, 1, 1, 0, 0, 0))
+    temp = path.with_name(path.name + ".tmp")
+    try:
+        with zipfile.ZipFile(path) as source:
+            entries = [(info, source.read(info.filename)) for info in source.infolist()]
+        with zipfile.ZipFile(temp, "w") as target:
+            for info, data in entries:
+                fixed = zipfile.ZipInfo(info.filename, date_time=stamp)
+                fixed.compress_type, fixed.external_attr, fixed.create_system = info.compress_type, info.external_attr, 3
+                target.writestr(fixed, data)
+        os.replace(temp, path)
+    finally:
+        if temp.exists():
+            temp.unlink()
 
 
 def docx_text(doc):
@@ -517,7 +528,15 @@ def tool_versions(fmt):
     return {
         "pandoc": tool_version(["pandoc", "--version"]),
         "lualatex": tool_version(["lualatex", "--version"]) if fmt == "pdf" else None,
+        "python-docx": python_docx_version() if fmt == "docx" else None,
     }
+
+
+def python_docx_version():
+    try:
+        return importlib.metadata.version("python-docx")
+    except importlib.metadata.PackageNotFoundError:
+        return None
 
 
 def build_manifest(source, meta, fmt, doc_type, name, out_file, pages, epoch, limit=None, checks=None):
@@ -644,8 +663,8 @@ def main(argv=None):
                 raise
             print(f"Warnung: {error} Das Datum wird für dieses Format ignoriert.", file=sys.stderr)
             epoch = None
-        if args.format == "pdf" and epoch is None:
-            print("Hinweis: kein version_datum im Frontmatter. Die PDF enthält das heutige Datum und ist nicht "
+        if args.format in ("pdf", "docx") and epoch is None:
+            print(f"Hinweis: kein version_datum im Frontmatter. Die {args.format.upper()} enthält das heutige Datum und ist nicht "
                   "byte-reproduzierbar (lebenslauf-versionen LV-6).", file=sys.stderr)
         if args.format == "md":
             exported, _ = export_md(args.input, out_file)
