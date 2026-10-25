@@ -63,7 +63,8 @@ entry to the `mcpServers` section of your MCP configuration:
 ```
 
 !!! info "Version checked"
-    Version 2.2.0 (last checked in October 2026). The variable names and defaults below were
+    Version 2.2.0 (last checked in October 2026). A running 2.2.0 server listed six tools without
+    the `<disabled>` settings below and three with them. The variable names and defaults below were
     checked against the [README of version 2.2.0](https://github.com/Aas-ee/open-webSearch/blob/v2.2.0/README.md). Before you change the pinned version, read the
     new README again and compare the variable names.
 
@@ -76,7 +77,7 @@ entry to the `mcpServers` section of your MCP configuration:
 | `USE_PROXY=false` | This is the default. The plugin does not recommend a proxy to get around blocking |
 | `MCP_TOOL_FETCH_…_NAME=<disabled>` | According to the README, `<disabled>` switches a tool off. This disables the CSDN, Linux.do and Juejin fetch tools, so the tool list stays short and unambiguous |
 
-Type the value `<disabled>` literally, with the angle brackets. The README of version 2.2.0 documents this; an older release may not support it, which is one more reason to keep the pinned version. If `/mcp` still lists the three tools, check the spelling and the pinned version before you rely on the setting.
+Type the value `<disabled>` literally, with the angle brackets. The README of the pinned version documents this; an older release may not support it, which is one more reason to keep the pinned version. If `/mcp` still lists the three tools, check the spelling and the pinned version before you rely on the setting.
 
 **Engines.** The server supports more engines, among them `bing`, `baidu`, `hackernews` and
 `exa`. Add `bing` only when you ask for it, for example because coverage of a German firm is too
@@ -136,10 +137,15 @@ The record in `## Recherche` lists the route used and every search with engine, 
    subject to public-network safety checks. The plugin passes only URLs from trusted places and
    never an internal address. The check of a redirect comes after the request: a redirect to
    `linkedin.com` is noticed only afterwards, and the text is then not used. The request to the
-   redirect target has already been sent from your machine at that point. A built-in fetch tool that
-   does not report the final URL is not used for pages at all. Most client fetch tools do not say
-   so, so in practice only their search is available: the pages wait for the server or for text
-   you paste, and the items stay open. Its search stays allowed.
+   redirect target has already been sent from your machine at that point; the plugin does not ask the
+   server to restrict redirects and accepts this limit. A built-in fetch tool counts as reporting the
+   final URL only if its description or a call result names the URL after redirects; a mention of
+   following redirects does not count. A tool that does not report it is not used for pages at all,
+   and the item is `nicht ermittelt` with the reason `Abruf ohne Weiterleitungsprüfung nicht möglich`.
+   Most client fetch tools do not say so, so in practice only their search is available: the pages
+   wait for the server or for text you paste, and the items stay open. Its search stays allowed.
+   If the identity of a firm stays open for this reason and you decline to paste the pages, the
+   quality gate reports a Warnung instead of a Blocker once the decision stands in `## Verlauf`.
 8. **Everything read enters the session.** Fetched pages become part of the Claude session and go
    to the model provider like any other text in it (RC-10).
 9. **Supply chain.** `npx` downloads and runs code from the npm registry. A pinned version limits
