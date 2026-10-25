@@ -202,7 +202,10 @@ def first_order_difference(source_body, exported_text):
 
     The word multiset says nothing about order. The headings give the order of the sections; the words inside a
     section are not compared, because the templates move header fields (the name stands before "Persönliche Daten" in
-    the CV layout) and the station lines of level 3 are laid out in a grid (CG-13.2 row 15)."""
+    the CV layout) and the station lines of level 3 are laid out in a grid (CG-13.2 row 15).
+
+    A heuristic: the words of a heading are searched after the previous heading, so a one-word heading whose word also
+    stands in the text before it can hide a swap. Only `#` headings are read."""
     exported = token_list(exported_text)
     cursor = 0
     for line in source_body.splitlines():

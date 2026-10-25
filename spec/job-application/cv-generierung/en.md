@@ -330,6 +330,9 @@ The skill may reformulate verified content. It may not add facts.
    a heading that the export does not carry after the previous one prints `Reihenfolge: Abweichung bei den Überschriften`
    and a Warnung on stderr, and leaves the exit code unchanged. The words inside a section are not compared, because the
    templates move header fields (the name stands before "Persönliche Daten") and lay out the station lines as a grid.
+   The comparison is a heuristic: it looks for the words of each heading after the previous one, so a one-word heading whose
+   word also stands in the running text before it can pass although the sections are swapped; only `#` headings are read
+   (no underlined headings), and a `#` inside a code block counts as a heading.
 3. **Structure check.** Export tests verify that all section headings appear in the DOCX text in
    the source order.
 4. **PDF check.** The PDF must contain extractable text and stay within the page limit of the

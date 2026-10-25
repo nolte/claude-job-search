@@ -508,6 +508,11 @@ class OrderTests(unittest.TestCase):
         exported = "Max Mustermann\nPersönliche Daten\nBerufserfahrung\nFirma Entwickler 04/2021\nPython"
         self.assertIsNone(self.mod.first_order_difference(source, exported))
 
+    def test_a_heading_word_in_the_running_text_can_hide_a_swap_a_known_limit(self):
+        source = "## Berufserfahrung\nIch habe eine Ausbildung gemacht\n## Ausbildung\nBachelor"
+        swapped = "Ausbildung\nBachelor\nBerufserfahrung\nIch habe eine Ausbildung gemacht"
+        self.assertIsNone(self.mod.first_order_difference(source, swapped))
+
     def test_the_export_warns_about_the_order_without_changing_the_exit_code(self):
         tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
