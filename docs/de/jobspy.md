@@ -53,8 +53,8 @@ Aufbewahrungsregeln unten.
    Brief sie nennt. **LinkedIn wird nie über JobSpy durchsucht**: LinkedIn läuft über den
    eigenen Server, siehe [LinkedIn-Zugriff](linkedin.md).
 4. Die Grenzen sind bewusst klein: höchstens 20 Ergebnisse je Börse, 3 Börsen je Suche, 5 Suchen
-   je Sitzung und ein begrenztes Alter der Anzeigen (RC-5.8 Regel 4). Es gibt keine geplanten
-   oder wiederkehrenden Suchen. Vollständige Details holt der Skill nur für den Eintrag, den du
+   je Sitzung und ein begrenztes Alter der Anzeigen (RC-5.8 Regel 4). Geplante oder wiederkehrende
+   Suchen gibt es nur als freigegebenen Suchauftrag, siehe *Wiederkehrende Suche* unten. Vollständige Details holt der Skill nur für den Eintrag, den du
    wählst, nie für eine Liste.
 5. Die Shortlist zeigt Vetos aus deinem Wunschprofil mit Grund, statt sie zu streichen, führt
    Doppelte über Börsen und mit deinen vorhandenen Vorgängen zusammen und markiert Anzeigen
@@ -64,6 +64,50 @@ Aufbewahrungsregeln unten.
 7. Brief, Shortlist und deine Entscheidung je Eintrag (`übernommen`, `abgelehnt`, `offen`)
    landen in `suche/<JJJJ-MM-TT>-<slug>.md` in deiner Wurzel. Der Datensatz bleibt 90 Tage
    erhalten. Der Skill listet Datensätze nach Fristende auf und löscht nichts; du entscheidest.
+
+## Wiederkehrende Suche (Suchauftrag)
+
+Für eine Suche, die du wiederholen willst, führt der Skill einen **Suchauftrag**: dein freigegebener Brief plus ein Plan
+(wie oft, wie viel). Gefundene Stellen landen in einer **Warteschlange** (`suche/warteschlange.json`), die deine
+Entscheidungen behält. So wird dieselbe Stelle nicht zweimal angeboten, eine geänderte Anzeige wird markiert und eine
+Stelle mit Vorgang erscheint nicht als neu. Die Regeln stehen in `spec/job-application/stellensuche/en.md` (ST-13 bis ST-20).
+Die Suche selbst braucht weiter den JobSpy-Server in einer Claude-Sitzung; das Hilfsskript `scripts/stellensuche.py`
+übernimmt Speichern, Grenzen und Deduplizierung.
+
+**Was die Freigabe bedeutet.** Sie erlaubt Abfragen mit den freigegebenen Begriffen an die freigegebenen Börsen, höchstens
+3 Börsen mit je 20 Ergebnissen und standardmäßig höchstens 3 Läufe in 7 Tagen (du kannst senken oder bis auf 7 Läufe
+erhöhen), sowie das lokale Speichern von Titel, Firma, Ort, Datum, URL und einem Hash der Beschreibung. Sie erlaubt keine
+Bewerbung, keine Nachricht an einen Arbeitgeber und keine Änderung an einem Vorgang. Ändert sich ein Begriff, der Ort, die
+Börsen, eine Grenze oder der Plan, entfällt die Freigabe; ebenso bei geänderter `wunschprofil.md`, wenn der Suchauftrag daran
+gebunden ist.
+
+Beispiele (sag es Claude, oder rufe das Hilfsskript selbst auf mit
+`python3 <plugin>/scripts/stellensuche.py --konfiguration job-application/konfiguration.md <Befehl>`):
+
+1. **Anlegen:** „Lege einen Suchauftrag für Backend-Stellen in Berlin an.“ Claude baut den Brief aus deinem Wunschprofil und
+   zeigt jeden Begriff mit Quelle. Noch läuft nichts (Status `entwurf`).
+2. **Prüfen und freigeben:** Claude zeigt, was gesendet wird und was nicht, wie oft und wie viel; nach deinem ausdrücklichen Ja
+   folgt `freigeben <id> --ja` (Status `aktiv`).
+3. **Einmal ausführen:** „Führe den Suchauftrag jetzt aus.“ Ergebnis: `ok`, `ok_ohne_treffer` (Erfolg ohne Treffer),
+   `teilweise` oder `fehlgeschlagen` (zum Beispiel `suchdienst_nicht_verfuegbar`, wenn der Server nicht verbunden ist).
+4. **Nach Zeitplan wiederholen:** Das Plugin installiert keinen Timer. Trage `scripts/stellensuche_geplant.sh` in einen
+   Scheduler von dir ein, etwa täglich (es startet nur für fällige Suchaufträge eine Sitzung mit eingeschränkter Werkzeugliste):
+   `17 7 * * * cd /pfad/zum/arbeitsordner && /pfad/zum/plugin/scripts/stellensuche_geplant.sh job-application/konfiguration.md >> ~/suche.log 2>&1`.
+   Der Werkzeugname des Servers ist standardmäßig `mcp__jobspy__search_jobs`; setze `STELLENSUCHE_JOBSPY_TOOL`, wenn du ihn
+   anders genannt hast. Nicht geprüft: Das Plugin hat keine geplante Sitzung gegen den echten Server laufen lassen (es war
+   kein Server verbunden).
+5. **Ansehen und priorisieren:** öffne `suche/warteschlange.md` in deinem Vault (lesbare Übersicht, nach jeder Änderung neu geschrieben; Obsidian zeigt die JSON-Dateien nicht an) oder frag: „Zeige die Warteschlange.“ Die Stellen sind nach `ohne_treffer`, `klaerung` oder `veto`
+   gruppiert, allein aus der Vorprüfung auf strukturierte Felder. Das ist kein Passungswert; den Fit-Check gibt es nach der
+   Übergabe.
+6. **Zurückstellen oder ausschließen:** „Stelle s-… zurückstellen bis 2026-12-01“ oder „ablehnen, Grund: Schichtdienst“. Ein
+   erneuter Fund ändert deine Entscheidung nicht.
+7. **Übergeben:** „Übernimm s-….“ Claude gibt `job-application-solution` die URL als `stellenquelle`; den Text lädt der
+   URL-Intake oder du fügst ihn ein, der Plan braucht weiter deine Freigabe. Ein vorhandener Vorgang wird weiterverwendet.
+8. **Fehlgeschlagenen Lauf untersuchen:** `auftraege` zeigt den letzten Lauf und Fehler; `zeige <id>` listet die letzten 30
+   Läufe mit Code (`board_blockiert`, `verbindung_fehlgeschlagen`, …). Nach 3 Fehlern in Folge stoppen geplante Läufe, bis du
+   fortsetzt.
+9. **Pausieren und beenden:** „Pausiere den Suchauftrag“ (`pausieren`, später `fortsetzen`) und „Beende den Suchauftrag“
+   (`beenden`, endgültig: für eine neue Suche legst du einen neuen an).
 
 ## Einrichten
 

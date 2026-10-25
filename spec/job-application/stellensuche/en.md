@@ -12,7 +12,11 @@ WJ-8.2 privacy), `spec/job-application/lokale-struktur/en.md` (LS-3, LS-4, LS-6,
 `spec/job-application/unternehmensanalyse/en.md` (UA-3 source ranks) and
 `spec/job-application/konventionen/en.md` (R-1 facts, R-6 data protection).
 
-**Status:** specified. The skill `job-application-job-search` implements it.
+**Status:** specified. The skill `job-application-job-search` implements ST-1 to ST-12 (the interactive search).
+ST-13 to ST-20 (the recurring search: Suchauftrag, run log, Warteschlange, hand-off) are implemented by
+`scripts/stellensuche.py`, run by the same skill, and by `scripts/stellensuche_geplant.sh` for scheduled runs. The
+script is deterministic; the search itself needs the JobSpy server inside a Claude session. Whether a scheduler
+is set up is the user's decision (ST-16 rule 4).
 
 **Provenance.** Statements about JobSpy itself (boards, tools, version, known defects) are the
 statements of its README and of the issue that asked for this step (#17), per the JobSpy README at
@@ -26,6 +30,10 @@ the version named in the docs page *JobSpy*. They are not verified by this speci
 | **Shortlist** | The result list shown to the user after a search (ST-5). |
 | **Suchprotokoll** | The file `<wurzel>/suche/<JJJJ-MM-TT>-<slug>.md` that keeps brief, shortlist and decisions (ST-8). |
 | **Board** | A job board that JobSpy can query. |
+| **Suchauftrag** | A stored, approved Suchbrief with a plan (how often, how much) that can be run again (ST-13). |
+| **Lauf** | One execution of a Suchauftrag: one query per approved board, recorded in the Suchauftrag (ST-15). |
+| **Warteschlange** | `<wurzel>/suche/warteschlange.json`: one entry per identified posting, with the decision of the user (ST-19). |
+| **Stelle** | One entry of the Warteschlange; its id is `s-` plus ten hex digits. |
 | **Wunschprofil** | `wunschprofil.md` as defined in `traumjob-interview/en.md`. |
 
 Vorgang, Wurzel, Ausschluss and Veto are used as defined in `lokale-struktur/en.md` LS-1 and
@@ -61,9 +69,12 @@ Vorgang, Wurzel, Ausschluss and Veto are used as defined in `lokale-struktur/en.
    server is connected and the user agrees, LinkedIn is searched with that server's `search_jobs` under
    RC-5.4.
 3. **Volume.** By default at most 20 results per board, at most 3 boards per search, at most 5 searches per
-   session, and a limited posting age (RC-5.8 rule 4). The user may lower the numbers. There are no scheduled
-   or recurring searches, no alerts and no monitoring (RC-5.0 rule 4). The count of searches per session is
+   session, and a limited posting age (RC-5.8 rule 4). The user may lower the numbers. There are no alerts and no monitoring
+   (RC-5.0 rule 4); scheduled searches exist only as Suchaufträge (ST-13 to ST-16). The count of searches per session is
    kept by the conversation only: a new session starts at 0, and a Suchprotokoll carries no counter.
+   **Exception:** an approved, active Suchauftrag may run again by itself under ST-14 to ST-16, with the
+   limits of ST-16 rule 1 instead of the session count. Nothing else in this section is relaxed: no alerts, no
+   monitoring, and a skill never starts a recurring search that the user did not approve as a Suchauftrag.
 4. **Details only for chosen entries.** The skill does not fetch descriptions for a whole list. It fetches the
    full record only for entries the user picks (`get_job_details`).
 5. **A failing board is skipped.** A blocked board, a failed query or a Glassdoor location error is reported
@@ -80,6 +91,9 @@ Vorgang, Wurzel, Ausschluss and Veto are used as defined in `lokale-struktur/en.
    applied" with the Vorgang slug and is not offered as new, to prevent double applications (KK-4.2).
 3. **Against earlier searches.** An entry with the decision `abgelehnt` in an existing Suchprotokoll is not
    suggested again while that record exists (ST-8 rule 4).
+
+4. **Across runs.** Matching against earlier results uses the Warteschlange (ST-17 rule 2), not only the current
+   answer of the server. Its decision `abgelehnt` has the same effect as in rule 3.
 
 ## ST-5 Shortlist
 
@@ -145,7 +159,10 @@ way). A board does not raise a rank (RC-5.0 rule 6).
    their date and leaves the deletion to the user. The age of a record is taken from the date in its file name.
    A record that contains the line `Behalten: ja` is kept by the user: it is never listed as past its date and
    never deleted by a skill. The skill writes no `Behalten` line; the user adds it.
-6. **Privacy.** The folder is covered by R-6 and `lebenslauf-versionen` LV-4 (a private repository only,
+6. **Warteschlange and Suchprotokoll.** For a posting known to the Warteschlange, the decision lives there
+   (ST-19 rule 2); the column `Entscheidung` of a Suchprotokoll is the state when the record was written. A
+   Suchauftrag run writes no Suchprotokoll (its run log is part of the Suchauftrag, ST-15).
+7. **Privacy.** The folder is covered by R-6 and `lebenslauf-versionen` LV-4 (a private repository only,
    `lokale-struktur` LS-9).
 
 ## ST-9 Personal data and third-party text
@@ -198,7 +215,173 @@ done by reviewing a run, not by a script.
 | Fit check before taking an entry | A fit check runs only after the hand-off, which marks the entry `übernommen` (ST-5 rule 3, ST-7 rule 5); a state 'checked, not taken' does not exist | open |
 | Session limit | The limit of five searches per session is kept by the conversation only and can be bypassed by starting a new session (ST-3 rule 3) | decided |
 | Write confirmation | That the skill asks the user once per session before it writes a Suchprotokoll is a precaution of the skill, not required by this spec | open, deliberate |
+| Scheduler | The plugin ships the launcher and no scheduler; the user sets cron or a timer (ST-16 rule 4). Until then runs happen on request | open, deliberate |
+| JobSpy output shape | The field names of the `search_jobs` preview are the README's JobSpy columns; the plugin has not run the server (ST-17 rule 2 accepts both the JobSpy and the German names) | open, to be verified per version |
+| Hand-off of a queued posting | `get_job_details` needs a search id of the same session, which a queued posting does not have; the text comes from the URL intake of `stellenanzeige-url` or from the user (ST-19 rule 3) | decided |
+| Fit check before taking | The Warteschlange shows only the Veto pre-filter; the fit check stays after the hand-off (ST-18 rule 3) | open |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
+
+## ST-13 Suchauftrag
+
+1. **What it is.** A Suchauftrag stores an approved Suchbrief and a plan so that the same search can run again. It lives in
+   `<wurzel>/suche/auftraege/<id>.json`, the id is `a-` plus a slug of the name. The file holds: name and purpose, the
+   brief (ST-2), the plan, the local exclusions, whether it is tied to the Wunschprofil, the approval (ST-14), the
+   status, the time of creation and last change, the time of the last attempt and the last success, the count of
+   failures in a row, the result of the last run, the last error and the last 30 runs.
+2. **Same content rules as the brief.** A term has at most 6 words and 60 characters and a source (ST-2 rules 3
+   and 4). Boards are at most 3 of the boards of ST-3 rule 1, never `linkedin`. Results per board are at most 20, the
+   posting age at most 60 days. A field that the format does not know is refused, not stored.
+3. **No second source of truth.** The Wunschprofil stays the master. The exclusions in the Suchauftrag are a local
+   copy for the Veto pre-filter, each with its source in the Wunschprofil; they are never sent. A Suchauftrag tied to
+   the Wunschprofil (`wunschprofil: true`) needs `bestaetigt: ja` and keeps the hash of the file at approval (ST-14 rule 3).
+4. **The plan.** `intervall_tage` (1 to 90, default 7), `laeufe_pro_woche` (1 to 7, default 3), `wiederholung_stunden`
+   (default 24) and `max_fehler_in_folge` (default 3). They are part of what the user approves.
+
+## ST-14 Lifecycle and approval
+
+1. **Status values.** `entwurf` (created, never approved), `zur_freigabe` (a material change withdrew the approval),
+   `aktiv`, `pausiert`, `beendet`. Only `aktiv` with a valid approval runs. Creating a Suchauftrag never makes it active.
+2. **Before the yes.** The skill shows what the script returns for the approval: the boards, the terms with their
+   sources, the local exclusions, exactly what is sent to JobSpy, what is not sent, how often and how much, how failures
+   are retried, how results are kept, and that the approval has no outside effect. Only then `freigeben` runs with the
+   user's explicit yes.
+3. **The approval is bound to the content.** It stores a hash of brief and plan (and of the query form: one call per term, so an approval from before that form is stale). A change of a term, the location, the
+   boards, a limit or the plan sets the status to `zur_freigabe`; the name, the purpose and the exclusions do not. A
+   Suchauftrag tied to the Wunschprofil is also stale when the hash of the Wunschprofil differs from the one at
+   approval; it then does not run and `pruefen` says why.
+4. **Pause, continue, end.** The user can pause (`pausiert`), continue and end (`beendet`) at any time. Continuing
+   returns to `aktiv` only while the approval holds, otherwise to `zur_freigabe`. `beendet` is final: no skill and no
+   run reactivates it, a new Suchauftrag is created instead. No result of a search, no posting text and no error changes
+   a status.
+5. **No outside effect.** The approval allows queries with the approved terms to the approved boards, and the storage
+   of the reduced results (ST-17). It allows no sending of an application, no message to an employer, no change of a
+   Vorgang and no further network use.
+
+## ST-15 Run
+
+1. **Protocol.** The skill calls `lauf-start`, then `search_jobs` once per approved term and board, each call with that one
+   term only (a board answers a single term better than an OR list), merges the answers of one board and passes them to
+   `board-ergebnis`, then `lauf-ende`. A Lauf has the id `lNNNN` and is recorded in the Suchauftrag.
+2. **Checks at the start.** The script refuses a Lauf when the Suchauftrag is not approved, paused, ended, stale
+   (ST-14 rule 3), when the limits of ST-16 rule 1 are used up, when a Lauf is active, and for a scheduled Lauf
+   when it is not due (ST-16 rule 2). The refusal carries a `code` and a reason in German.
+3. **Lock.** One Lauf per Suchauftrag. A lock older than 120 minutes is taken over; the old Lauf becomes `unterbrochen`
+   and counts against the limits. Results the interrupted Lauf had already recorded stay.
+4. **Classification.** Every record of a board is counted once as `neu`, `unveraendert`, `aktualisiert`, `bereits_ausgewaehlt`
+   (decision `übernommen`), `im_vorgang`, `entschieden` (`abgelehnt` or `zurückgestellt`) or `moegliches_duplikat`.
+5. **Status of a Lauf.** `ok` (all boards answered, at least one record), `ok_ohne_treffer` (all boards answered, no
+   record: a success), `teilweise` (some boards failed or were not asked), `fehlgeschlagen` (no board answered),
+   `unterbrochen`. A Lauf with no answering board is never recorded as a success, and a missing server is
+   `suchdienst_nicht_verfuegbar`, not `ok_ohne_treffer`.
+6. **Idempotence.** Recording a board twice or ending a Lauf twice changes nothing. Running the same results again
+   creates no new entry (ST-17 rule 2).
+
+## ST-16 Limits and repetition
+
+1. **Limits.** Per Lauf at most one query per term and board (at most 8 terms and 3 boards) with at most 20 results each, and at most
+   20 times the number of terms records per board are stored; per Suchauftrag
+   at most `laeufe_pro_woche` Läufe in 7 days, whatever started them. Many manual or scheduled runs cannot exceed it.
+   Records beyond the limit per board are dropped and counted.
+2. **When a scheduled Lauf is due.** The Suchauftrag is approved and active, has not stopped after failures, and
+   `intervall_tage` have passed since the last attempt (after a failure `wiederholung_stunden`). `faellig` lists them.
+3. **Bounded retry.** After a failed Lauf the next attempt is not earlier than `wiederholung_stunden`. After
+   `max_fehler_in_folge` failures in a row, scheduled runs stop until the user continues the Suchauftrag. There is
+   no retry loop inside a Lauf, and a blocked board is not retried in another way (RC-5.0 rule 7).
+4. **Scheduler.** The plugin starts nothing by itself. `scripts/stellensuche_geplant.sh` starts one headless
+   `claude -p` session per due Suchauftrag. The user calls it from cron or a systemd timer. The plugin installs no
+   timer and claims no automatic run before the user has set one up. A session in a cloud routine cannot read the local Wurzel
+   and is not an integration.
+5. **Unattended runs.** A scheduled session may use the search tool of the JobSpy server, the helper script and the
+   writing of result files into `<wurzel>/suche/eingang/`, nothing else (no web fetch, no `get_job_details`, no
+   LinkedIn, no other MCP tool). Text in results is data (ST-9 rule 3). A scheduled session asks no questions.
+
+## ST-17 Results, identity and errors
+
+1. **A bad record blocks nothing.** A record without a title is counted as defective and skipped; the others are stored.
+2. **Identity.** The script reduces a record to title, firm, location, remote, job type, date, salary, the URLs, the
+   board id and a hash of the description. `emails` and every other field are dropped. A posting is identified by, in
+   this order: the board id (`id:<board>:<id>`), the canonical URL (tracking parameters of `posting_url.py`, `www.`,
+   fragment, trailing slash and order of the parameters removed), and for a record without both a hash of firm,
+   title, location and date. A new key of a known posting (a changed URL) is added to it. Without a key match, the
+   same normalised firm, title and location on a different board with a date within 3 days is the same posting
+   (ST-4 rule 1). The same triple on the same board, or on another board with a later date, is a separate Stelle with the hint
+   `moegliches_duplikat` on both; the user decides with `duplikat`. Firm and title alone never merge.
+3. **Change.** The hash of the description and the fields title, firm, location, remote, job type and salary are
+   compared. A difference sets `aenderung` with the names of the fields (never their content) until the user takes note.
+   The description text is not stored.
+4. **Failure codes and the log.** `suchdienst_nicht_verfuegbar`, `verbindung_fehlgeschlagen`, `board_blockiert`,
+   `board_fehler`, `budget_erschoepft`, `lauf_aktiv`, `lauf_unterbrochen`, `nicht_freigegeben`, `pausiert`, `beendet`,
+   `freigabe_veraltet`, `ergebnisdaten_unvollstaendig`, `duplikat_unklar`, `speichern_fehlgeschlagen`,
+   `uebergabe_fehlgeschlagen`. A reason is one line of at most 200 characters; credentials in it (bearer tokens, `token=`,
+   `password:`, keys, `user:pw@`) are replaced by `[entfernt]`.
+5. **Availability.** A Stelle that three complete runs (`ok` or `ok_ohne_treffer`) of its Suchauftrag did not return
+   is `nicht_mehr_gesehen`; a later find makes it available again. This is an inference, not a statement of the
+   employer, and a failed run never counts.
+
+## ST-18 Pre-filter and assessment
+
+1. **Veto on structured fields.** The exclusions are compared with title, location, remote and job type (ST-5 rule 2).
+   A hit is a Veto with its reason and its source; the Stelle stays in the Warteschlange.
+2. **Missing is unclear.** A field the record does not give is listed as `unklar`. It is never a Veto and never a
+   statement about the candidate (WJ-6.3).
+3. **No score, no fit claim.** The Warteschlange classes are `ohne_treffer`, `klaerung` (unclear field, missing data,
+   Vermittler or no employer, or no exclusions given) and `veto`. They describe the pre-filter and nothing else. The fit
+   check (WJ-6) and the requirement match run after the hand-off, from the Datengrundlage, and stay with
+   `job-application-fit-check` and `job-application-posting-analysis`; nothing is invented to improve a class.
+
+## ST-19 Warteschlange and hand-off
+
+1. **Entry.** Id, identity keys, title, firm, location, remote, job type, date, salary, the boards with their URLs, the
+   hash values, signals, the pre-filter result, the Suchaufträge and Läufe that found it (the last 20), the first
+   and last time seen, availability, the decision, the Vorgang if any, the hand-off state, `aenderung`, hints and a
+   log of the last 50 events. The file is written atomically and survives a restart.
+2. **Decisions.** `offen`, `zurückgestellt` (optionally `bis` a date), `abgelehnt` (with a reason) and `übernommen`.
+   The user sets the first three with `entscheiden`; `übernommen` comes only from the hand-off. A find never changes a
+   decision. A Stelle with a Vorgang is no longer offered as new (ST-4 rule 2); it is found by firm and title or by the
+   source URL in `vorgang.md`. The list `warteschlange` shows `offen` and due `zurückgestellt` Stellen, can be filtered
+   by status, Suchauftrag and class, and names the Stellen older than 90 days (ST-8 rule 5), which it never deletes.
+3. **Hand-off.** `uebergabe` checks the Stelle: a Vorgang that exists is returned and reused; an `abgelehnt` Stelle
+   needs to be reopened first; a Stelle not seen for three runs, or one without title, firm or URL, is not reported
+   ready. The result names `stellenquelle`, the origin and the hints (Veto, unseen change). The skill then
+   gives `job-application-solution` that URL; the posting text is loaded through the URL intake of
+   `job-application-posting-analysis` (`stellenanzeige-url` UE-1 to UE-13) or pasted by the user, as posted. After the Vorgang
+   exists, `uebergabe-fertig` stores its slug and sets `übernommen`. A failure is stored with `uebergabe-fehler` and the hand-off
+   can be repeated. Never a second Vorgang for one Stelle.
+4. **Approval stays.** The plan gate of `job-application-solution` (step 3) and the Veto stop of WJ-7.1 are
+   unchanged. The script writes no file in a Vorgang and sets no Vorgang status; sending, messages to employers and
+   the status `versendet` stay with the user (LS-6 rules 4 and 7).
+5. **Readable overview.** After every command that changes state, the script rewrites `suche/warteschlange.md`, so the
+   result can be read in an Obsidian vault, which does not list JSON: the Suchaufträge with status, last run and error, then
+   the Stellen in the groups open, postponed, in a Vorgang and rejected, each with firm, title, location, date, class,
+   hints and the source link. It is a derivation (LS-1 *Ableitung*): never read back, never edited by hand, and it holds
+   nothing the JSON does not.
+
+## ST-20 Acceptance scenarios for the Suchauftrag
+
+Automated in `tests/test_stellensuche.py` with invented postings (Musterfirma GmbH, Beispiel AG); the JobSpy server is not involved.
+
+| ID | Scenario | Expected behaviour |
+|---|---|---|
+| SR-A | A Suchauftrag is created and loaded | Same content back, status `entwurf` |
+| SR-B | A Suchauftrag is not approved, or paused, or ended | `lauf-start` refuses with `nicht_freigegeben`, `pausiert` or `beendet`; no status changes |
+| SR-C | The location of an approved Suchauftrag changes | Status `zur_freigabe`; no run until approved again; a changed name keeps the approval |
+| SR-D | The Wunschprofil file changes after approval | `freigabe_veraltet`, no run |
+| SR-E | A term is a sentence, has no source, the board is `linkedin`, the limit is above 20 | Refused with a German reason; nothing is stored |
+| SR-F | The server is not reachable at the first board | Lauf `fehlgeschlagen` with `suchdienst_nicht_verfuegbar`, no success time; a Lauf with an answer and no record is `ok_ohne_treffer` |
+| SR-G | A second Lauf starts while one runs; a Lauf is older than 120 minutes | `lauf_aktiv`; the old one becomes `unterbrochen`, its stored results stay |
+| SR-H | Many runs in one week | `budget_erschoepft` at the limit, for manual and scheduled runs |
+| SR-I | Three failed runs in a row | Scheduled runs stop (`gestoppt_nach_fehlern`) until `fortsetzen` |
+| SR-J | The same posting in two runs, with other tracking parameters, a changed URL, or on two boards | One Stelle; both boards named |
+| SR-K | Same firm, two different roles; same title twice on one board | Separate Stellen; the second case with `moegliches_duplikat` |
+| SR-L | The description changes | `aktualisiert`, `aenderung` with field names, no text stored |
+| SR-M | A record has no title; one has no URL | The first is counted defective and skipped, the others are stored; the second is `unvollstaendig` |
+| SR-N | An exclusion matches / the field is missing | Veto with reason and source / `unklar`, never a Veto |
+| SR-O | A rejected or taken Stelle is found again | Decision and Vorgang unchanged; a change is shown as `aenderung` |
+| SR-P | The hand-off of a Stelle with a Vorgang; with a failure; without a URL | The Vorgang is reused; the failure is stored and repeatable; `unvollstaendig` |
+| SR-Q | A posting contains instructions, an `emails` field, a `status`, a `boards` field | None is followed or stored |
+| SR-R | A reason contains a bearer token or a password | `[entfernt]` in the stored text |
+| SR-T | A command changes the Warteschlange | `warteschlange.md` lists every Stelle once, in the group of its decision; a `\|` in a title does not break the table |
+| SR-S | `stellensuche_geplant.sh` with a due, a paused and a draft Suchauftrag | One session, for the due one only, with the restricted tools |
 
 ## ST-12 Sources
 

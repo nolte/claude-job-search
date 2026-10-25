@@ -51,8 +51,8 @@ below.
    them. **LinkedIn is never searched through JobSpy**: LinkedIn goes through its own server,
    see [LinkedIn access](linkedin.md).
 4. The limits are small on purpose: at most 20 results per board, 3 boards per search, 5
-   searches per session, and a limited posting age (RC-5.8 rule 4). There are no scheduled or
-   recurring searches. Full details are fetched only for the entry you pick, never for a list.
+   searches per session, and a limited posting age (RC-5.8 rule 4). Scheduled or recurring
+   searches exist only as an approved Suchauftrag, see *Recurring search* below. Full details are fetched only for the entry you pick, never for a list.
 5. The shortlist shows vetoes from your Wunschprofil with their reason instead of dropping them,
    merges duplicates across boards and against your existing Vorgänge, and flags postings from
    a Vermittler or without an employer name. A fit check runs only on request, per entry.
@@ -61,6 +61,45 @@ below.
 7. The brief, the shortlist and your decision per entry (`übernommen`, `abgelehnt`, `offen`) go
    to `suche/<JJJJ-MM-TT>-<slug>.md` in your Wurzel. The record is kept for 90 days. The skill
    lists records past that date and deletes nothing; you decide.
+
+## Recurring search (Suchauftrag)
+
+For a search you want to repeat, the skill keeps a **Suchauftrag**: your approved brief plus a plan (how often, how
+much). Found postings go into a **Warteschlange** (`suche/warteschlange.json`) that remembers what you decided, so the
+same posting is not offered twice, a changed ad is flagged and a posting with a Vorgang is not shown as new. The rules
+are in `spec/job-application/stellensuche/en.md` (ST-13 to ST-20). The search itself still needs the JobSpy server in a
+Claude session; the helper `scripts/stellensuche.py` does the storing, the limits and the de-duplication.
+
+**What the approval means.** It allows queries with the approved terms to the approved boards, at most 3 boards, 20
+results each, at most 3 runs in 7 days by default (you may lower this or raise it up to 7 runs), and the local storage of
+title, firm, location, date, URL and a hash of the description. It allows no application, no message to an employer and no
+change of a Vorgang. Changing a term, the location, the boards, a limit or the plan withdraws the approval; so does a changed
+`wunschprofil.md` for a Suchauftrag tied to it.
+
+Examples (say it to Claude, or run the helper yourself with
+`python3 <plugin>/scripts/stellensuche.py --konfiguration job-application/konfiguration.md <command>`):
+
+1. **Create:** "Lege einen Suchauftrag für Backend-Stellen in Berlin an." Claude builds the brief from your Wunschprofil and
+   shows every term with its source. Nothing runs yet (status `entwurf`).
+2. **Review and approve:** Claude shows what is sent, what is not, how often and how much; after your explicit yes it runs
+   `freigeben <id> --ja` (status `aktiv`).
+3. **Run once:** "Führe den Suchauftrag jetzt aus." Result: `ok`, `ok_ohne_treffer` (a success without hits),
+   `teilweise` or `fehlgeschlagen` (for example `suchdienst_nicht_verfuegbar` when the server is not connected).
+4. **Repeat on a schedule:** the plugin installs no timer. Add `scripts/stellensuche_geplant.sh` to a scheduler of yours, for
+   example once a day (it starts a run only for due Suchaufträge, with a restricted tool list):
+   `17 7 * * * cd /pfad/zum/arbeitsordner && /pfad/zum/plugin/scripts/stellensuche_geplant.sh job-application/konfiguration.md >> ~/suche.log 2>&1`.
+   The tool name of the server defaults to `mcp__jobspy__search_jobs`; set `STELLENSUCHE_JOBSPY_TOOL` if you named it differently.
+   Not verified here: the plugin has not run a scheduled session against the real server (no server was connected).
+5. **See and prioritise:** open `suche/warteschlange.md` in your vault (a readable overview, rewritten after every change; Obsidian does not list the JSON files), or ask "Zeige die Warteschlange." Postings are grouped as `ohne_treffer`, `klaerung` or `veto` by the
+   pre-filter on structured fields only. This is not a fit score; the fit check runs after the hand-off.
+6. **Postpone or exclude:** "Stelle s-… zurückstellen bis 2026-12-01" or "ablehnen, Grund: Schichtdienst". A later find does
+   not change your decision.
+7. **Hand over:** "Übernimm s-…." Claude gives `job-application-solution` the URL as `stellenquelle`; the text is loaded
+   through the URL intake or pasted by you, the plan still needs your approval. An existing Vorgang is reused.
+8. **Investigate a failed run:** `auftraege` shows the last run and error; `zeige <id>` lists the last 30 runs with the code
+   (`board_blockiert`, `verbindung_fehlgeschlagen`, …). After 3 failures in a row scheduled runs stop until you continue.
+9. **Pause and end:** "Pausiere den Suchauftrag" (`pausieren`, later `fortsetzen`) and "Beende den Suchauftrag" (`beenden`,
+   final: create a new one to search again).
 
 ## Set it up
 

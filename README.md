@@ -37,7 +37,9 @@ them. The result is consistent, fits the posting, and never invents experience.
   `job-application-reviewer` reads it like a recruiter would. `job-application-export` produces
   PDF, Word, HTML or Markdown.
 - **Look for postings** (optional). `job-application-job-search` searches job boards with a search
-  brief that you approve first.
+  brief that you approve first. An approved search (Suchauftrag) can be repeated and fills a queue of
+  found postings that remembers your decisions; repeating it on a schedule needs a timer that you set up
+  yourself (docs page *JobSpy*).
 
 Each application gets its own folder with a status and a short history. The plugin does not track
 what happens after you send; you note replies and interviews there yourself, or in Obsidian.
