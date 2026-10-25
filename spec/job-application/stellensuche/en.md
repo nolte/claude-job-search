@@ -275,6 +275,11 @@ done by reviewing a run, not by a script.
    `suchdienst_nicht_verfuegbar`, not `ok_ohne_treffer`.
 6. **Idempotence.** Recording a board twice or ending a Lauf twice changes nothing. Running the same results again
    creates no new entry (ST-17 rule 2).
+7. **Later entry.** When a Lauf ended as `fehlgeschlagen` or `unterbrochen` without the answers of a board that the model
+   did get (for example because recording them failed), `nachtragen` stores those answers afterwards. Only for an approved board, only
+   while the approval is valid, once per board and Lauf, with the limits and checks of a normal record. The Lauf keeps its status:
+   no success time, no failure count, no availability mark and no budget change result from it, and the entry is marked in the Lauf as
+   `nachtraege`. It is no way around the limits: it needs a Lauf that was already counted, and it sends nothing.
 
 ## ST-16 Limits and repetition
 
@@ -381,6 +386,7 @@ Automated in `tests/test_stellensuche.py` with invented postings (Musterfirma Gm
 | SR-Q | A posting contains instructions, an `emails` field, a `status`, a `boards` field | None is followed or stored |
 | SR-R | A reason contains a bearer token or a password | `[entfernt]` in the stored text |
 | SR-T | A command changes the Warteschlange | `warteschlange.md` lists every Stelle once, in the group of its decision; a `\|` in a title does not break the table |
+| SR-U | The answers of a board are entered after a failed Lauf | Stored with the usual checks; the Lauf stays `fehlgeschlagen`, the budget and the failure count do not change; a second entry for the board, a completed Lauf, an unapproved board and a stale approval are refused |
 | SR-S | `stellensuche_geplant.sh` with a due, a paused and a draft Suchauftrag | One session, for the due one only, with the restricted tools |
 
 ## ST-12 Sources

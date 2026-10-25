@@ -15,7 +15,7 @@ network service.
 
 Usage: stellensuche.py [--konfiguration PFAD] [--jetzt ISO] [--text] <befehl> ...
 Commands: wurzel, anlegen, aendern, pruefen, freigeben, pausieren, fortsetzen, beenden, auftraege, zeige,
-faellig, lauf-start, board-ergebnis, lauf-ende, warteschlange, entscheiden, aenderung-gesehen, duplikat,
+faellig, lauf-start, board-ergebnis, lauf-ende, nachtragen, warteschlange, entscheiden, aenderung-gesehen, duplikat,
 uebergabe, uebergabe-fertig, uebergabe-fehler.
 Output is one JSON object. Exit code 0 ok, 3 refused (`code` and `meldung` say why), 1 blocker, 2 usage.
 Standard library only.
@@ -849,6 +849,37 @@ def record_board(wurzel, auftrag_id, run_id, board, payload, now):
     return {"ok": True, "board": board, **entry}
 
 
+def add_later(wurzel, auftrag_id, run_id, board, payload, now):
+    """Store the answers of a board for a Lauf that ended without them (ST-15 rule 7).
+
+    Only for a `fehlgeschlagen` or `unterbrochen` Lauf, only for an approved board, once per board.
+    The Lauf keeps its status; no success time, failure count, availability or budget changes.
+    """
+    auftrag = load_auftrag(wurzel, auftrag_id)
+    run = find_run(auftrag, run_id)
+    if run["status"] not in ("fehlgeschlagen", "unterbrochen"):
+        raise Refused("nachtrag_nicht_moeglich", f"Der Lauf {run_id} ist {run['status']}; nachgetragen wird nur nach einem Fehler oder Abbruch")
+    problem = approval_problem(wurzel, auftrag)
+    if problem:
+        raise Refused(*problem)
+    if board not in auftrag["brief"]["boards"]:
+        raise Refused("board_nicht_freigegeben", f"{redact(board, 30)} gehört nicht zu den freigegebenen Boards")
+    if board in run["boards"] or board in run.setdefault("nachtraege", {}):
+        raise Refused("nachtrag_nicht_moeglich", f"Für {board} liegen im Lauf {run_id} schon Ergebnisse vor")
+    if not isinstance(payload, dict) or payload.get("status") != "ok" or not isinstance(payload.get("ergebnisse"), list):
+        raise Refused("ergebnisdaten_unvollstaendig", 'Ein Nachtrag braucht {"status": "ok", "ergebnisse": [...]}')
+    limit = auftrag["brief"]["ergebnisse_pro_board"] * len(auftrag["brief"]["begriffe"])
+    taken = payload["ergebnisse"][:limit]
+    queue = load_queue(wurzel)
+    count, defects, neue = ingest_records(queue, auftrag, run_id, board, taken, now, scan_vorgaenge(wurzel))
+    result = {"am": stamp(now), "anzahl": len(taken) - len(defects), "abgeschnitten": max(0, len(payload["ergebnisse"]) - limit),
+              "defekt": len(defects), "zaehlung": count, "neue": neue}
+    atomic_write(queue_path(wurzel), queue)
+    run["nachtraege"][board] = result
+    save_auftrag(wurzel, auftrag)
+    return {"ok": True, "lauf": run_id, "lauf_status": run["status"], "board": board, **result}
+
+
 def mark_missing(queue, auftrag, seen_key):
     count = 0
     for entry in queue["stellen"].values():
@@ -1187,6 +1218,7 @@ def build_parser():
     add("lauf-start", "id", trigger={"choices": ("manuell", "geplant"), "default": "manuell"})
     add("board-ergebnis", "id", "lauf", "board", datei={})
     add("lauf-ende", "id", "lauf")
+    add("nachtragen", "id", "lauf", "board", datei={})
     add("warteschlange", status={"default": "aktuell", "choices": ("aktuell", "alle") + DECISIONS}, auftrag={},
         klasse={"choices": ("veto", "klaerung", "ohne_treffer", "geaendert", "unvollstaendig")})
     add("entscheiden", "stelle", als={"required": True}, grund={"default": ""}, bis={"default": ""})
@@ -1240,6 +1272,8 @@ def dispatch(args, wurzel, now):
         return start_run(wurzel, args.id, args.trigger, now)
     if cmd == "board-ergebnis":
         return record_board(wurzel, args.id, args.lauf, args.board, read_payload(args), now)
+    if cmd == "nachtragen":
+        return add_later(wurzel, args.id, args.lauf, args.board, read_payload(args), now)
     if cmd == "lauf-ende":
         return finish_run(wurzel, args.id, args.lauf, now)
     if cmd == "warteschlange":

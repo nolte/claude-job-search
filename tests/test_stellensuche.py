@@ -705,6 +705,46 @@ class SecurityTests(Base):  # G
         self.assertEqual(top, ["suche"])
 
 
+class LaterEntryTests(Base):  # SR-U
+    def failed_run(self):
+        aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]}, plan={"laeufe_pro_woche": 1})
+        started = ss.start_run(self.w, aid, "manuell", T0)
+        done = ss.finish_run(self.w, aid, started["lauf"], T0)
+        self.assertEqual(done["status"], "fehlgeschlagen")
+        return aid, started["lauf"]
+
+    def test_answers_are_stored_without_changing_the_failed_run(self):
+        aid, run = self.failed_run()
+        before = ss.load_auftrag(self.w, aid)
+        result = ss.add_later(self.w, aid, run, "indeed", {"status": "ok", "ergebnisse": [job()]}, later(hours=1))
+        self.assertEqual((result["lauf_status"], result["zaehlung"]["neu"]), ("fehlgeschlagen", 1))
+        self.assertEqual(len(self.queue()), 1)
+        after = ss.load_auftrag(self.w, aid)
+        for key in ("fehler_in_folge", "letzter_erfolg", "letzter_lauf", "lauf_zaehler"):
+            self.assertEqual(after[key], before[key], key)
+        self.assertEqual(after["laeufe"][0]["status"], "fehlgeschlagen")
+        self.assertIn("indeed", after["laeufe"][0]["nachtraege"])
+        self.assertEqual(self.refused(ss.start_run, self.w, aid, "manuell", later(hours=2)), "budget_erschoepft")
+
+    def test_second_entry_completed_run_and_bad_board_are_refused(self):
+        aid, run = self.failed_run()
+        ss.add_later(self.w, aid, run, "indeed", {"status": "ok", "ergebnisse": []}, later(hours=1))
+        args = (self.w, aid, run, "indeed", {"status": "ok", "ergebnisse": [job()]}, later(hours=2))
+        self.assertEqual(self.refused(ss.add_later, *args), "nachtrag_nicht_moeglich")
+        self.assertEqual(self.refused(ss.add_later, self.w, aid, run, "glassdoor", args[4], later(hours=2)), "board_nicht_freigegeben")
+        self.assertEqual(self.refused(ss.add_later, self.w, aid, run, "indeed", {"status": "fehler"}, later(hours=2)),
+                         "nachtrag_nicht_moeglich")
+        other = self.auftrag({**SPEC, "name": "Zweit"}, brief={**SPEC["brief"], "boards": ["indeed"]})
+        done_run, _, _ = self.run_search(other, [job()], T0)
+        self.assertEqual(self.refused(ss.add_later, self.w, other, done_run, "indeed", args[4], later(hours=2)), "nachtrag_nicht_moeglich")
+
+    def test_stale_approval_blocks_the_later_entry(self):
+        aid, run = self.failed_run()
+        ss.change_auftrag(self.w, aid, {"brief": {"ort": "Köln"}}, later(hours=1))
+        self.assertEqual(self.refused(ss.add_later, self.w, aid, run, "indeed", {"status": "ok", "ergebnisse": []}, later(hours=2)),
+                         "nicht_freigegeben")
+
+
 class OverviewTests(Base):  # SR-T
     def test_overview_lists_each_stelle_once_in_the_group_of_its_decision(self):
         aid = self.auftrag(brief={**SPEC["brief"], "boards": ["indeed"]})

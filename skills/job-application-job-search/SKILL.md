@@ -164,6 +164,8 @@ Wurzel and the repository boundary are checked by the script (a Blocker line on 
    fails is reported with its status and reason; no retry, no proxy. Then `lauf-ende <id> <lauf>`. Report in German the
    status (`ok_ohne_treffer` is a success with no hits, `fehlgeschlagen` is not), the counts, the warnings and the new Stellen
    with their class.
+   If a Lauf ended `fehlgeschlagen` or `unterbrochen` although the model had the answers of a board (recording failed), pass them with
+   `nachtragen <id> <lauf> <board> --datei …` (ST-15 rule 7); never to get around a limit, and never for a Lauf that ended `ok`.
 4. **Scheduled run** (a headless session started by `scripts/stellensuche_geplant.sh`, prompt says „geplanter Lauf“). Same as
    step 3 with `lauf-start <id> --trigger geplant`, write the board answers as files into `<wurzel>/suche/eingang/` and pass
    them with `--datei`, ask no question, use no other tool, and end with the one-line status. A refusal of
