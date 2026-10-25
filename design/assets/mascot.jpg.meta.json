@@ -1,0 +1,8 @@
+{
+  "provider": "cloudflare",
+  "model": "@cf/black-forest-labs/flux-2-klein-4b",
+  "source": "https://api.cloudflare.com/client/v4/accounts/<account>/ai/run/@cf/black-forest-labs/flux-2-klein-4b",
+  "prompt": "Cute flat vector mascot character on a plain off-white (#F7F9FC) background, centered, full body, facing the viewer. A small round green (#3DA35D) sprout character with two leaf-shaped ears, two simple black dot eyes and a small calm smile, standing on a white sheet of paper with a folded corner, a warm amber (#F5A623) half sun glowing behind it. Deep blue (#2B5FAE) used only for the paper's fold line and a soft contact shadow. Geometric rounded shapes, thick uniform proportions, no outlines, no gradients, no texture. Friendly, calm, encouraging, trustworthy. Pose: standing neutral, leaves relaxed. Character fills about 70 percent of the canvas, readable at small sizes. Avoid: text, letters, numbers, watermark, human, hands, fingers, realistic, photo, 3D render, gradient, glow, drop shadow, outline, anime, scary, angry, sad, clutter, multiple characters, extra leaves.",
+  "timestamp": "2026-10-25T22:14:30Z",
+  "mime_type": "image/jpeg"
+}

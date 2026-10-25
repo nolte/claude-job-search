@@ -1,0 +1,8 @@
+{
+  "provider": "cloudflare",
+  "model": "@cf/black-forest-labs/flux-2-klein-4b",
+  "source": "https://api.cloudflare.com/client/v4/accounts/<account>/ai/run/@cf/black-forest-labs/flux-2-klein-4b",
+  "prompt": "Cute flat vector mascot character on a plain off-white (#F7F9FC) background, centered, facing the viewer. A small round otter with warm brown (#8A5A3C) fur, a cream (#F3E2C7) belly and muzzle, small round ears, two simple black dot eyes, a small dark nose and a calm friendly smile, sitting upright in a white paper boat folded from one sheet with a deep blue (#2B5FAE) fold line. The boat floats on a few flat wave shapes in blue and light blue. Behind it a warm amber (#F5A623) half sun rises on the horizon. Geometric rounded shapes, no outlines, no gradients, no texture. Friendly, calm, curious, trustworthy. Character and boat fill about 70 percent of the canvas, readable at small sizes. Avoid: text, letters, numbers, watermark, human, hands, fingers, realistic, photo, 3D render, gradient, glow, drop shadow, outline, anime, scary, angry, sad, clutter, multiple characters, motor, sail.",
+  "timestamp": "2026-10-25T22:26:07Z",
+  "mime_type": "image/jpeg"
+}
