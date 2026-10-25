@@ -98,6 +98,8 @@ a Blocker exists. Its rule IDs:
 | CV-19 | Entry of a list section (skills, languages, certificates, education) that stands nowhere in the Grundlage, or a number in its parenthesis that stands nowhere (CG-13.4.6) | Blocker |
 | CV-20 | Station used in the Lebenslauf that the Grundlage records with `Bestätigt: nein` (R-9.5 point 5, CG-13.4.8) | Blocker |
 | CV-21 | Lebenslauf with nothing but frontmatter and headings | Blocker |
+| CV-22 | Wording of ownership, scope or expertise (`eigenverantwortlich`, `gesamte`, `Experte`, …) that the station record does not use (CG-7.4, CG-13.4.10) | Warnung |
+| CV-23 | Number that the record gives as a team result, in a bullet without a team reference (CG-13.4.11) | Warnung |
 
 The letters run the same script with `--doc-type`, once per document that exists
 (`anschreiben.md` and `anschreiben-portal.txt` as `letter`, `motivationsschreiben.md` and its portal copy as `motivation`,
@@ -116,8 +118,13 @@ python3 <plugin-root>/scripts/cv_checks.py <wurzel>/<slug>/anschreiben.md --doc-
 | BR-04 | Personnel-leadership wording while no station of the Grundlage records `fuehrung: ja` (Hinweis when one does) | Blocker, Hinweis |
 | BR-05 | Anschreiben, Motivationsschreiben or E-Mail with nothing but frontmatter and headings | Blocker |
 
+CV-22 and CV-23 ask for the evidence and are a Warnung; a confirmed contradiction (personnel management without `fuehrung: ja`) is the Blocker CV-16. Whether a statement is stronger
+than its record in a way the markers do not see stays in the review. A semantic finding names the statement, quotes the record line that supports
+the weaker reading, says which dimension (CG-7.4) is expanded and offers a factual wording; the gate never rewrites the Lebenslauf or the Grundlage.
+A Warnung of this kind needs the user's decision before the set is sent, and a Blocker keeps the verdict `BLOCKIERT`.
+
 Checks that need judgement stay in the review: ownership, leadership, expertise and proficiency
-wording (CG-7.2), relevance of selection (CG-5), seniority and role positioning, language and
+wording beyond the markers (CG-7.2, CG-7.4), relevance of selection (CG-5), seniority and role positioning, language and
 country conventions, employer instructions, and the requested format.
 
 ## Checks

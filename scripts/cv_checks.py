@@ -34,6 +34,10 @@ Implements the automated rules of spec/job-application/cv-generierung/en.md (CG-
   CV-20 station used in the Lebenslauf that the Grundlage records with
         `Bestätigt: nein` (R-9.5 point 5)                         Blocker
   CV-21 no content: nothing but the frontmatter and headings        Blocker
+  CV-22 wording of ownership, scope or expertise (`eigenverantwortlich`, `gesamte`,
+        `Experte`, …) that the station record does not use          Warnung (CG-7.4)
+  CV-23 number that the station record gives as a team result, in a bullet
+        without a team reference                                    Warnung (CG-7.4)
 
 Letters (`--doc-type letter|motivation|email`, CG-13.6) run a smaller set on anschreiben.md,
 motivationsschreiben.md and email.md:
@@ -98,8 +102,26 @@ LEADERSHIP_TERMS = re.compile(
     r"Führungsverantwortung|disziplinarisch\w*)\b",
     re.IGNORECASE,
 )
-LEADERSHIP_VERB = re.compile(r"\b(?:geleitet|leitete|leite|geführt|führte|führe|führen|Führung)\b", re.IGNORECASE)
+LEADERSHIP_VERB = re.compile(
+    r"\b(?:geleitet|leitete|leite|geführt|führte|führe|führen|Führung|gemanagt|managte|managen|angeleitet|anleitete|anleiten)\b",
+    re.IGNORECASE,
+)
 LEADERSHIP_OBJECT = re.compile(r"\b(?:Team|Teams|Mitarbeiter\w*|Abteilung\w*)\b", re.IGNORECASE)
+# Wording that claims more than participation (CG-7.2, CG-7.4): ownership, scope and expertise. A marker is a finding only when
+# its stem does not stand in the record of the station, so a station that says `eigenverantwortlich` may use the word. The
+# marker does not decide that a claim is false; it asks for the evidence.
+STRENGTH_MARKERS = (
+    ("Verantwortung oder Eigenständigkeit", re.compile(
+        r"\b(?:eigenverantwortlich\w*|alleinverantwortlich\w*|gesamtverantwortung|verantwortet\w*|verantwortete\w*|"
+        r"verantwortlich\w*|Verantwortung|eigenständig\w*|selbstständig\w*|selbständig\w*|allein)\b", re.IGNORECASE)),
+    ("Umfang", re.compile(
+        r"\b(?:gesamte[nrms]?|komplette[nrms]?|ganze[nrms]?|unternehmensweit\w*|konzernweit\w*|firmenweit\w*|"
+        r"organisationsweit\w*|Enterprise-?\w*)\b", re.IGNORECASE)),
+    ("Expertise", re.compile(
+        r"\b(?:Experte[n]?|Expertin(?:nen)?|Fachexperte\w*|Spezialist\w*|Spezialisierung|versiert\w*|Expertise|"
+        r"(?:sehr gute|fundierte|tiefgehende|umfassende|ausgeprägte|exzellente|hervorragende)\s+\w*Kenntnisse)\b", re.IGNORECASE)),
+)
+TEAM_REFERENCE = re.compile(r"\b(?:Team\w*|gemeinsam\w*|wir|im Verbund|Projektteam\w*|Kolleg\w+)\b", re.IGNORECASE)
 # Neutral gap wording (CG-9, R-8.1). A gap entry is a line between two stations, not a bullet. The wording
 # opens the entry (`Elternzeit (04/2019 – 08/2019)`, `… | Weiterbildung | …`); a job title that merely
 # contains one of the words (`Referent Weiterbildung`) is a station.
@@ -482,12 +504,20 @@ def check_cv(text, file, source_text=None, sources=None, ats=False):
                     if record_text is not None and re.search(pattern, record_text):
                         if not unit_in_record(token, bullet[match.end():], record_text, bullet[:match.start()]):
                             findings.append(finding("CV-05", "Warnung", file, number, f"Zahl „{token}“ steht im Stationseintrag, aber nicht mit dieser Einheit oder diesem Bezug (CV-05): " + bullet))
+                        elif team_result(token, bullet, bullet[match.end():], record_text):
+                            findings.append(finding("CV-23", "Warnung", file, number, f"Zahl „{token}“ ist in der Grundlage ein Ergebnis des Teams, der Stichpunkt nennt kein Team (CV-23, CG-7.4): " + bullet + " | Beleg: " + closest_source_line(bullet, record_text)))
                         continue
                     if re.search(pattern, source_text):
                         if record_text is not None:
                             findings.append(finding("CV-05", "Hinweis", file, number, f"Zahl „{token}“ nicht im Stationseintrag, aber an anderer Stelle der Grundlage belegt (CV-05): " + bullet))
                         continue
                     findings.append(finding("CV-05", "Blocker", file, number, f"Zahl „{token}“ nicht in der Grundlage belegt (CV-05): " + bullet))
+            if record_text is not None:
+                strong = strength_findings(bullet, record_text)
+                if strong:
+                    words = ", ".join(f"„{marker}“ ({dimension})" for dimension, marker in strong)
+                    evidence = closest_source_line(bullet, record_text) or "kein ähnlicher Beleg im Stationseintrag"
+                    findings.append(finding("CV-22", "Warnung", file, number, f"Wortlaut stärker als der Stationseintrag belegt: {words} (CV-22, CG-7.4). Beleg: {evidence}. Mit dem Nutzer klären oder neutral formulieren: " + bullet))
             if record is not None and record.get("fuehrung") != "ja" and leadership_wording(bullet):
                 fuehrung = record.get("fuehrung") or "ungeklärt"
                 findings.append(finding("CV-16", "Blocker", file, number, f"Formulierung zur Personalführung ohne `fuehrung: ja` in der Grundlage (fuehrung: {fuehrung}, CV-16): " + bullet))
@@ -609,6 +639,47 @@ def check_list_sections(lines, file, source_text):
                 if not re.search(rf"(?<![\w.,]){re.escape(token)}(?![\d])", source_text):
                     findings.append(finding("CV-19", "Blocker", file, number, f"Zahl „{token}“ nicht in der Grundlage belegt (CV-19): " + entry))
     return findings
+
+
+def strength_findings(bullet, record_text):
+    """[(dimension, marker)] for wording of ownership, scope or expertise whose stem the station record does not use."""
+    lowered = record_text.lower()
+    found = []
+    for dimension, pattern in STRENGTH_MARKERS:
+        for match in pattern.finditer(bullet):
+            marker = match.group(0)
+            if marker.lower()[:7] not in lowered:
+                found.append((dimension, marker))
+    return found
+
+
+def closest_source_line(bullet, record_text):
+    """The line of the station record that shares the most word stems (first five letters) with the bullet, or ''."""
+    def stems(text):
+        return {w[:5] for w in re.findall(r"[A-Za-zäöüÄÖÜß]{4,}", text.lower())}
+
+    words = stems(bullet)
+    best, best_score = "", 0
+    for line in record_text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or line.startswith("---"):
+            continue
+        score = len(words & stems(line))
+        if score > best_score:
+            best, best_score = line.lstrip("- ").strip(), score
+    return best
+
+
+PEOPLE_COUNT = re.compile(r"\s*(?:Entwickler\w*|Mitarbeit\w+|Personen|Kolleg\w+|Teammitglied\w*|Ingenieur\w*|Fachkräfte\w*|Köpfe\w*)", re.IGNORECASE)
+
+
+def team_result(token, bullet, after, record_text):
+    """True if every line of the record that holds the number speaks of a team and the bullet does not. A head count
+    (`4 Entwickler`) is a fact about the team, not a result, and is left to CV-05."""
+    if PEOPLE_COUNT.match(after):
+        return False
+    lines = [l for l in record_text.splitlines() if re.search(number_pattern(token), l)]
+    return bool(lines) and all(TEAM_REFERENCE.search(l) for l in lines) and not TEAM_REFERENCE.search(bullet)
 
 
 def leadership_wording(bullet):
@@ -873,7 +944,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Deterministic checks for a Lebenslauf (CG-13) or a letter (CG-13.6).")
     parser.add_argument("lebenslauf", help="path to lebenslauf.md, or to the letter with --doc-type")
     parser.add_argument("--doc-type", choices=("cv", "letter", "motivation", "email"), default="cv",
-                        help="cv (default): the rules CV-01 to CV-21; letter, motivation, email: the rules BR-01 to BR-05")
+                        help="cv (default): the rules CV-01 to CV-23; letter, motivation, email: the rules BR-01 to BR-05")
     parser.add_argument("--grundlage", action="append", default=[], help="Grundlage file or directory (repeatable: directory and index note)")
     parser.add_argument("--analyse", help="path to analyse.md")
     parser.add_argument("--stellenanzeige", help="path to stellenanzeige.md (letters: numbers of the posting are no proof of the candidate)")
@@ -912,7 +983,7 @@ def main(argv=None):
             findings += birthdate_findings(firm_text, firm_path)
 
     summary = {level: sum(1 for f in findings if f["schweregrad"] == level) for level in ("Blocker", "Warnung", "Hinweis")}
-    unchecked = "CV-05, CV-06, CV-15, CV-16, CV-19, CV-20" if args.doc_type == "cv" else "BR-02, BR-03, BR-04"
+    unchecked = "CV-05, CV-06, CV-15, CV-16, CV-19, CV-20, CV-22, CV-23" if args.doc_type == "cv" else "BR-02, BR-03, BR-04"
     report = {
         "regeln": RULE_VERSION,
         "abgleich": "mit Grundlage" if args.grundlage else f"ohne Grundlage ({unchecked} nicht geprüft)",

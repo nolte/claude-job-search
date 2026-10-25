@@ -176,7 +176,7 @@ A set is ready to send only when `job-application-quality-gate` reports **zero b
 - the Datengrundlage hash in every output should match the current Grundlage. A mismatch makes the output
   stale and is a Warnung, not a Blocker (R-9.5, AS-12),
 - every Eintragsblock follows R-2.1 (header order, bullet limits of CG-6, no invented numbers),
-- every automated rule of CG-13 (CV-01 to CV-21, as reported by `scripts/cv_checks.py`) has no Blocker,
+- every automated rule of CG-13 (CV-01 to CV-23, as reported by `scripts/cv_checks.py`) has no Blocker,
 - for ATS or portal applications, the ATS rules of R-8.3 hold.
 
 ## R-8 Formatauswahl nach Situation
