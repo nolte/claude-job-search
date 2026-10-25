@@ -55,7 +55,7 @@ SCENARIOS = [
     ("B1", "leadership", ["Koordination technischer Aufgaben im Team."], "Technische Arbeit im Team koordiniert.", NONE, "nein"),
     ("B2", "leadership", ["Fachliche Führung technischer Entscheidungen in Architekturfragen."], "Technische Architekturentscheidungen fachlich geführt.", NONE, "nein"),
     ("B3", "leadership", ["Koordination technischer Aufgaben im Team."], "Engineering-Team gemanagt und Mitarbeiter angeleitet.", CV16, "nein"),
-    ("B4", "leadership", ["Koordination technischer Aufgaben im Team."], "Teamleitung für fünf Entwickler übernommen.", CV16, "nein"),
+    ("B4", "leadership", ["Koordination technischer Aufgaben im Team."], "Teamleitung für fünf Entwickler übernommen.", CV16 + CV05, "nein"),  # F-05: `fünf` is a team size the record does not give
     ("B5", "leadership", ["Koordination technischer Aufgaben im Team."], "Technische Entscheidungen verantwortet.", CV22, "nein"),
     ("B6", "leadership", ["Personalverantwortung für 5 Entwickler."], "Team von 5 Entwicklern geleitet.", NONE, "ja"),
     ("B7", "leadership", ["Koordination technischer Aufgaben im Team."], "Technische Aufgaben im Team koordiniert und Kollegen angeleitet.", CV16, "nein"),

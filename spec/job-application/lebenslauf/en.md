@@ -283,9 +283,9 @@ document-level checks and shows which are automated.
 | A station header is not in the form of LB-5.1 | LB-5.1 | automated (CV-02) | Warnung |
 | Stations not in reverse order, or the end is before the start | LB-5.6, LB-10.3 | automated (CV-04) | Warnung, Blocker |
 | A period differs from the Grundlage | LB-10.5 | automated (CV-06) | Blocker |
-| A station is not in the Grundlage | LB-5 | automated (CV-15) | Blocker |
-| A gap over two months has no entry | LB-10.4 | automated (CV-13) | Blocker |
-| A number that the Grundlage does not state | CG-8.3 | automated (CV-05) | Blocker |
+| A station is not in the Grundlage (a spelling variant of its title or employer is a Hinweis) | LB-5 | automated (CV-15) | Blocker, Hinweis |
+| A gap over two months (time that no station covers) has no entry | LB-10.4 | automated (CV-13) | Blocker |
+| A number that the Grundlage does not state (`1,5` and `1.5` are the same number, `500 GB` and `0,5 TB` are not) | CG-8.3 | automated (CV-05) | Blocker |
 | A leadership word while `fuehrung` is `ungeklärt` or missing in the station note | CG-8.2 | automated (CV-16) | Blocker |
 | A leadership word while the station note says `fuehrung: nein` | CG-8.2 | automated (CV-16) | Blocker |
 | A table in the document | LB-11.1 | automated (CV-08) | Warnung, Blocker with ATS |

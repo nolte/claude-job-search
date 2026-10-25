@@ -5,6 +5,7 @@
 - `test_cv_checks.py`: scenario tests for `scripts/cv_checks.py` (spec CG-13, CG-14). Synthetic data only.
 - `test_export.py`: export of Markdown, HTML and DOCX through `skills/job-application-export/scripts/export_document.py`
   (requires pandoc, and python-docx for the DOCX check): word check, figure symbols and the order inside list items (`FactDifferenceTests`), structure notes and the manifest key `pruefung` (`StructureAndManifestTests`). The PDF tests need LuaLaTeX and are skipped without it; they run in the export image (`docs/en/export.md`, "What the export checks").
+- `test_cv_edge_cases.py`: edge cases of the CV checks (audit finding F-05), groups A to G: notation of figures and number words, several stations at one employer and spelling variants, overlap and gaps, leadership wording, skill and certificate spellings with year and status, severities. Each group pairs cases that must stay accepted with cases that must still be found.
 - `test_scenarios.py`: the scenarios A to H of the critical findings audit on the fictional fixtures in `tests/fixtures/szenarien/`
   (`README.md` there lists per scenario what is automated and what stays review).
 - `test_semantic_fidelity.py`: wording of ownership, scope and expertise and team results against the station record (CV-22, CV-23, CG-7.4); the matrix at the end lists which component catches which scenario.
@@ -36,7 +37,7 @@ instructions require (model review, not executed here; the eval suite is the pla
 | B1 | leadership | Technische Arbeit im Team koordiniert. | — | no finding | accepts (meaning kept) |
 | B2 | leadership | Technische Architekturentscheidungen fachlich geführt. | — | no finding | accepts (meaning kept) |
 | B3 | leadership | Engineering-Team gemanagt und Mitarbeiter angeleitet. | CV-16 Blocker | BLOCKIERT | Blocker (agrees) |
-| B4 | leadership | Teamleitung für fünf Entwickler übernommen. | CV-16 Blocker | BLOCKIERT | Blocker (agrees) |
+| B4 | leadership | Teamleitung für fünf Entwickler übernommen. | CV-16 Blocker + CV-05 Blocker (`fünf` is a team size the record does not give, F-05) | BLOCKIERT | Blocker (agrees) |
 | B5 | leadership | Technische Entscheidungen verantwortet. | CV-22 Warnung | BEREIT MIT WARNUNGEN; user decides | Warnung with the six questions (adds the reason) |
 | B6 | leadership | Team von 5 Entwicklern geleitet. | — | no finding | accepts (meaning kept) |
 | B7 | leadership | Technische Aufgaben im Team koordiniert und Kollegen angeleitet. | CV-16 Blocker | BLOCKIERT | Blocker (agrees) |
