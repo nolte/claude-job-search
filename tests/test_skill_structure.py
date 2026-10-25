@@ -286,6 +286,12 @@ class SkillStructureTests(unittest.TestCase):
             page = read("docs", lang, "websearch.md")
             self.assertIn("open-websearch@", page, lang)
             self.assertNotIn('@latest"', page, lang)
+            self.assertIn(reason, " ".join(page.split()), lang)
+            # the pinned version is the same in the configuration, the info box and the README link
+            versions = set(re.findall(r'open-websearch@(\d+\.\d+\.\d+)', page))
+            versions |= set(re.findall(r'^\s+Version (\d+\.\d+\.\d+) ', page, re.M))
+            versions |= set(re.findall(r'open-webSearch/blob/v(\d+\.\d+\.\d+)/README', page))
+            self.assertEqual(len(versions), 1, f"{lang}: {versions}")
 
     def test_web_route_budget_is_the_same_in_spec_skill_and_docs(self):
         # the budget numbers (10/15 at level 1, 20/30 at level 2) live in the spec, the skill, the gate and the docs; they
@@ -300,8 +306,8 @@ class SkillStructureTests(unittest.TestCase):
         for label, text in (("spec", flat("spec", "job-application", "recherche", "en.md")),
                             ("skill", flat("skills", "job-application-posting-analysis", "SKILL.md")),
                             ("gate", flat("skills", "job-application-quality-gate", "SKILL.md"))):
-            self.assertRegex(text, r"10 searches and 15 page fetches", label)
-            self.assertRegex(text, r"20 and 30", label)
+            # level 1 carries 10/15, level 2 carries 20/30, in that order, whatever the sentence around them says
+            self.assertRegex(text, r"10 searches and 15 page fetches.{0,60}level 1.{0,60}20 and 30.{0,60}level 2", label)
         for lang, word in (("en", "at most"), ("de", "höchstens")):
             page = read("docs", lang, "websearch.md")
             for level, searches, fetches in ((1, 10, 15), (2, 20, 30)):

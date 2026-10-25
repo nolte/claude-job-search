@@ -201,7 +201,10 @@ The pages are read in the following order, because each one confirms or question
    request` only (no browser rendering), and `fetchGithubReadme` for the README of a public
    repository of the firm (E-6). Without a connected server the built-in fetch tool of the client may
    be used under the same rules, but only if its tool description says that it reports the final URL
-   after redirects (rule 9). Otherwise it is treated as not reporting it. In practice many client fetch tools do not say so;
+   after redirects (rule 9). The tool description or the result of a call must name the URL after redirects
+   (a field such as `finalUrl` or a sentence saying so). A description that only mentions following
+   redirects, a `url` parameter or no statement does not count; the tool is then treated as not
+   reporting it, so two runs reach the same reading. In practice many client fetch tools do not say so;
    then only the search of the built-in tool is available, the pages wait for the server or for text
    that the user pastes, and the items stay `nicht ermittelt`. That is not an error. Route, record and
    optionality follow RC-5.0 rules 2 and 3.
@@ -596,7 +599,10 @@ Rules for the quality-gate checks:
 1. **Missing E-1.** A document that names a firm is a Blocker only if `## Recherche` exists (level 1
    or 2) and E-1 of that firm is not `ermittelt`. Level 0 alone never blocks: the identity gate needs
    sources outside the posting (RC-6.4). For a Vorgang with a Vermittler and no `## Recherche`, the gate
-   reports a Warnung.
+   reports a Warnung. It is a Warnung instead of a Blocker when E-1 is open only because the web route was
+   unavailable (no open-webSearch server and no fetch tool that reports the final URL, RC-5.2 rule 8) and
+   the user has declined to paste the imprint and register pages; the decision stands in `## Verlauf` of
+   `vorgang.md`, as in rule 2. Without that entry the Blocker stands.
 2. **Warnzeichen.** A document that names a firm with the assessment `Warnzeichen` is a Blocker. It
    becomes a Warnung if the user has decided against the assessment (RC-8 rule 4) and the decision
    stands in `## Verlauf` of `vorgang.md`.
@@ -607,11 +613,17 @@ Rules for the quality-gate checks:
    the firm file, not their single words: a firm name that contains a person's name is removed as a phrase,
    while that name standing alone in the query is left over. Matching ignores case, hyphens and
    spaces inside the phrase (`Muster-Firma` equals `Musterfirma`) and the legal form (GmbH, gGmbH, mbH, AG, SE, KG,
-   UG, e.V., Co.). The rest of the query is split into tokens at spaces and slashes; quotation marks are dropped.
+   UG, e.V., Co.). A phrase matches only at word boundaries of the query (start, end, space, slash,
+   quotation mark): `Ad AG` is not found inside `Reading`. The rest of the query is split into tokens at
+   spaces and slashes; quotation marks are dropped.
    A list term of several words such as `Engineering Blog` is matched as a whole phrase, a partial match does not
    count. Search operators such as `site:` are tokens outside the list. A token that is left over is a Warnung even
    when it might be an unrecorded Sitz: the user confirms it or records the Sitz. A firm name that is not
-   recorded makes the query unverifiable and is a Warnung as well (record incomplete, UA-5). The gate also
+   recorded makes the query unverifiable and is a Warnung as well (record incomplete, UA-5).
+   Worked example with a firm `Beispiel Logistik GmbH` and the contact person `Erika Beispiel`: the query
+   `Beispiel Logistik Impressum` is clean, because the phrase `Beispiel Logistik` is removed as a whole and
+   only the list term `Impressum` is left; the query `Beispiel Impressum` is a Warnung, because the phrase
+   is not there, so `Beispiel` is left over, and it is a token of the contact person's name. The gate also
    reports counts in `Kanäle` above the budget of RC-5.5 rule 6, and a `Kanäle` line
    that names a web route while `### Suchen` is missing or the counts differ (RC-9 rule 7).
 4. **Birthdate from the register.** A birthdate of a managing director or another person in

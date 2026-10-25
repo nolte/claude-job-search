@@ -64,7 +64,8 @@ diesen Eintrag im Abschnitt `mcpServers` deiner MCP-Konfiguration ein:
 ```
 
 !!! info "Geprüfte Version"
-    Version 2.2.0 (zuletzt geprüft im Oktober 2026). Die Variablennamen und Standardwerte unten
+    Version 2.2.0 (zuletzt geprüft im Oktober 2026). Ein laufender Server der Version 2.2.0 listete
+    sechs Tools ohne die `<disabled>`-Einstellungen unten und drei mit ihnen. Die Variablennamen und Standardwerte unten
     wurden gegen die [README der Version 2.2.0](https://github.com/Aas-ee/open-webSearch/blob/v2.2.0/README.md) geprüft. Bevor du die festgelegte Version änderst,
     lies die neue README erneut und vergleiche die Variablennamen.
 
@@ -77,7 +78,7 @@ diesen Eintrag im Abschnitt `mcpServers` deiner MCP-Konfiguration ein:
 | `USE_PROXY=false` | Das ist der Standard. Das Plugin empfiehlt keinen Proxy, um Sperren zu umgehen |
 | `MCP_TOOL_FETCH_…_NAME=<disabled>` | Laut README schaltet `<disabled>` ein Tool ab. Das betrifft die Abruf-Tools für CSDN, Linux.do und Juejin, damit die Tool-Liste kurz und eindeutig bleibt |
 
-Trage den Wert `<disabled>` wörtlich ein, mit den spitzen Klammern. Die README der Version 2.2.0 beschreibt das; ein älteres Release unterstützt es womöglich nicht, ein Grund mehr für die festgelegte Version. Listet `/mcp` die drei Tools weiterhin auf, prüfe Schreibweise und festgelegte Version, bevor du dich auf die Einstellung verlässt.
+Trage den Wert `<disabled>` wörtlich ein, mit den spitzen Klammern. Die README der festgelegten Version beschreibt das; ein älteres Release unterstützt es womöglich nicht, ein Grund mehr für die festgelegte Version. Listet `/mcp` die drei Tools weiterhin auf, prüfe Schreibweise und festgelegte Version, bevor du dich auf die Einstellung verlässt.
 
 **Engines.** Der Server unterstützt weitere Engines, darunter `bing`, `baidu`, `hackernews` und
 `exa`. Nimm `bing` nur auf, wenn du es verlangst, etwa weil die Abdeckung einer deutschen Firma zu
@@ -140,10 +141,17 @@ Datum (RC-9). So kannst du hinterher prüfen, was deinen Rechner verlassen hat.
    URLs aus vertrauenswürdigen Quellen und nie eine interne Adresse. Die Prüfung einer
    Weiterleitung kommt nach der Anfrage: Eine Weiterleitung auf `linkedin.com` fällt erst danach
    auf, der Text wird dann nicht verwendet. Die Anfrage an das Weiterleitungsziel ist
-   dann schon von deinem Rechner gesendet worden. Ein eingebautes Abruf-Tool, das die endgültige
-   URL nicht meldet, wird für Seiten gar nicht genutzt. Die meisten Abruf-Tools der Clients sagen
+   dann schon von deinem Rechner gesendet worden; das Plugin bittet den Server nicht, Weiterleitungen
+   einzuschränken, und nimmt diese Grenze hin. Ein eingebautes Abruf-Tool gilt nur dann als
+   meldend, wenn seine Beschreibung oder ein Aufrufergebnis die URL nach Weiterleitungen nennt; die
+   bloße Erwähnung von Weiterleitungen genügt nicht. Ein Tool, das sie nicht meldet, wird für Seiten
+   gar nicht genutzt, das Item ist `nicht ermittelt` mit der Begründung `Abruf ohne
+   Weiterleitungsprüfung nicht möglich`. Die meisten Abruf-Tools der Clients sagen
    das nicht, daher steht praktisch nur ihre Suche zur Verfügung: Die Seiten warten auf den Server
    oder auf Text, den du einfügst, und die Items bleiben offen. Seine Suche bleibt erlaubt.
+   Bleibt die Identität einer Firma aus diesem Grund offen und lehnst du das Einfügen der Seiten
+   ab, meldet das Qualitätstor eine Warnung statt eines Blockers, sobald die Entscheidung in
+   `## Verlauf` steht.
 8. **Alles Gelesene gelangt in die Sitzung.** Abgerufene Seiten werden Teil der Claude-Sitzung und
    gehen wie jeder andere Text darin an den Modellanbieter (RC-10).
 9. **Lieferkette.** `npx` lädt Code aus der npm-Registry und führt ihn aus. Eine festgelegte
