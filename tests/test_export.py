@@ -484,6 +484,68 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(first, open(os.path.join(self.out, "Test_Lebenslauf.pdf"), "rb").read())
 
 
+class OrderTests(unittest.TestCase):
+    """EXP-002: the export compares the order of the words, not only the multiset (CG-12.2)."""
+
+    def setUp(self):
+        sys.path.insert(0, os.path.dirname(EXPORTER))
+        import export_document
+
+        self.mod = export_document
+
+    def test_equal_text_has_no_difference_even_with_a_line_broken_hyphenated_word(self):
+        self.assertIsNone(self.mod.first_order_difference("## Team\nDie E-Mail an das Team", "Team\nDie E-\nMail an das Team"))
+
+    def test_two_swapped_sections_name_the_first_heading_out_of_place(self):
+        source = "## Berufserfahrung\nPython\n## Ausbildung\nBachelor"
+        exported = "Ausbildung\nBachelor\nBerufserfahrung\nPython"
+        self.assertEqual(self.mod.compare_content(source, exported), (self.mod.Counter(), self.mod.Counter()))
+        self.assertEqual(self.mod.first_order_difference(source, exported), "Ausbildung")
+
+    def test_moved_header_fields_and_station_headings_are_not_a_difference(self):
+        # the CV layout puts the name before "Persönliche Daten" and lays out the station lines of level 3 as a grid
+        source = "## Persönliche Daten\nMax Mustermann\n## Berufserfahrung\n### 04/2021 | Entwickler | Firma\n- Python"
+        exported = "Max Mustermann\nPersönliche Daten\nBerufserfahrung\nFirma Entwickler 04/2021\nPython"
+        self.assertIsNone(self.mod.first_order_difference(source, exported))
+
+    def test_a_heading_word_in_the_running_text_can_hide_a_swap_a_known_limit(self):
+        source = "## Berufserfahrung\nIch habe eine Ausbildung gemacht\n## Ausbildung\nBachelor"
+        swapped = "Ausbildung\nBachelor\nBerufserfahrung\nIch habe eine Ausbildung gemacht"
+        self.assertIsNone(self.mod.first_order_difference(source, swapped))
+
+    def test_the_export_warns_about_the_order_without_changing_the_exit_code(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        source = os.path.join(tmp, "lebenslauf.md")
+        with open(source, "w", encoding="utf-8") as handle:
+            handle.write(SOURCE)
+        reordered = SOURCE.split("---\n", 2)[2].split("\n## ")
+        reordered = "\n## ".join([reordered[0], reordered[2], reordered[1], *reordered[3:]])
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+        from unittest import mock
+
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.object(self.mod, "require", return_value="pandoc"), mock.patch.object(self.mod, "export_html", return_value=(reordered, None)), redirect_stdout(out), redirect_stderr(err):
+            code = self.mod.main([source, "--format", "html", "--doc-type", "cv", "--out-dir", os.path.join(tmp, "out"), "--no-manifest"])
+        self.assertEqual(code, 0, err.getvalue())
+        self.assertIn("Inhaltsprüfung: ok", out.getvalue())
+        self.assertIn("Reihenfolge: Abweichung", out.getvalue())
+        self.assertIn("Reihenfolge der Überschriften weicht ab", err.getvalue())
+
+    @unittest.skipUnless(have("pandoc"), "pandoc is not installed")
+    def test_a_normal_export_prints_no_order_line(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        source = os.path.join(tmp, "lebenslauf.md")
+        with open(source, "w", encoding="utf-8") as handle:
+            handle.write(SOURCE)
+        for fmt in ("html", "docx", "tex"):
+            result = subprocess.run([sys.executable, EXPORTER, source, "--format", fmt, "--doc-type", "cv", "--out-dir", os.path.join(tmp, "out")], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, f"{fmt}: {result.stderr}")
+            self.assertNotIn("Reihenfolge", result.stdout + result.stderr, fmt)
+
+
 class PageNumberTests(unittest.TestCase):
     def strip(self, text):
         sys.path.insert(0, os.path.dirname(EXPORTER))

@@ -180,17 +180,46 @@ def read_document(path):
     return meta, body
 
 
-def tokens(text):
+def token_list(text):
     # Hyphens are dropped before splitting, so "E-Mail" equals "E-" + line break + "Mail" in a PDF.
     # A hyphenated word and its line-broken form then count as the same word.
     text = re.sub(r"-\s*", "", text)
-    return Counter(t.lower() for t in re.findall(r"[0-9A-Za-zÄÖÜäöüß]+", text))
+    return [t.lower() for t in re.findall(r"[0-9A-Za-zÄÖÜäöüß]+", text)]
+
+
+def tokens(text):
+    return Counter(token_list(text))
 
 
 def compare_content(source_body, exported_text):
     """FA-O6: word multiset of source and export must match."""
     expected, actual = tokens(source_body), tokens(exported_text)
     return expected - actual, actual - expected
+
+
+def first_order_difference(source_body, exported_text):
+    """EXP-002: the first heading of level 1 or 2 that the export does not carry after the previous one, else None.
+
+    The word multiset says nothing about order. The headings give the order of the sections; the words inside a
+    section are not compared, because the templates move header fields (the name stands before "Persönliche Daten" in
+    the CV layout) and the station lines of level 3 are laid out in a grid (CG-13.2 row 15).
+
+    A heuristic: the words of a heading are searched after the previous heading, so a one-word heading whose word also
+    stands in the text before it can hide a swap. Only `#` headings are read."""
+    exported = token_list(exported_text)
+    cursor = 0
+    for line in source_body.splitlines():
+        heading = re.match(r"#{1,2}\s+(.+?)\s*#*\s*$", line)
+        words = token_list(heading.group(1)) if heading else []
+        if not words:
+            continue
+        for start in range(cursor, len(exported) - len(words) + 1):
+            if exported[start:start + len(words)] == words:
+                cursor = start + len(words)
+                break
+        else:
+            return heading.group(1)
+    return None
 
 
 def reference_docx(pandoc):
@@ -493,6 +522,11 @@ def main(argv=None):
                 status = "Inhaltsabweichung"
                 print(f"Fehlend im Export: {sum(missing.values())} Wörter, z. B. {list(missing)[:5]}", file=sys.stderr)
                 print(f"Zusätzlich im Export: {sum(extra.values())} Wörter, z. B. {list(extra)[:5]}", file=sys.stderr)
+        order = None
+        if exported_text is not None and status == "ok":
+            order = first_order_difference(body, exported_text)
+            if order:
+                print(f"Reihenfolge der Überschriften weicht ab: „{order}“ steht im Export nicht an der Stelle der Quelle", file=sys.stderr)
         limit = page_limit_for(args.doc_type, meta)
         over_limit = pages is not None and limit is not None and pages > limit
         if over_limit:
@@ -505,6 +539,8 @@ def main(argv=None):
             print(f"Seiten: {pages}")
             print(f"Seitenlimit: {'überschritten' if over_limit else 'ok'} ({pages} von {limit})" if limit else "Seitenlimit: keines")
         print(f"Inhaltsprüfung: {status}")
+        if order:
+            print("Reihenfolge: Abweichung bei den Überschriften (Warnung, Exit-Code unverändert)")
         if not grundlage_hash:
             print("grundlage_hash: fehlt")
         if open_placeholders:
