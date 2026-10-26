@@ -149,6 +149,7 @@ Was in diesem Repository getestet wird (`tests/test_export.py`, nur synthetische
 | Der Text der PDF lässt sich auslesen, die Stationszeile liest sich Zeitraum, Position, Arbeitgeber in dieser Reihenfolge, über mehrere Seiten geht keine Zahl und kein Zeichen verloren | getestet mit `pdftotext` |
 | DOCX hat Word-Überschriftenformate in der Reihenfolge der Quelle, Aufzählungen, bei einem normalen Lebenslauf keine Tabelle; eine Tabelle oder ein Textfeld wird gemeldet | getestet mit python-docx |
 | HTML hat `lang="de"`, Überschriften und Listen der Quelle | getestet |
+| Überschriften, Zeiträume, Kontaktdaten, Schriften und Layout-Risiken der exportierten Datei | der Qualitätsbericht (`ATS-01` bis `ATS-05`, `quality.md`), nicht der Export selbst |
 | Ein bestimmtes ATS liest die Datei richtig | **nicht getestet und nicht behauptet.** Parser unterscheiden sich in Regeln und Formaten, und echte Bewerbungsdaten gehen an keinen externen Parser |
 | Der Text stimmt mit deiner Datengrundlage | vom Export nicht geprüft (`cv_checks.py`, Reviewer) |
 | Das Layout sieht gut aus (Überlauf, hässlicher Seitenumbruch, Leerflächen) | nicht automatisch geprüft; öffne die PDF |

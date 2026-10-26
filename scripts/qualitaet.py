@@ -8,10 +8,10 @@ Usage:
   qualitaet.py katalog
 
 `pruefen` runs the rules of cv_checks.py (CV-xx, BR-xx), the cross-document rules QS-xx, the export rules EX-xx, the
-process rules PR-xx and reads the semantic verdicts SEM-xx of the model, and writes `qualitaet.json` into the Vorgang. The
+process rules PR-xx, the ATS checks ATS-xx and KW-01, and reads the semantic verdicts SEM-xx of the model, and writes `qualitaet.json` into the Vorgang. The
 report is bound to the SHA-256 of every document and export; a changed file makes it stale (`aktualitaet`).
 
-This script reads files and runs the local tools pdftotext and pdfinfo. It sends nothing, opens no network connection and
+This script reads files and runs the local tools pdftotext, pdfinfo, pdffonts and pdfimages (the ATS checks are in ats_checks.py, QS-13). It sends nothing, opens no network connection and
 changes no status of a Vorgang; the approval before any dispatch stays with the user (workflow.py, versand_freigabe).
 A result is `PASS` only when a check ran and found nothing: a missing tool, a missing Grundlage or a missing verdict of the
 model is `BLOCKED` or `NEEDS_REVIEW`, never `PASS`.
@@ -37,6 +37,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "skills", "job-application-export", "scripts"))
 
+import ats_checks as ats  # noqa: E402
 import cv_checks as cv  # noqa: E402
 import export_document as ex  # noqa: E402
 import grundlage_hash as gh  # noqa: E402
@@ -73,8 +74,14 @@ KATALOG = {
     "QS-05": ("Floskeln und Satzlänge", "deterministisch"),
     "EX-01": ("Export: Integrität, Manifest und Aktualität gegen die Quelle", "deterministisch"),
     "EX-02": ("Export: Inhalt nach dem Export gleich der Quelle (Wortlaut, Zeichen, Reihenfolge)", "deterministisch"),
-    "EX-03": ("Export: Textextraktion und ATS-Lesbarkeit", "deterministisch"),
+    "EX-03": ("Export: Textextraktion (lesbar, ohne Ersatzzeichen, Ligaturen und Sperrung)", "deterministisch"),
     "EX-04": ("Export: Seitenzahl, Seitenlimit, leere Seiten", "deterministisch"),
+    "ATS-01": ("ATS: Datei gültig (PDF/DOCX-Struktur, Schriften, kein versteckter Text)", "deterministisch"),
+    "ATS-02": ("ATS: Überschriften erkennbar und beim Inhalt des Abschnitts", "deterministisch"),
+    "ATS-03": ("ATS: Zeiträume erhalten, Position und Arbeitgeber bei der Station", "deterministisch"),
+    "ATS-04": ("ATS: Kontaktdaten im Text lesbar", "deterministisch"),
+    "ATS-05": ("ATS: Layout-Risiken (Spalten, Tabellen, Bilder, Kopf-/Fußzeile, Symbolbewertung)", "deterministisch"),
+    "KW-01": ("Schlüsselbegriffe der Anzeige gegen die Belege der Analyse (keine Ergänzung)", "deterministisch"),
     "PR-01": ("Prozess: Pflichtdokumente vorhanden", "deterministisch"),
     "PR-02": ("Prozess: Kontext der Stelle vorhanden (vorgang.md, Anzeige, Analyse)", "deterministisch"),
     "SEM-01": ("Evidenz: Aussagen gegen die Datengrundlage (Fälle A bis D)", "semantisch"),
@@ -83,6 +90,16 @@ KATALOG = {
     "SEM-04": ("Sprache, Ton und Verständlichkeit", "semantisch"),
     "SEM-05": ("Konsistenz der Aussagen über alle Dokumente", "semantisch"),
 }
+# What a check speaks about. The report counts per dimension and has no total score: a good document structure says
+# nothing about the fit, and a high keyword coverage says nothing about the evidence.
+DIMENSION = {"CV": "evidenz", "BR-A": "formal", "BR-M": "formal", "BR-E": "formal", "QS-01": "formal", "QS-02": "formal",
+             "QS-03": "evidenz", "QS-04": "formal", "QS-05": "formal", "EX-01": "technisch", "EX-02": "technisch", "EX-03": "technisch",
+             "EX-04": "technisch", "ATS-01": "technisch", "ATS-02": "technisch", "ATS-03": "technisch", "ATS-04": "technisch",
+             "ATS-05": "technisch", "KW-01": "schluesselbegriffe", "PR-01": "formal", "PR-02": "formal", "SEM-01": "evidenz",
+             "SEM-02": "evidenz", "SEM-03": "passung", "SEM-04": "formal", "SEM-05": "evidenz"}
+assert set(DIMENSION) == set(KATALOG), "every check of the catalog needs a dimension"
+ATS_CHECKS = ("ATS-01", "ATS-02", "ATS-03", "ATS-04", "ATS-05")
+EXPORT_CHECKS = ("EX-01", "EX-02", "EX-03", "EX-04") + ATS_CHECKS
 SEM_DOKUMENTE = {"SEM-01": ("lebenslauf.md", "anschreiben.md"), "SEM-02": ("lebenslauf.md", "anschreiben.md"),
                  "SEM-03": ("anschreiben.md",), "SEM-04": DOC_TYPE, "SEM-05": ("*",)}
 
@@ -95,8 +112,7 @@ GRENZEN = (
 )
 
 FIRM_NAME = re.compile(r"\b([A-ZÄÖÜ][\wÄÖÜäöüß&.-]*(?:\s+[A-ZÄÖÜ][\wÄÖÜäöüß&.-]*){0,3})\s+(?:GmbH|AG|SE|KG|UG|mbH|KGaA)\b")
-EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
-PHONE = re.compile(r"(?<![\w/])(?:\+|00)?\d[\d ()/-]{7,}\d")
+EMAIL = ats.EMAIL
 SEIT = re.compile(r"\bseit\s+(?:dem\s+)?(?:\d{1,2}/)?((?:19|20)\d{2})\b", re.IGNORECASE)
 FLOSKELN = ("hiermit bewerbe ich mich", "wie sie meinem lebenslauf entnehmen", "teamfaehig", "belastbar", "hochmotiviert",
             "ueberdurchschnittlich")
@@ -307,13 +323,8 @@ def qs_kontakt(ctx):
         text = ctx["texte"][name]
         for mail in EMAIL.findall(text):
             mails.setdefault(mail.lower(), name)
-        for nummer in PHONE.findall(text):
-            if re.search(r"\d{1,2}/\d{4}", nummer):  # a period `03/2019 - 05/2022`, not a number
-                continue
-            ziffern = re.sub(r"\D", "", nummer)
-            ziffern = "0" + ziffern[4:] if ziffern.startswith("0049") else "0" + ziffern[2:] if ziffern.startswith("49") else ziffern
-            if not re.fullmatch(r"(?:19|20)\d{2}(?:19|20)\d{2}", ziffern):  # a period `2019 – 2022`, not a number
-                telefone.setdefault(ziffern, name)
+        for ziffern in sorted(ats.phone_numbers(text)):
+            telefone.setdefault(ziffern, name)
     befunde = []
     for art, werte in (("E-Mail-Adressen", mails), ("Telefonnummern", telefone)):
         if len(werte) > 1:
@@ -428,9 +439,10 @@ def pruefe_exporte(ctx):
     dateien = export_dateien(ordner)
     manifeste = [n for n in dateien if n.endswith(".manifest.json")]
     if not dateien:
-        return [ergebnis(i, nicht_anwendbar="kein Export vorhanden (export/ fehlt oder ist leer)") for i in ("EX-01", "EX-02", "EX-03", "EX-04")]
-    integritaet, inhalt, ats, seiten = [], [], [], []
-    luecken = {"EX-02": [], "EX-03": [], "EX-04": []}
+        return [ergebnis(i, nicht_anwendbar="kein Export vorhanden (export/ fehlt oder ist leer)") for i in EXPORT_CHECKS]
+    daten = {i: [] for i in EXPORT_CHECKS}
+    luecken = {i: [] for i in EXPORT_CHECKS}
+    ats_formate = False  # at least one export of a format a parser reads
     abgedeckt = set()
     for name in manifeste:
         rel = "export/" + name
@@ -444,51 +456,49 @@ def pruefe_exporte(ctx):
                     and isinstance(manifest["ausgabe"], dict) and isinstance(quelle_manifest.get("pfad"), str)):
                 raise TypeError
         except (ValueError, KeyError, TypeError, AttributeError):
-            integritaet.append(befund("EX-01", "Blocker", rel, 0, "Manifest nicht lesbar oder unvollständig"))
+            daten["EX-01"].append(befund("EX-01", "Blocker", rel, 0, "Manifest nicht lesbar oder unvollständig"))
             continue
         quelle = os.path.normpath(os.path.join(ordner, "export", quelle_manifest["pfad"]))
         if datei != os.path.basename(datei) or os.path.commonpath([os.path.abspath(ordner), os.path.abspath(quelle)]) != os.path.abspath(ordner):
-            integritaet.append(befund("EX-01", "Blocker", rel, 0, "Das Manifest verweist auf eine Datei außerhalb des Vorgangs"))
+            daten["EX-01"].append(befund("EX-01", "Blocker", rel, 0, "Das Manifest verweist auf eine Datei außerhalb des Vorgangs"))
             continue
         abgedeckt.add(datei)
         pfad = os.path.join(ordner, "export", datei)
         if datei_hash(pfad) != soll:
-            integritaet.append(befund("EX-01", "Blocker", rel, 0, f"{datei} fehlt oder weicht vom Hash des Manifests ab: der Export wurde nach dem Erzeugen verändert"))
+            daten["EX-01"].append(befund("EX-01", "Blocker", rel, 0, f"{datei} fehlt oder weicht vom Hash des Manifests ab: der Export wurde nach dem Erzeugen verändert"))
             continue
         if datei_hash(quelle) != quelle_manifest.get("sha256"):
-            integritaet.append(befund("EX-01", "Blocker", rel, 0, f"Der Export {datei} ist veraltet: die Quelle wurde nach dem Export geändert"))
+            daten["EX-01"].append(befund("EX-01", "Blocker", rel, 0, f"Der Export {datei} ist veraltet: die Quelle wurde nach dem Export geändert"))
             continue
         if ctx["grundlage_hash"] and (manifest.get("frontmatter") or {}).get("grundlage_hash") not in (None, ctx["grundlage_hash"]):
-            integritaet.append(befund("EX-01", "Warnung", rel, 0, "Der Export wurde mit einem anderen Stand der Datengrundlage erzeugt"))
+            daten["EX-01"].append(befund("EX-01", "Warnung", rel, 0, "Der Export wurde mit einem anderen Stand der Datengrundlage erzeugt"))
         text, struktur, grund = extrahiere(pfad, fmt)
+        ats_formate = ats_formate or fmt in ats.FORMATS
         if text is None:
             for kennung in luecken:
-                luecken[kennung].append(f"{datei}: {grund}")
+                if kennung in ("EX-02", "EX-03", "EX-04") or kennung in ATS_CHECKS and fmt in ats.FORMATS:
+                    luecken[kennung].append(f"{datei}: {grund}")
             continue
         meta, body = ex.read_document(quelle)
         seiten_roh = text.split("\f")  # the form feeds separate the pages; strip_page_numbers joins them
         text = ex.strip_page_numbers(text) if fmt == "pdf" else text
         fehlt, zuviel = ex.compare_content(body, text)
         if fehlt or zuviel:
-            inhalt.append(befund("EX-02", "Blocker", rel, 0, f"Wortlaut weicht ab; fehlt: {' '.join(sorted(fehlt))[:60] or '-'}; zusätzlich: {' '.join(sorted(zuviel))[:60] or '-'}"))
+            daten["EX-02"].append(befund("EX-02", "Blocker", rel, 0, f"Wortlaut weicht ab; fehlt: {' '.join(sorted(fehlt))[:60] or '-'}; zusätzlich: {' '.join(sorted(zuviel))[:60] or '-'}"))
         else:
             for meldung in ex.fact_differences(body, text):
-                inhalt.append(befund("EX-02", "Blocker", rel, 0, meldung))
+                daten["EX-02"].append(befund("EX-02", "Blocker", rel, 0, meldung))
             reihenfolge = ex.first_order_difference(body, text)
             if reihenfolge:
-                inhalt.append(befund("EX-02", "Blocker", rel, 0, f"Reihenfolge weicht ab: {reihenfolge}"))
+                daten["EX-02"].append(befund("EX-02", "Blocker", rel, 0, f"Reihenfolge weicht ab: {reihenfolge}"))
         if cv.PLACEHOLDER.search(text):
-            inhalt.append(befund("EX-02", "Blocker", rel, 0, "offener Platzhalter im Export"))
-        if fmt in ("pdf", "docx") and len(text.split()) < 30:
-            ats.append(befund("EX-03", "Blocker", rel, 0, "Aus dem Export lässt sich kaum Text lesen (Bild statt Text?): ein ATS sieht ihn leer"))
-        ohne_umbruch = re.sub(r"[\s-]", "", text)  # a long address may be wrapped or hyphenated
-        for kontakt in EMAIL.findall(body):
-            if re.sub(r"[\s-]", "", kontakt) not in ohne_umbruch:
-                ats.append(befund("EX-03", "Blocker", rel, 0, "Eine E-Mail-Adresse der Quelle steht nicht im extrahierten Text"))
-        if struktur["tabellen"]:
-            ats.append(befund("EX-03", "Warnung", rel, 0, f"{struktur['tabellen']} Tabelle(n): manche ATS lesen Tabellen spaltenweise falsch"))
-        if struktur["bilder"]:
-            ats.append(befund("EX-03", "Warnung", rel, 0, f"{struktur['bilder']} Bild(er): der Inhalt eines Bildes ist für ein ATS nicht lesbar"))
+            daten["EX-02"].append(befund("EX-02", "Blocker", rel, 0, "offener Platzhalter im Export"))
+        if fmt in ats.FORMATS:
+            gefunden, offen = ats.check_file(pfad, fmt, manifest.get("dokumenttyp"), body, text, struktur)
+            for kennung, grad, meldung in gefunden:
+                daten[kennung].append(befund(kennung, grad, rel, 0, meldung))
+            for kennung, gruende in offen.items():
+                luecken[kennung] += [f"{datei}: {g}" for g in gruende if f"{datei}: {g}" not in luecken[kennung]]
         if fmt == "pdf":
             seiten_ist = seitenzahl(pfad)
             leer = [i for i, s in enumerate(seiten_roh[:seiten_ist], 1) if not s.strip() or s.strip() == str(i)] if seiten_ist else []
@@ -496,17 +506,39 @@ def pruefe_exporte(ctx):
                 luecken["EX-04"].append(f"{datei}: pdfinfo fehlt, die Seitenzahl ist nicht prüfbar")
             else:
                 if manifest["ausgabe"].get("seiten") not in (None, seiten_ist):
-                    seiten.append(befund("EX-04", "Blocker", rel, 0, f"Seitenzahl {seiten_ist} weicht vom Manifest ({manifest['ausgabe'].get('seiten')}) ab"))
+                    daten["EX-04"].append(befund("EX-04", "Blocker", rel, 0, f"Seitenzahl {seiten_ist} weicht vom Manifest ({manifest['ausgabe'].get('seiten')}) ab"))
                 grenze = manifest["ausgabe"].get("seitenlimit")
                 if grenze and seiten_ist > grenze:
-                    seiten.append(befund("EX-04", "Blocker", rel, 0, f"{seiten_ist} Seiten, Limit {grenze}"))
+                    daten["EX-04"].append(befund("EX-04", "Blocker", rel, 0, f"{seiten_ist} Seiten, Limit {grenze}"))
                 for nummer in leer:
-                    seiten.append(befund("EX-04", "Blocker", rel, 0, f"Seite {nummer} ist leer"))
+                    daten["EX-04"].append(befund("EX-04", "Blocker", rel, 0, f"Seite {nummer} ist leer"))
     for name in dateien:  # a file without a manifest is not an export of this toolchain
         if not name.endswith(".manifest.json") and name not in abgedeckt:
-            integritaet.append(befund("EX-01", "Blocker", "export/" + name, 0, "Datei ohne gültiges Manifest: Herkunft und Aktualität sind nicht belegt"))
-    daten = {"EX-01": integritaet, "EX-02": inhalt, "EX-03": ats, "EX-04": seiten}
-    return [ergebnis(i, daten[i], blockiert="; ".join(luecken.get(i, []))) for i in ("EX-01", "EX-02", "EX-03", "EX-04")]
+            daten["EX-01"].append(befund("EX-01", "Blocker", "export/" + name, 0, "Datei ohne gültiges Manifest: Herkunft und Aktualität sind nicht belegt"))
+    kein_ats = "kein Export in einem Format, das ein Parser liest (pdf, docx, html); Markdown und LaTeX sind Kopien der Quelle"
+    return [ergebnis(i, daten[i], blockiert="; ".join(luecken[i]), nicht_anwendbar=kein_ats if i in ATS_CHECKS and not ats_formate else "")
+            for i in EXPORT_CHECKS]
+
+
+def pruefe_schluesselbegriffe(ctx):
+    if "analyse.md" not in ctx["texte"] or "lebenslauf.md" not in ctx["texte"]:
+        return ergebnis("KW-01", nicht_anwendbar="analyse.md oder lebenslauf.md liegt nicht vor")
+    return ergebnis("KW-01", [befund(k, g, "lebenslauf.md", 0, m) for k, g, m in ats.key_terms(ctx["texte"]["analyse.md"], ctx["texte"]["lebenslauf.md"])])
+
+
+def ats_zusammenfassung(checks, exporte):
+    """What was checked for a parser, in three parts: complete, partial, not checked. Never a score, never a guarantee."""
+    stati = {c["id"]: c["status"] for c in checks if c["id"] in ATS_CHECKS + ("EX-03",)}
+    if all(s == NA for s in stati.values()):
+        umfang = "nicht_geprueft"
+    elif all(s in (PASS, WARNING) for s in stati.values()):
+        umfang = "vollstaendig"
+    else:
+        umfang = "teilweise"
+    dateien = sorted(n for n in exporte if n.rsplit(".", 1)[-1] in ats.FORMATS)
+    return {"umfang": umfang, "technisch_validiert": umfang == "vollstaendig" and all(c["status"] in (PASS, WARNING) for c in checks if c["id"] in EXPORT_CHECKS),
+            "dateien": dateien, "stati": stati,
+            "hinweis": "Technisch validiert heißt: die festgelegten Prüfungen sind bestanden. Das ist keine Zusage, dass ein bestimmtes ATS die Datei liest, und keine Aussage über die fachliche Passung."}
 
 
 # ---------------------------------------------------------------- the process (PR)
@@ -617,12 +649,15 @@ def lauf(ordner, grundlage_pfade=(), konfiguration=None, urteile=None, jetzt=Non
     checks = pruefe_regeln(ctx)
     checks += [qs_firma(ctx), qs_kontakt(ctx), qs_zeitangaben(ctx), qs_uebernahme(ctx), qs_floskeln(ctx)]
     checks += pruefe_exporte(ctx)
+    checks.append(pruefe_schluesselbegriffe(ctx))
     checks += pruefe_prozess(ctx)
     checks += pruefe_semantik(ctx, urteile if urteile is not None else os.path.join(ordner, URTEILE))
     for name in ctx["unlesbar"]:
         checks.append({"id": "PR-01", "titel": KATALOG["PR-01"][0], "art": "deterministisch", "status": BLOCKED,
                        "befunde": [], "grund": f"{name} ist nicht lesbar (Kodierung?)"})
     checks.sort(key=lambda c: list(KATALOG).index(c["id"]))
+    for check in checks:
+        check["dimension"] = DIMENSION[check["id"]]
     dokumente, exporte = dokument_hashes(ordner), export_hashes(ordner)
     stand = stand_von(dokumente, exporte, ctx["grundlage_hash"])
     akzeptiert = {e.get("schluessel") for e in entscheidungen_von(ordner) if isinstance(e, dict)}
@@ -635,7 +670,8 @@ def lauf(ordner, grundlage_pfade=(), konfiguration=None, urteile=None, jetzt=Non
         "schema": SCHEMA, "regelwerk": RULES, "erstellt": stamp(jetzt or dt.datetime.now(dt.timezone.utc).replace(microsecond=0)),
         "vorgang": os.path.basename(os.path.normpath(ordner)), "stand": stand, "dokumente_stand": dokumente_stand(ordner), "dokumente": dokumente, "exporte": exporte,
         "grundlage_hash": ctx["grundlage_hash"], "gesamt": ergebnis_gesamt, "freigabefaehig": ergebnis_gesamt in FREIGABEFAEHIG,
-        "zusammenfassung": zaehler,
+        "zusammenfassung": zaehler, "ats": ats_zusammenfassung(checks, exporte),
+        "dimensionen": {d: {s: sum(1 for c in checks if DIMENSION[c["id"]] == d and c["status"] == s) for s in STATI} for d in sorted(set(DIMENSION.values()))},
         "semantisch_geprueft": any(c["art"] == "semantisch" and c["status"] in (PASS, WARNING, FAIL) for c in checks),
         "checks": checks,
         "manuell": ["Freigabe des Versandpakets durch die Nutzerin oder den Nutzer (Workflow: versand_freigabe)",

@@ -147,6 +147,7 @@ What is tested in this repository (`tests/test_export.py`, synthetic data only) 
 | Text of the PDF can be extracted, the station line reads period, position, employer in order, no figure or symbol is lost over several pages | tested with `pdftotext` |
 | DOCX has Word heading styles in the source order, bullets, no table for a normal CV; a table or a text box is reported | tested with python-docx |
 | HTML has `lang="de"`, headings and lists from the source | tested |
+| Headings, periods, contact data, fonts and layout risks of the exported file | the quality report (`ATS-01` to `ATS-05`, `quality.md`), not the export itself |
 | Any particular ATS reads the file correctly | **not tested and not claimed.** Parsers differ in rules and formats, and no real application data goes to an external parser |
 | The text is true against your Datengrundlage | not checked by the export (`cv_checks.py`, reviewer) |
 | Layout looks right (overflow, ugly page break, empty areas) | not checked automatically; open the PDF |

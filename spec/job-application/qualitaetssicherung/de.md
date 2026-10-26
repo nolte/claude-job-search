@@ -71,8 +71,14 @@ Das Gesamtergebnis `gesamt` folgt den Prüfungen:
 | `QS-05` | deterministisch | Floskeln aus einer geschlossenen Liste; Sätze mit mehr als 45 Wörtern |
 | `EX-01` | deterministisch | Exportintegrität (Hash der Datei gleich dem Manifest), die Quelle ist seit dem Export unverändert, jede Datei in `export/` hat ein Manifest |
 | `EX-02` | deterministisch | Inhalt nach dem Export gleich der Quelle: Wortmenge, Zeichen von Zahlenangaben, Reihenfolge der Stichpunkte und Überschriften, kein offener Platzhalter |
-| `EX-03` | deterministisch | Textextraktion und ATS-Lesbarkeit (QS-6) |
+| `EX-03` | deterministisch | Textextraktion: genug Text, keine Ersatzzeichen, keine Ligaturzeichen, keine gesperrten Wörter (QS-6, QS-13) |
 | `EX-04` | deterministisch | Seitenzahl gleich dem Manifest, Seitenlimit, keine leere Seite |
+| `ATS-01` | deterministisch | die exportierte Datei ist gültig: PDF-Struktur, Verschlüsselung, Schriften; DOCX-Archiv und XML, kein versteckter Text (QS-13) |
+| `ATS-02` | deterministisch | Überschriften stehen in eigener Zeile und behalten ihren Inhalt; DOCX-Überschriftenformate entsprechen der Quelle (QS-13) |
+| `ATS-03` | deterministisch | Zeiträume bleiben in der Reihenfolge erhalten; Position und Arbeitgeber stehen beim Zeitraum ihrer Station (QS-13) |
+| `ATS-04` | deterministisch | E-Mail-Adressen und Telefonnummern der Quelle sind im Text lesbar (QS-13) |
+| `ATS-05` | deterministisch | Layout-Risiken: Spalten, Tabellen, Bilder, Textfelder, Kopf- und Fußzeilentext, Text außerhalb der Seite, Bewertung als Symbole (QS-13) |
+| `KW-01` | deterministisch | Schlüsselbegriffe der Analyse gegen den Lebenslauf: Abdeckung und nicht belegte Begriffe, nichts wird eingefügt (QS-13) |
 | `PR-01` | deterministisch | Lebenslauf und Anschreiben existieren und sind lesbar |
 | `PR-02` | deterministisch | `vorgang.md` (mit `firma`, `stelle`), `stellenanzeige.md` und `analyse.md` existieren |
 | `SEM-01` | semantisch | Beleg der Aussagen gegen die Datengrundlage (QS-4) |
@@ -122,17 +128,16 @@ Teamgrößen, Führung gegen das Kennzeichen `Führung:`). Sie machen aus einem 
 1. Die Exportprüfungen laufen für jede Datei in `export/`, die ein Manifest `<datei>.manifest.json` hat (siehe Export-Skill).
 2. Der Text des Exports wird zurückgelesen: PDF mit `pdftotext`, DOCX aus `word/document.xml`, HTML ohne Markup. Der Vergleich
    mit der Quelle ist der des Exporters (Wortmenge, Zeichen von Zahlenangaben, Reihenfolge).
-3. ATS-Kriterien: der Text ist extrahierbar (mindestens 30 Wörter); jede E-Mail-Adresse der Quelle steht im Text; eine Tabelle
-   oder ein Bild in DOCX oder HTML ist eine `WARNING`; das PDF hat keine leere Seite und nicht mehr Seiten als das Limit.
-4. Ohne `pdftotext` oder `pdfinfo` sind die PDF-Prüfungen `BLOCKED` (die CI installiert poppler-utils).
-5. **Grenze.** ATS-Lesbarkeit wird am extrahierten Text beurteilt. Wie ein bestimmtes Bewerbermanagementsystem die Datei liest,
-   ist weder getestet noch zugesagt. Schriften, Farben, Ränder und das optische Layout werden nicht beurteilt.
+3. Das PDF hat keine leere Seite und nicht mehr Seiten als das Limit (`EX-04`). Die Eigenschaften, von denen ein Parser abhängt, sind QS-13.
+4. Ohne `pdftotext`, `pdfinfo`, `pdffonts` oder `pdfimages` sind die PDF-Prüfungen `BLOCKED` (die CI installiert poppler-utils).
+5. **Grenze.** ATS-Lesbarkeit wird an der exportierten Datei und ihrem extrahierten Text beurteilt. Wie ein bestimmtes
+   Bewerbermanagementsystem die Datei liest, ist weder getestet noch zugesagt. Farben, Ränder und der optische Eindruck werden nicht beurteilt.
 
 ## QS-7 Der Bericht
 
 1. `qualitaet.json` enthält: `schema`, `regelwerk`, `erstellt`, `vorgang`, `stand`, `dokumente` (SHA-256 jedes Dokuments und
    jeder Kontextdatei), `exporte` (SHA-256 jeder Datei in `export/`), `grundlage_hash`, `gesamt`, `freigabefaehig`,
-   `zusammenfassung` (Anzahl je Status), `semantisch_geprueft`, `checks`, `manuell` und `grenzen`.
+   `zusammenfassung` (Anzahl je Status), `ats` und `dimensionen` (QS-13), `semantisch_geprueft`, `checks` (jeweils mit `dimension`), `manuell` und `grenzen`.
 2. Ein Bericht ist nur für genau diese Dateien aktuell. Ein geändertes, hinzugefügtes oder entferntes Dokument, eine
    Kontextdatei oder ein Export, oder eine geänderte Grundlage (wenn deren Hash vorliegt), macht ihn veraltet. Ein Bericht
    einer älteren Version wird nie wieder gültig. Der Status des Vorgangs ist keine Eingabe.
@@ -166,7 +171,7 @@ Teamgrößen, Führung gegen das Kennzeichen `Führung:`). Sie machen aus einem 
 ## QS-10 Sicherheit und Datenintegrität
 
 1. `qualitaet.py` sendet nichts und öffnet keine Netzwerkverbindung. Es importiert kein Mail-, HTTP- oder Socket-Modul und
-   führt nur `pdftotext` und `pdfinfo` aus. Ein Test erzwingt das.
+   führt nur `pdftotext`, `pdfinfo`, `pdffonts` und `pdfimages` aus. Ein Test erzwingt das.
 2. Ein bestandener Lauf löst keine externe Kommunikation aus und gibt nichts frei. Die Freigabe aus A-02
    (`versand_freigabe`) und der Versand selbst bleiben bei der Nutzerin oder dem Nutzer.
 3. Der Lauf ändert kein Dokument und keinen Status. Er schreibt `qualitaet.json`, `qualitaet-verlauf.jsonl` und, auf Befehl
@@ -196,3 +201,45 @@ Teamgrößen, Führung gegen das Kennzeichen `Führung:`). Sie machen aus einem 
 - `--grundlage <Pfad>` sieht Dateien an und bindet keinen Grundlage-Hash; nur ein Lauf über den Anker (`--konfiguration`) tut das.
 - Der Bericht ist veraltet, sobald sich eine Datei ändert; vor der Freigabe führt die Nutzerin oder der Nutzer die Prüfung
   erneut aus.
+
+## QS-13 Technische ATS-Validierung
+
+`scripts/ats_checks.py` ist eine Bibliothek von `qualitaet.py`. Sie ergänzt den einen Bericht um Eigenschaften der exportierten
+Datei; sie hat kein eigenes Statusmodell, keinen Score und keinen eigenen Ablauf.
+
+1. **Definition.** Ein Dokument gilt als *technisch ATS-validiert*, wenn `EX-01` bis `EX-04` und `ATS-01` bis `ATS-05` für seinen
+   Export gelaufen und mit `PASS` oder `WARNING` geendet sind. Das ist keine Zusage für ein externes Bewerbermanagementsystem und
+   keine Aussage über die Eignung der Person. Bericht und Skills sagen das.
+2. **Umfang.** Die Prüfungen laufen für Exporte in Formaten, die ein Parser liest (`pdf`, `docx`, `html`). `md` und `tex` sind
+   Kopien der Quelle: ohne Export in einem der drei Formate sind die `ATS-xx`-Prüfungen `NOT_APPLICABLE`, nie `PASS`.
+3. **Datei (`ATS-01`).** PDF: Kopf und Dateiende, von `pdfinfo` lesbar, kein Kopierverbot für Text (Blocker); Schriften vom Typ 3
+   oder nicht eingebettete Schriften (außer den Standard-14) sind eine `WARNING`. DOCX: unversehrtes Archiv, `document.xml` und
+   Content-Types vorhanden und wohlgeformt (Blocker); versteckter Text (`vanish`), weißer Text oder Text von 2 pt und weniger ist ein Blocker.
+4. **Text (`EX-03`).** Mindestens 30 Wörter in PDF und DOCX, kein Ersatzzeichen und kein `(cid:`, beides Blocker; Ligaturzeichen
+   und gesperrte Wörter sind eine `WARNING`.
+5. **Abschnitte (`ATS-02`).** Für PDF und DOCX steht jede Überschrift der Ebene 1 und 2 als eigene Zeile im extrahierten Text
+   (sonst `WARNING`), und mindestens 80 % der Wörter ihres Abschnitts stehen zwischen ihr und der nächsten Überschrift. Die
+   DOCX-Überschriftenformate je Ebene entsprechen denen der Quelle. Die Überschriften stammen aus der Quelle; kein Wortlaut ist vorgegeben.
+6. **Stationen und Zeiträume (`ATS-03`).** Die Zeiträume der Quelle (`MM/JJJJ – MM/JJJJ`, `JJJJ – JJJJ`, `heute`) stehen in
+   derselben Reihenfolge im extrahierten Text; ein verlorener, veränderter oder vertauschter Zeitraum ist ein Blocker. Zu jeder
+   Stationszeile stehen Position und Arbeitgeber binnen drei Zeilen beim Zeitraum (`WARNING`). Gemischte Datumsformate in der Quelle sind
+   eine `WARNING`. Fehlende Zeiträume werden nicht erfunden; ob ein Zeitraum stimmt, prüfen `CV-xx` und die Grundlage.
+7. **Kontakt (`ATS-04`).** Jede E-Mail-Adresse und Telefonnummer der Quelle ist im extrahierten Text lesbar (Blocker bei Verlust,
+   mit Hinweis, wenn sie nur in Kopf- oder Fußzeile eines DOCX steht). Ein Lebenslauf ohne E-Mail-Adresse ist eine `WARNING`; ein
+   fehlender optionaler Punkt ist kein Befund. Befunde enthalten nie die Adresse oder die Nummer.
+8. **Layout (`ATS-05`).** Tabellen, Bilder (auch im PDF, `pdfimages`), Textfelder, Spalten (DOCX-Abschnitte; PDF nach der Lage
+   der Wörter), Text in Kopf- und Fußzeile, Wörter außerhalb der Seite: `WARNING`. Eine Bewertung nur als Symbolreihe (Sterne,
+   Punkte, Balken) ist `NEEDS_REVIEW`: das Niveau muss ein Wort sein, und die Toolchain ergänzt es nicht. Die Spaltenerkennung ist
+   eine Heuristik: die Lesereihenfolge selbst prüft `EX-02`.
+9. **Schlüsselbegriffe (`KW-01`).** Die Kompetenzen aus `analyse.md` gegen den Lebenslauf. Eine belegte Kompetenz, die der
+   Lebenslauf nicht nennt, ist eine `WARNING`. Eine Kompetenz, die die Analyse als `nicht belegt` oder `unklar` zeigt und die im
+   Lebenslauf steht, ist `NEEDS_REVIEW`: ein Wort der Anzeige ist keine Qualifikation. Es wird nichts eingefügt und nichts in
+   einen Score gerechnet; Wiederholung bleibt Befund von `QS-04`.
+10. **Dimensionen.** Jede Prüfung hat eine `dimension` (`technisch`, `evidenz`, `formal`, `schluesselbegriffe`, `passung`), der
+    Bericht zählt je Dimension. `ats.umfang` ist `vollstaendig`, `teilweise` oder `nicht_geprueft`; `ats.technisch_validiert` ist nur
+    bei vollständigem Lauf ohne `FAIL`, `BLOCKED` oder offene Prüfung wahr. Es gibt keinen Gesamtscore: ein kritischer Befund wird nie weggemittelt.
+11. **Versionen.** Die Prüfungen gehören zu den Hashes des Berichts (QS-7). Ein geänderter Export wird neu geprüft; die Zeile des
+    alten Laufs bleibt in `qualitaet-verlauf.jsonl`.
+12. **Kein Modell.** Alle Prüfungen von QS-13 sind deterministisch. Der semantische Teil (Relevanz, Beleg) bleibt bei `SEM-xx`.
+13. **Nicht abgedeckt.** Überlagerte Elemente, innerhalb der Seite abgeschnittener Text, unschöne Seitenumbrüche, genaue Farben
+    und das Verhalten eines bestimmten Bewerbermanagementsystems. Das Layout sieht ein Mensch an.
