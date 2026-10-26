@@ -205,7 +205,7 @@ as manual and still has a fixed place for its data.
 | **S5 Prüfung** | quality-gate | `pruefbericht.md` (section *Prüfung*) | `geprüft` if zero blockers, otherwise `in Arbeit` |
 | **S6 Export** | the user asks for PDF, DOCX or HTML | `export/` | unchanged |
 | **S7 Versand** | the user sends the application | `vorgang.md`: `versendet`, `versendet_am`, `weg`, `anhaenge`, `wiedervorlage` (KK-5) | `versendet` |
-| **S8 Nachverfolgung** | a reply, an interview, an offer, a negotiation, a decision | `vorgang.md` section *Verlauf*; the user's notes go to `notizen.md` | `rückmeldung`, `gespräch`, `angebot`, `verhandlung`, `zusage`, `absage`, `abgelehnt`, `zurückgezogen` or `ohne Antwort` |
+| **S8 Nachverfolgung** | a reply, an interview, an offer, a negotiation, a decision | `vorgang.md` section *Verlauf*; the user's notes go to `notizen.md` | `rückmeldung`, `gespräch`, `angebot`, `verhandlung`, `zusage`, `absage`, `abgelehnt`, `zurückgezogen`, `ohne Antwort` or `abgeschlossen` |
 | **S9 Abschluss** | final status reached | `vorgang.md`: `loeschen_ab` for a negative final status (S10) | unchanged; the folder is kept |
 | **S10 Aufbewahrung und Löschung** | `loeschen_ab` is reached | the user deletes the Vorgang folder except the files S10 keeps; no skill deletes in Phase 1 | folder removed, or kept with `zusage` |
 
@@ -219,8 +219,8 @@ Rules for the lifecycle:
    (`mail-verwaltung/en.md` MV-7).
 2. **Status values are fixed.** Only the values in the table are allowed: `erfasst`, `analysiert`,
    `geplant`, `erstellt`, `geprüft`, `in Arbeit`, `versendet`, `rückmeldung`, `gespräch`, `angebot`,
-   `verhandlung`, `zusage`, `absage`, `abgelehnt`, `zurückgezogen`, `ohne Antwort`. `absage` is the
-   employer's rejection; `abgelehnt` is the candidate's own refusal after an offer or a Zusage.
+   `verhandlung`, `zusage`, `absage`, `abgelehnt`, `zurückgezogen`, `ohne Antwort`, `abgeschlossen`. `absage` is the
+   employer's rejection; `abgeschlossen` is a closed application without a more specific end and without a decision of the employer (`bewerbungsergebnis/en.md` BE-3); `abgelehnt` is the candidate's own refusal after an offer or a Zusage.
    Nachfassen (a follow-up message) is a *Verlauf* entry, not a status (KK-5). Free text goes to
    *Verlauf* or `notizen.md`.
 3. **Plan before generation.** S3 is written before S4 starts (solution skill, plan gate).
@@ -237,7 +237,7 @@ Rules for the lifecycle:
    proposals of `job-application-follow-up` (`mail-verwaltung/en.md` MV-18 to MV-27). Reading a mailbox is not implemented (LS-10).
 8. **S10 Aufbewahrung und Löschung.** The rule names the place and the period; no skill deletes
    anything in Phase 1.
-   - A Vorgang with the final status `absage`, `zurückgezogen`, `ohne Antwort` or `abgelehnt` is
+   - A Vorgang with the final status `absage`, `zurückgezogen`, `ohne Antwort`, `abgelehnt` or `abgeschlossen` is
      deleted six months after the date of that status. The user writes the date into
      `loeschen_ab` of `vorgang.md` (LS-6.1) when the final status is set; the field stays empty
      before and for `zusage`.

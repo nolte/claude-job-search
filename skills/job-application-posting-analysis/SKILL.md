@@ -166,7 +166,7 @@ Before the analysis, create the Vorgang folder with these files (LS-6, S1). Exis
      Vorgang that is already `analysiert` or later (including `versendet`, `rückmeldung` and every later value,
      which are user statements), the status stays as it is and no status line is written.
    - Allowed `status` values (LS-6): `erfasst, analysiert, geplant, erstellt, geprüft, in Arbeit, versendet, rückmeldung,
-     gespräch, angebot, verhandlung, zusage, absage, abgelehnt, zurückgezogen, ohne Antwort`. Every actual change of
+     gespräch, angebot, verhandlung, zusage, absage, abgelehnt, zurückgezogen, ohne Antwort, abgeschlossen`. Every actual change of
      status adds one line `- JJJJ-MM-TT: <alter> → <neuer Status>, <Skill>` to `## Verlauf`; old lines are never removed.
 3. `notizen.md`: created empty, no frontmatter (LS-6.3). Never overwritten and never read for a document.
 4. `firmen/<firma-slug>.md` in the Wurzel on first occurrence of the firm (LS-6.2, UA-5.2), see item 9 below.

@@ -116,7 +116,7 @@ class SkillStructureTests(unittest.TestCase):
             "R": "konventionen", "CG": "cv-generierung", "LB": "lebenslauf", "LV": "lebenslauf-versionen",
             "LS": "lokale-struktur", "AS": "anschreiben", "MS": "motivationsschreiben",
             "KK": "kontaktklassifikation", "UA": "unternehmensanalyse", "WJ": "traumjob-interview",
-            "RC": "recherche", "MV": "mail-verwaltung", "EA": "ergebnisauswertung",
+            "RC": "recherche", "MV": "mail-verwaltung", "EA": "ergebnisauswertung", "BE": "bewerbungsergebnis",
         }
         specs = {}
         for prefix, folder in families.items():
@@ -141,7 +141,7 @@ class SkillStructureTests(unittest.TestCase):
             items |= {int(n) for n in re.findall(rf"^#{{3,4}} {prefix}-{number}\.(\d+)\b", body, re.M)}
             return int(sub) in items
 
-        pattern = re.compile(r"\b(R|CG|LB|LV|LS|AS|MS|KK|UA|WJ|RC|MV|EA)-(\d+)(?:\.(\d+))?")
+        pattern = re.compile(r"\b(R|CG|LB|LV|LS|AS|MS|KK|UA|WJ|RC|MV|EA|BE)-(\d+)(?:\.(\d+))?")
         missing = []
         for path in SKILLS + AGENTS:
             with open(path, encoding="utf-8") as handle:

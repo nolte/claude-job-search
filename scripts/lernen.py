@@ -36,12 +36,12 @@ from stellensuche import Blocker, Refused, atomic_write, clean_text, digest, loa
 LOCK = ("lernen", ".lernen.lock", "die Auswertung")
 MIN_N = 5  # below this many applications a rate is shown but marked as limited
 BESTAETIGT = ("bestaetigt", "korrigiert")
-INHALTLICH = tuple(a for a in km.ARTEN if a not in ("eingangsbestaetigung",))
+INHALTLICH = tuple(a for a in km.ARTEN_ARBEITGEBER if a not in ("eingangsbestaetigung",))  # a reply of the employer; an own step is none
 STATUS_FLAGS = {  # what the status the user keeps in vorgang.md states by itself (LS-6): flags it implies
     "rückmeldung": {"rueckmeldung"}, "gespräch": {"rueckmeldung", "einladung"},
     "angebot": {"rueckmeldung", "einladung", "gespraech", "angebot"}, "verhandlung": {"rueckmeldung", "einladung", "gespraech", "angebot"},
     "zusage": {"rueckmeldung", "einladung", "gespraech", "angebot", "einstellung"}, "absage": {"rueckmeldung", "absage"},
-    "abgelehnt": {"rueckmeldung", "einladung", "gespraech", "angebot"}, "zurückgezogen": set(), "ohne Antwort": {"ohne_antwort"},
+    "abgelehnt": {"rueckmeldung", "einladung", "gespraech", "angebot"}, "zurückgezogen": set(), "ohne Antwort": {"ohne_antwort"}, "abgeschlossen": set(),
 }
 ART_FLAGS = {"gespraechseinladung": {"einladung"}, "gespraech": {"einladung", "gespraech"}, "technisches_gespraech": {"einladung", "gespraech"},
              "assessment": {"einladung", "gespraech"}, "weitere_phase": {"einladung", "gespraech", "weitere_phase"}, "angebot": {"angebot"},
@@ -302,13 +302,13 @@ def ergebnis_erfassen(w, slug, art, datum, original, optionen, now):
         interpretation = {"kategorie": optionen["kategorie"], "bezeichnung": optionen["kategorie"], "thema": clean_text(optionen.get("thema", ""), 80),
                           "aussage": clean_text(optionen.get("aussage", ""), 160), "sicherheit": "mittel", "grund_genannt": True,
                           "hinweis": "vom Nutzer erfasst; keine bestätigte Qualifikationslücke"}
-    ereignis = {"id": km.neues_id(nv["ereignisse"], "e"), "art": art, "datum": datum, "quelle": {"typ": "nutzer", "nachricht_id": optionen.get("nachricht", "")},
-                "original": km.schwaerze(original)[:km.ORIGINAL_MAX], "interpretation": interpretation, "status": "bestaetigt", "erfasst": stamp(now),
-                "bestaetigt_am": stamp(now), "gewissheit": "eindeutig"}
-    nv["ereignisse"].append(ereignis)
+    ereignis, neu = km.ereignis_bauen(nv, slug, art, datum, {"typ": "nutzer", "nachricht_id": optionen.get("nachricht", "")}, km.schwaerze(original)[:km.ORIGINAL_MAX],
+                                      interpretation, "bestaetigt", now, "manuell", "bestaetigt", gewissheit="eindeutig")
+    if not neu:
+        return {"ok": True, "ereignis": ereignis, "neu": False, "hinweis": "Dieses Ereignis ist schon erfasst; es wird nicht doppelt gespeichert."}
     km.schreibe_verlauf(w, slug, [f"- {datum}: Ergebnis erfasst: {art} (Ereignis {ereignis['id']}, Angabe der Nutzerin oder des Nutzers)"], None)
     km.speichere_nachverfolgung(w, slug, nv)
-    return {"ok": True, "ereignis": ereignis, "hinweis": "Der Status in vorgang.md bleibt unverändert; ihn pflegt die Nutzerin oder der Nutzer."}
+    return {"ok": True, "ereignis": ereignis, "neu": True, "hinweis": "Der Status in vorgang.md bleibt unverändert; ihn pflegt die Nutzerin oder der Nutzer."}
 
 
 def ergebnis_aendern(w, slug, ereignis_id, aktion, felder, now):
@@ -330,6 +330,7 @@ def ergebnis_aendern(w, slug, ereignis_id, aktion, felder, now):
             if ss.valid_date(felder["datum"]) != felder["datum"]:
                 raise Refused("datum_ungueltig", "--datum ist ein echtes Datum der Form JJJJ-MM-TT")
             e["datum"] = felder["datum"]
+            e["eingetreten_am"] = felder["datum"]
         e["status"] = "korrigiert"
     e.setdefault("korrekturen", []).append({"am": stamp(now), "vorher": vorher, "grund": clean_text(felder.get("grund", ""), 160)})
     km.speichere_nachverfolgung(w, slug, nv)

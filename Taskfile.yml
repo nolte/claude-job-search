@@ -86,6 +86,13 @@ tasks:
     cmds:
       - python3 scripts/kommunikation.py {{.CLI_ARGS}}
 
+  result:
+    desc: |
+      The result of an application (spec bewerbungsergebnis BE-1 to BE-17): identity, status with allowed changes, phase, outcome, event history, next steps, checks, migration.
+      Usage: task result -- <anlegen|finde|status|historie|naechste|pruefen|ereignis|statuswechsel|migrieren> ...   (sends nothing, contacts no employer)
+    cmds:
+      - python3 scripts/bewerbung.py {{.CLI_ARGS}}
+
   learn:
     desc: |
       Evaluation of confirmed application results (spec ergebnisauswertung EA-1 to EA-16): statistics, retrospective, proposals.

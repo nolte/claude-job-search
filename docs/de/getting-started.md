@@ -174,7 +174,7 @@ dem Versand setzt du sie selbst:
 
 | Setzen die Skills | Setzt du |
 |---|---|
-| `erfasst` (Anzeige erfasst), `analysiert`, `geplant` (Plan freigegeben), `erstellt` (Unterlagen erstellt), `geprüft` (Qualitätsprüfung bestanden) oder `in Arbeit` (Blocker offen) | `versendet`, `rückmeldung`, `gespräch`, `angebot`, `verhandlung`, `zusage`, `absage`, `abgelehnt` (du hast abgesagt), `zurückgezogen`, `ohne Antwort` |
+| `erfasst` (Anzeige erfasst), `analysiert`, `geplant` (Plan freigegeben), `erstellt` (Unterlagen erstellt), `geprüft` (Qualitätsprüfung bestanden) oder `in Arbeit` (Blocker offen) | `versendet`, `rückmeldung`, `gespräch`, `angebot`, `verhandlung`, `zusage`, `absage`, `abgelehnt` (du hast abgesagt), `zurückgezogen`, `ohne Antwort`, `abgeschlossen` |
 
 Jede Statusänderung bekommt eine Zeile im Abschnitt *Verlauf* von `vorgang.md` mit Datum, damit
 die Geschichte lesbar bleibt. Beim Versand trägst du dort auch Datum, Weg und Anhänge ein;
@@ -209,6 +209,7 @@ views:
         - 'status != "abgelehnt"'
         - 'status != "zurückgezogen"'
         - 'status != "ohne Antwort"'
+        - 'status != "abgeschlossen"'
     groupBy:
       property: status
       direction: ASC
@@ -228,6 +229,7 @@ views:
         - 'status == "abgelehnt"'
         - 'status == "zurückgezogen"'
         - 'status == "ohne Antwort"'
+        - 'status == "abgeschlossen"'
     order:
       - firma
       - stelle
