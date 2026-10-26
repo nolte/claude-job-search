@@ -76,6 +76,9 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
 │   ├── pruefbericht.md                     Auswahl Lebenslauf and Prüfung (LS-7.4)
 │   ├── versionen/                          frozen Versionen vNNN_<datum>.md (LV-3)
 │   └── export/                             exports of frozen Versionen, vNNN_<datum>.<ext> (LV-2.3)
+├── workflow/                               tasks of the orchestration (`workflow/en.md` WF-6)
+│   ├── aufgaben.json                       tasks with dependencies, attempts, approvals; written by `scripts/workflow.py`
+│   └── uebersicht.md                       readable Ableitung of the tasks
 └── musterfirma-senior-backend/             one Vorgang (LS-6)
     ├── vorgang.md                          Metadaten, status, Plan, Verlauf
     ├── notizen.md                          Notizen of the user, never changed by skills (LS-6.3)
@@ -143,6 +146,7 @@ never a second master.
 | Passung of one posting against the Wunschprofil | `passung.md`, in the Vorgang folder (WJ-6.4) | fit-check | the user, solution (plan gate) |
 | Job search record: the approved Suchbrief, the shortlist (firm, role, location, date posted, board, URL) and the decision per entry: `übernommen` with the Vorgang slug, `abgelehnt` with a short reason, or `offen`. No contact e-mail addresses and no application state | `suche/<JJJJ-MM-TT>-<slug>.md` (`stellensuche/en.md` ST-8); the posting text of an `übernommen` entry lives in `stellenanzeige.md` of its Vorgang | job-application-job-search | job-application-job-search, solution, the user |
 | Suchauftrag (approved brief, plan, run log) and Warteschlange (identified postings with the decision per posting). No description text, no contact e-mail addresses, no application state | `suche/auftraege/<id>.json`, `suche/warteschlange.json` (`stellensuche/en.md` ST-13, ST-19) | `scripts/stellensuche.py` for job-application-job-search | job-application-job-search, solution (the hand-off sets `stellenquelle`), the user |
+| Workflow tasks: order of the steps, dependencies, attempts, leases, retry times, approvals bound to a content hash, and a reference with a hash to each result. **No application status** (that is `status` in `vorgang.md`) and no document text | `workflow/aufgaben.json` (`workflow/en.md` WF-6) | `scripts/workflow.py` | job-application-solution and the other skills through the agent that works on a task, the user |
 | Counterpart and company roles of a Vorgang | `analyse.md`, frontmatter keys (KK-6) and section `## Unternehmen` (UA-5.1); stable firm facts in `firmen/` (UA-5.2) | posting-analysis | cover-letter-create, email-create, solution, quality-gate |
 | Research record of a Vorgang: level, channels, status per item, signals, assessment, questions to the counterpart. Identity values are not repeated here; they stay in `## Unternehmen` | `analyse.md`, section `## Recherche` (`recherche/en.md` RC-9); date of the last research in `firmen/<firma-slug>.md`, key `recherche_stand` | the skill that runs the research (posting-analysis, `recherche/en.md` RC-11), on the user's request | cover-letter-create, email-create, solution, quality-gate, the user |
 | Ausprägung (Lebenslauf variant without a Vorgang): Arbeitsstand, Versionen, exports | `<wurzel>/<ausprägung>/` (LS-3, `lebenslauf-versionen` LV-2) | cv-create (Arbeitsstand, freeze), export (exports and Manifeste) | cv-create (derive a Vorgang's Lebenslauf from a Version), export, quality-gate |

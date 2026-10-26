@@ -29,6 +29,7 @@
 - [x] Retention and deletion (S10): final status other than `zusage` leads to deletion six months after closure, date `loeschen_ab` set by the user in `vorgang.md`, no skill deletes
 - [x] Docs pages *Getting started*, *Glossary*, *Counterparts* in English and German
 - [x] CV checks hardened (CV-01 to CV-17, including the sub-bullet rule CV-17)
+- [x] Workflow orchestration (finding A-03): `scripts/workflow.py` keeps tasks with dependencies, attempts, leases, retries and approvals bound to content in `workflow/aufgaben.json`, reconciles them against `vorgang.md` (no second application status) and plans follow-ups and searches for a scheduler (`spec/job-application/workflow/en.md`). It executes no skill and sends nothing; no sending adapter ships (depends on A-02)
 - [x] Recurring job search (finding A-01): persistent Suchauftrag with approval bound to its content, run log with limits, identity and de-duplication across runs, Warteschlange, hand-off to `job-application-solution` (`spec/job-application/stellensuche/en.md` ST-13 to ST-20, `scripts/stellensuche.py`); scheduled runs through `scripts/stellensuche_geplant.sh`, whose scheduler the user sets up and which has not run against a real JobSpy server
 
 ## Next

@@ -28,6 +28,7 @@ Bewerbung. Den Ablauf zeigt dir [Erste Schritte](getting-started.md), die Begrif
 - Hast du noch keine Anzeige? Führe `/claude-job-search:job-application-job-search` aus, um Jobbörsen mit einem Brief zu durchsuchen, den du zuerst freigibst; dafür brauchst du den optionalen Server [JobSpy](jobspy.md), mit eigenen Risiken.
 - `/claude-job-search:job-application-solution` mit dem Text der Stellenanzeige für eine komplette Bewerbung.
 - `/claude-job-search:job-application-quality-gate` vor dem Versand eines vorhandenen Bewerbungsordners.
+- Mehrere Bewerbungen und Suchen gleichzeitig? Der [Workflow](workflow.md) behält über Sitzungen hinweg die Reihenfolge der Schritte, was auf deine Freigabe wartet und was fehlgeschlagen ist.
 - Bewirbst du dich über einen Personalvermittler oder Headhunter? Lies zuerst [Gegenpartei](counterparts.md).
 - Du willst wissen, welche optionalen MCP-Server es gibt und welche Regeln für alle gelten? Siehe [Optionale MCP-Server](mcp-servers.md); keiner ist nötig.
 - Claude soll LinkedIn-Anzeigen, Firmenseiten und Profile direkt lesen? Siehe [LinkedIn-Zugriff](linkedin.md), ein optionaler MCP-Server mit eigenen Risiken.
