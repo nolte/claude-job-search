@@ -134,7 +134,7 @@ number and add only what is specific to the channel: tools, budget numbers, term
 2. **One route per source.** LinkedIn only through the LinkedIn server; the registers through the
    Handelsregister server where it applies; web search and page fetches through the connected
    open-webSearch server first, with the built-in tools under the same rules as the fallback; job boards
-   through the job-board server, excluding LinkedIn (RC-5.8). A source with a server of its own is not read by web
+   through the job-board servers, excluding LinkedIn (RC-5.8 JobSpy, RC-5.9 Bundesagentur). A source with a server of its own is not read by web
    search or by a direct page fetch, because that bypasses the consent of rule 1 and the budget of rule 4. A
    link to such a source that a search returns is opened through its server or not at all. When the
    server of such a source is not connected, the research says so, and the user may paste the text.
@@ -412,6 +412,19 @@ route to job-board postings** (RC-5.0 rule 2). The tool names are those of the s
    No proxy is recommended or configured.
 7. **Personal data.** The `emails` field and company contact data of a record are not stored
    (`stellensuche` ST-9).
+
+### RC-5.9 Bundesagentur für Arbeit through the jobsuche MCP server
+
+The jobsuche MCP server (<https://github.com/wunderfrucht/jobsuche-mcp-server>) searches the job portal of the
+Bundesagentur für Arbeit. It is a second job-board route next to RC-5.8 and is specified in `stellensuche` ST-21; this
+section states only what the research rules add. The BA offers no official API, and its Nutzungsbedingungen restrict
+robots and reading an interface for data collection, so the route is **interactive only**.
+
+1. **Rules.** RC-5.0 rules 1 to 8 apply. The consent names the unofficial interface and the BA's terms.
+2. **Tools.** `search_jobs` for the approved brief and `get_job_details` for the one entry the user picked. The bulk tools
+   (`search_jobs_with_details`, `batch_search_jobs`) are not used.
+3. **No automation.** No Suchauftrag, no scheduled run and no Warteschlange entry uses this route.
+4. **Rank.** A BA listing is a posting as posted (rank 2); the BA's data about the firm is rank 5 (RC-5.0 rule 6).
 
 ## RC-6 Procedure
 

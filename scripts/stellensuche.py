@@ -275,6 +275,9 @@ def validate_brief(brief):
     if not isinstance(boards, list):
         raise Refused("suchauftrag_ungueltig", "Boards müssen eine Liste sein")
     boards = [clean_text(board, 30).lower() for board in boards]
+    if "arbeitsagentur" in boards:
+        raise Refused("suchauftrag_ungueltig", "Die Arbeitsagentur wird nur in der interaktiven Suche durchsucht, nie in einem "
+                      "Suchauftrag (ST-21 Regel 2)")
     if "linkedin" in boards:
         raise Refused("suchauftrag_ungueltig", "LinkedIn wird nie über JobSpy durchsucht (RC-5.8 Regel 3)")
     if not boards or len(set(boards)) != len(boards) or any(b not in BOARDS for b in boards) or len(boards) > MAX_BOARDS:

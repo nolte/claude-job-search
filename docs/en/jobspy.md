@@ -150,7 +150,7 @@ Per the README, the boards behave like this for a search in the German-speaking 
 | ZipRecruiter | United States and Canada: does not apply |
 | Bayt, Naukri, BDJobs, HelloWork | Other regions (Naukri: India, BDJobs: Bangladesh, HelloWork: France): do not apply to DACH |
 
-**Not covered:** StepStone, XING and the job search of the Bundesagentur für Arbeit (Jobbörse).
+**Not covered:** StepStone and XING. The job search of the Bundesagentur für Arbeit is a separate, interactive-only source: see [Arbeitsagentur](arbeitsagentur.md).
 A search through JobSpy therefore misses many German postings. Treat the shortlist as a part of
 the market, not all of it.
 

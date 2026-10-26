@@ -79,6 +79,7 @@ plugins:
             Handelsregister: Handelsregister
             Web search: Websuche
             JobSpy: JobSpy
+            Arbeitsagentur: Arbeitsagentur
             Browser MCP: Browser-MCP
 
 markdown_extensions:
@@ -122,4 +123,5 @@ nav:
       - Handelsregister: en/handelsregister.md
       - Web search: en/websearch.md
       - JobSpy: en/jobspy.md
+      - Arbeitsagentur: en/arbeitsagentur.md
       - Browser MCP: en/browser.md
