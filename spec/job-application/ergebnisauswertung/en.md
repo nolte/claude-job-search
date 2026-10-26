@@ -115,7 +115,8 @@ and maximum are shown with `n`; below 5 values the result is `eingeschraenkt`.
 
 ## EA-9 Retrospective
 
-`lernen.py retrospektive [filters]` writes `lernen/retrospektive-<datum>.md`.
+`lernen.py retrospektive [filters]` writes `lernen/retrospektive-<datum>.md`; with a period or a filter the name carries a short hash of the criteria, so
+other criteria on the same day do not replace the file (the same criteria do).
 
 1. It states the **Datenbasis**: period, number of evaluated and open Vorgänge, those without a confirmed Ereignis, Ereignisse and messages
    still to check, exclusions with reasons, the criteria used.
