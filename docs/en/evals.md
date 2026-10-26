@@ -53,7 +53,7 @@ Results are in `evals/results/last-run.json` (behaviour, or the cases of the tar
 
 | Group | Cases | What a pass means |
 |---|---|---|
-| `trigger-*` | one per skill (13) and one for the reviewer agent | A natural German request, without naming the skill, makes the model call that skill. Graded with `tool_used` |
+| `trigger-*` | one per skill (14) and one for the reviewer agent | A natural German request, without naming the skill, makes the model call that skill. Graded with `tool_used` |
 | `behavior-bash-works` | precondition 1 (tag `precondition`, one run, run first by `evals/run.sh`): `uname -s` through Bash | An external command runs inside the eval sandbox (a shell builtin such as `echo` would pass without it) |
 | `behavior-python-works` | precondition 2 (same): `python3 --version` through Bash | `python3` runs inside the sandbox (the skills call python3 scripts). If either precondition is red, the cases that run scripts measure the machine, not the plugin |
 | `behavior-gate-runs-script` | quality gate on a Vorgang that holds only a Lebenslauf | The gate calls `cv_checks.py` before it writes `pruefbericht.md`. The verdict is not graded: with a lone Lebenslauf a gate may legitimately block on missing documents |

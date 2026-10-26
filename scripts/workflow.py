@@ -27,6 +27,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import grundlage_hash as gh  # noqa: E402
+import kommunikation as km  # noqa: E402
+import lernen as lr  # noqa: E402
 import qualitaet as qa  # noqa: E402
 import stellensuche as ss  # noqa: E402
 from grundlage_hash import sha256_file  # noqa: E402
@@ -66,7 +68,7 @@ KLASSEN = RETRY_KLASSEN | {"eingabe", "freigabe", "berechtigung", "qualitaet", "
 
 # status chain of a Vorgang (LS-6) as ranks; `in Arbeit` lies between erstellt and geprüft
 RANG = {"erfasst": 1, "analysiert": 2, "geplant": 3, "erstellt": 4, "in Arbeit": 4.5, "geprüft": 5, "versendet": 6}
-ENDSTATUS = {"zusage", "absage", "abgelehnt", "zurückgezogen", "ohne Antwort"}
+ENDSTATUS = set(km.ENDSTATUS)
 DOKUMENTE = qa.DOKUMENTE  # the send package; the quality report is bound to the same files
 KUERZEL = re.compile(r"[a-z0-9][a-z0-9-]*")
 DATEINAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.(?:md|txt)")
@@ -204,6 +206,28 @@ def a_suche(w, t, now):
         "kein erfolgreicher Lauf seit Anlage der Aufgabe (`stellensuche.py auftraege`)"
 
 
+def a_rueckmeldung(w, t, now):
+    offen = km.offene_vorschlaege(w, t["bezug"]["vorgang"])
+    return not offen, f"{len(offen)} Nachricht(en) warten auf die Prüfung (kommunikation.py zeige, bestaetigen oder verwerfen)"
+
+
+def a_wiedervorlage(w, t, now):
+    wid = t["id"].rsplit(":", 1)[-1]
+    try:
+        eintrag = next((r for r in km.lade_nachverfolgung(w, t["bezug"]["vorgang"])["wiedervorlagen"] if r["id"] == wid), None)
+    except Refused:
+        return False, "nachverfolgung.json nicht lesbar"
+    return eintrag is None or eintrag["status"] != "offen", "die Wiedervorlage ist noch offen (kommunikation.py wiedervorlage erledigen)"
+
+
+def a_lernvorschlag(w, t, now):
+    try:
+        offen = [v for v in lr.lade_vorschlaege(w)["vorschlaege"].values() if v["status"] in ("erstellt", "zur_pruefung")]
+    except Refused:
+        return False, "lernen/vorschlaege.json nicht lesbar"
+    return not offen, f"{len(offen)} Vorschlag/Vorschläge warten auf die Entscheidung (lernen.py vorschlag)"
+
+
 def e_vorgang(*namen):
     return lambda w, t: [f"{t['bezug']['vorgang']}/{n}" for n in namen]
 
@@ -231,6 +255,12 @@ TYPEN = {
                        zweck="Nachfass-Entwurf vorbereiten (Wiedervorlage fällig)"),
     "suche": dict(ausfuehrung="agent", skill="job-application-job-search (Suchauftrag)", prio=2, voraussetzung=v_suche,
                   abschluss=a_suche, zweck="Suchauftrag ausführen"),
+    "rueckmeldung_pruefen": dict(ausfuehrung="nutzer", skill="job-application-follow-up (kommunikation.py zeige, bestaetigen)", prio=4,
+                                 abschluss=a_rueckmeldung, zweck="Rückmeldung prüfen und übernehmen oder verwerfen (S8)"),
+    "wiedervorlage": dict(ausfuehrung="nutzer", skill="job-application-follow-up (kommunikation.py wiedervorlage)", prio=3,
+                          abschluss=a_wiedervorlage, zweck="Wiedervorlage bearbeiten (erzeugt keine Nachricht)"),
+    "lernvorschlag_pruefen": dict(ausfuehrung="nutzer", skill="job-application-follow-up (lernen.py vorschlag)", prio=2,
+                                  abschluss=a_lernvorschlag, zweck="Verbesserungsvorschlag prüfen und entscheiden"),
     "nachricht_senden": dict(ausfuehrung="adapter", skill="Versandadapter (A-02, nicht ausgeliefert)", prio=4, extern=True,
                              freigabe=True, inhalt=lambda w, t: hash_von(w, t["bezug"]["vorgang"], [t["bezug"].get("datei", "-")]),
                              zweck="Nachricht senden (nur mit Adapter und gültiger Freigabe)"),
@@ -313,10 +343,13 @@ def setze(task, neu, now, text="", hinweis=None):
 
 def pruefe_bezug(typ, bezug):
     """The reference of a task: exactly the kind the type needs, written as slugs and a plain file name (WF-13 rule 3)."""
-    gebraucht = "auftrag" if typ == "suche" else "vorgang"
-    if not isinstance(bezug, dict) or not bezug.get(gebraucht) or (bezug.get("vorgang") and bezug.get("auftrag")):
-        raise Refused("aufgabe_ungueltig", f"Eine Aufgabe vom Typ {typ} hat als bezug genau {'einen Suchauftrag' if gebraucht == 'auftrag' else 'einen Vorgang'}")
-    if not all(isinstance(bezug.get(k, "x"), str) and KUERZEL.fullmatch(bezug.get(k, "x")) for k in ("vorgang", "auftrag")) or \
+    gebraucht = {"suche": "auftrag", "lernvorschlag_pruefen": "bereich"}.get(typ, "vorgang")
+    genannt = [k for k in ("vorgang", "auftrag", "bereich") if bezug.get(k)] if isinstance(bezug, dict) else []
+    if not isinstance(bezug, dict) or genannt != [gebraucht]:
+        raise Refused("aufgabe_ungueltig", f"Eine Aufgabe vom Typ {typ} hat als bezug genau {({'auftrag': 'einen Suchauftrag', 'bereich': 'den Bereich lernen'}).get(gebraucht, 'einen Vorgang')}")
+    if gebraucht == "bereich" and bezug["bereich"] != "lernen":
+        raise Refused("aufgabe_ungueltig", "Der Bereich einer Lernaufgabe ist `lernen`")
+    if not all(isinstance(bezug.get(k, "x"), str) and KUERZEL.fullmatch(bezug.get(k, "x")) for k in ("vorgang", "auftrag", "bereich")) or \
             (bezug.get("datei") is not None and not (isinstance(bezug["datei"], str) and DATEINAME.fullmatch(bezug["datei"]))):
         raise Refused("aufgabe_ungueltig", "bezug.vorgang und bezug.auftrag sind Kürzel aus a-z, 0-9 und -; datei ist ein Dateiname")
 
@@ -330,7 +363,7 @@ def neue_aufgabe(daten, typ, bezug, now, nach=(), ab="", faellig="", suffix=""):
         raise Refused("aufgabe_ungueltig", "ab und faellig sind echte Daten der Form JJJJ-MM-TT")
     if not suffix and typ == "nachricht_senden" and bezug.get("datei"):
         suffix = bezug["datei"]  # one message per file: the approval covers exactly that file
-    task_id = f"{typ}:{bezug.get('vorgang') or bezug.get('auftrag')}" + (f":{suffix}" if suffix else "")
+    task_id = f"{typ}:{bezug.get('vorgang') or bezug.get('auftrag') or bezug.get('bereich')}" + (f":{suffix}" if suffix else "")
     if task_id in daten["aufgaben"]:
         vorhanden = daten["aufgaben"][task_id]
         if vorhanden["bezug"] != bezug or (ab and ab != vorhanden["ab"]) or (faellig and faellig != vorhanden["faellig"]):
@@ -613,7 +646,7 @@ def plane(w, daten, now):
     def anlegen(*args, **kwargs):
         nonlocal budget
         if budget <= 0:
-            zurueck.append(args[0] + ":" + str(args[1].get("vorgang") or args[1].get("auftrag")))
+            zurueck.append(args[0] + ":" + str(args[1].get("vorgang") or args[1].get("auftrag") or args[1].get("bereich")))
             return None
         task, angelegt = neue_aufgabe(daten, *args, **kwargs)
         if angelegt:
@@ -622,7 +655,8 @@ def plane(w, daten, now):
         return task
 
     try:
-        mit_workflow = {t["bezug"].get("vorgang") for t in daten["aufgaben"].values()}
+        kette = {typ for typ, _ in BEWERBUNG}
+        mit_workflow = {t["bezug"].get("vorgang") for t in daten["aufgaben"].values() if t["typ"] in kette}  # a task after the dispatch is no chain
         for slug in sorted(os.listdir(w)) if os.path.isdir(w) else []:
             meta = ss.vorgang_meta(os.path.join(w, slug, "vorgang.md")) if KUERZEL.fullmatch(slug) else None
             if meta is None or meta.get("status") in ENDSTATUS or slug in mit_workflow:
@@ -651,13 +685,39 @@ def plane(w, daten, now):
         for slug in sorted({t["bezug"].get("vorgang") for t in daten["aufgaben"].values()} - {None}):
             meta = ss.vorgang_meta(os.path.join(w, slug, "vorgang.md"))
             tag = (meta or {}).get("wiedervorlage", "")
-            if meta and rang(meta) == RANG["versendet"] and ss.valid_date(tag) == tag and tag <= heute(now):
+            if meta and rang(meta) == RANG["versendet"] and tag and ss.valid_date(tag) == tag and tag <= heute(now):  # no date, no follow-up: the deadline is the user's
                 anlegen("nachfassen", {"vorgang": slug}, now, ab=tag, faellig=tag, suffix=tag)
+        plane_nachverfolgung(w, daten, now, anlegen)
     except Refused as error:
         if error.code != "budget_erschoepft":
             raise
         zurueck.append("aufgaben_max erreicht")
     return neu, zurueck, uebersprungen, defekte
+
+
+def plane_nachverfolgung(w, daten, now, anlegen):
+    """Tasks after the dispatch (A-02, A-06): a message to check, a Wiedervorlage that is due, a proposal to decide. Sends nothing.
+
+    A task of a kind is created only when no open one of that kind exists for the same Vorgang, so a second run adds nothing."""
+    tasks = daten["aufgaben"].values()
+    offen = lambda typ, schluessel, wert: any(t["typ"] == typ and t["bezug"].get(schluessel) == wert and t["status"] in OFFEN for t in tasks)  # noqa: E731
+    zahl = lambda typ, schluessel, wert: sum(1 for t in tasks if t["typ"] == typ and t["bezug"].get(schluessel) == wert)  # noqa: E731
+    for slug in sorted(os.listdir(w)) if os.path.isdir(w) else []:
+        meta = ss.vorgang_meta(os.path.join(w, slug, "vorgang.md")) if KUERZEL.fullmatch(slug) else None
+        if meta is None or meta.get("status") in ENDSTATUS:
+            continue
+        if km.offene_vorschlaege(w, slug) and not offen("rueckmeldung_pruefen", "vorgang", slug):
+            versand = f"versand:{slug}"
+            anlegen("rueckmeldung_pruefen", {"vorgang": slug}, now, nach=[versand] if versand in daten["aufgaben"] else [],
+                    suffix=f"n{zahl('rueckmeldung_pruefen', 'vorgang', slug) + 1}")
+        for eintrag in km.faellige_wiedervorlagen(w, slug, now):
+            anlegen("wiedervorlage", {"vorgang": slug}, now, ab=eintrag["faellig"], faellig=eintrag["faellig"], suffix=eintrag["id"])
+    try:
+        offene_vorschlaege = [v for v in lr.lade_vorschlaege(w)["vorschlaege"].values() if v["status"] in ("erstellt", "zur_pruefung")]
+    except Refused:
+        offene_vorschlaege = []
+    if offene_vorschlaege and not offen("lernvorschlag_pruefen", "bereich", "lernen"):
+        anlegen("lernvorschlag_pruefen", {"bereich": "lernen"}, now, suffix=f"n{zahl('lernvorschlag_pruefen', 'bereich', 'lernen') + 1}")
 
 
 # ---------------------------------------------------------------- queries
@@ -953,7 +1013,8 @@ def abbrechen(daten, ziel, now):
     """Cancel one task, or every open task of a Vorgang (by its slug)."""
     alle = daten["aufgaben"].values()
     treffer = [t for t in alle if t["id"] == ziel]  # an exact id first, then a Vorgang, then a Suchauftrag: never two groups at once
-    treffer = treffer or [t for t in alle if t["bezug"].get("vorgang") == ziel] or [t for t in alle if t["bezug"].get("auftrag") == ziel]
+    treffer = treffer or [t for t in alle if t["bezug"].get("vorgang") == ziel] or [t for t in alle if t["bezug"].get("auftrag") == ziel] \
+        or [t for t in alle if t["bezug"].get("bereich") == ziel]
     if not treffer:
         raise Refused("aufgabe_unbekannt", f"Keine Aufgabe und kein Vorgang {redact(ziel, 80)}")
     unklar = [t["id"] for t in treffer if t["extern_begonnen"] and t["status"] in OFFEN]
@@ -1009,7 +1070,7 @@ def build_parser():
     add("ausgang", "aufgabe", gesendet={"action": "store_true"}, nicht_gesendet={"action": "store_true"})
     add("wiederholen", "aufgabe")
     add("abbrechen", "ziel")
-    add("anlegen", "typ", vorgang={}, auftrag={}, datei={}, nach={"action": "append", "default": []}, ab={"default": ""}, faellig={"default": ""})
+    add("anlegen", "typ", vorgang={}, auftrag={}, bereich={}, datei={}, nach={"action": "append", "default": []}, ab={"default": ""}, faellig={"default": ""})
     add("zeige", "aufgabe")
     add("uebersicht")
     command = sub.add_parser("grenzen")
@@ -1074,7 +1135,7 @@ def dispatch(args, w, daten, now):
     if cmd == "abbrechen":
         return abbrechen(daten, args.ziel, now)
     if cmd == "anlegen":
-        bezug = {k: v for k, v in (("vorgang", args.vorgang), ("auftrag", args.auftrag), ("datei", args.datei)) if v}
+        bezug = {k: v for k, v in (("vorgang", args.vorgang), ("auftrag", args.auftrag), ("bereich", args.bereich), ("datei", args.datei)) if v}
         task, angelegt = neue_aufgabe(daten, args.typ, bezug, now, nach=args.nach, ab=args.ab, faellig=args.faellig)
         abgleichen(w, daten, now)
         return {"ok": True, "aufgabe": task["id"], "neu": angelegt, "status": task["status"]}

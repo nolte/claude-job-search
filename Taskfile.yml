@@ -79,6 +79,20 @@ tasks:
     cmds:
       - python3 scripts/workflow.py {{.CLI_ARGS}}
 
+  communication:
+    desc: |
+      Communication after the dispatch (spec mail-verwaltung MV-18 to MV-27): process handed-over messages, review, confirm, Wiedervorlage, follow-up basis.
+      Usage: task communication -- <verarbeiten|liste|zeige|zuweisen|bestaetigen|verwerfen|wiedervorlage|nachfass> ...   (sends nothing, reads no mailbox)
+    cmds:
+      - python3 scripts/kommunikation.py {{.CLI_ARGS}}
+
+  learn:
+    desc: |
+      Evaluation of confirmed application results (spec ergebnisauswertung EA-1 to EA-16): statistics, retrospective, proposals.
+      Usage: task learn -- <statistik|retrospektive|aktualitaet|ergebnis|vorschlaege|vorschlag> ...   (changes no status, document or personal data)
+    cmds:
+      - python3 scripts/lernen.py {{.CLI_ARGS}}
+
   quality:
     desc: |
       Quality report of one Vorgang (spec qualitaetssicherung QS-1 to QS-12): deterministic checks, export checks and the semantic verdicts.

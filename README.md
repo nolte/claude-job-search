@@ -44,13 +44,16 @@ them. The result is consistent, fits the posting, and never invents experience.
 - **Check and export.** `job-application-quality-gate` checks a set before you send it, and
   `job-application-reviewer` reads it like a recruiter would. `job-application-export` produces
   PDF, Word, HTML or Markdown.
+- **Follow an application after sending.** `job-application-follow-up` turns the replies you hand over into proposals for the Vorgang
+  that you approve line by line, keeps Wiedervorlagen, prepares the basis of a follow-up mail, and evaluates your confirmed results
+  (response rate, response times, a retrospective). It sends nothing and changes no personal data (docs page *Follow-up and learning*).
 - **Look for postings** (optional). `job-application-job-search` searches job boards with a search
   brief that you approve first. An approved search (Suchauftrag) can be repeated and fills a queue of
   found postings that remembers your decisions; repeating it on a schedule needs a timer that you set up
   yourself (docs page *JobSpy*).
 
-Each application gets its own folder with a status and a short history. The plugin does not track
-what happens after you send; you note replies and interviews there yourself, or in Obsidian.
+Each application gets its own folder with a status and a short history. After you send, you note replies and interviews there yourself, or in Obsidian,
+or you let `job-application-follow-up` propose the entries from messages you hand over. No mailbox is read and nothing is sent by the plugin.
 
 ## Getting started
 

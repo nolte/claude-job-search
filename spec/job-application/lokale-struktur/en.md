@@ -43,6 +43,7 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
    | `wurzel` | no | `job-application/` | Root of all application data (LS-2.2). |
    | `grundlage` | no | `<wurzel>/grundlage/lebenslauf-chronologisch.md` | Path of the Datengrundlage: one Markdown file, or a directory of notes (R-9.1). |
    | `grundlage_index` | only with a directory `grundlage` | none | Index note of the directory Grundlage, with `stand` and the Pflegeverlauf (R-9.1, R-9.10). |
+   | `nachfass_tage` | no | none | Days after `versendet_am` after which a follow-up is considered (`mail-verwaltung` MV-24). Set by the user; without it no follow-up deadline exists and none is made up. |
 
    No other key is written by the plugin. Free notes below the frontmatter are kept.
 
@@ -79,6 +80,11 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
 ├── workflow/                               tasks of the orchestration (`workflow/en.md` WF-6)
 │   ├── aufgaben.json                       tasks with dependencies, attempts, approvals; written by `scripts/workflow.py`
 │   └── uebersicht.md                       readable Ableitung of the tasks
+├── kommunikation/                          messages after the dispatch (`mail-verwaltung` MV-18 to MV-26)
+│   └── eingang.json                        references and proposals, no full mail text; written by `scripts/kommunikation.py`
+├── lernen/                                 evaluation of results (`ergebnisauswertung/en.md`)
+│   ├── vorschlaege.json                    proposals with sources and decisions; written by `scripts/lernen.py`
+│   └── retrospektive-<datum>.md            Ableitung with `abgeleitet: ja` and `quellen_hash`, stale when a source changes
 └── musterfirma-senior-backend/             one Vorgang (LS-6)
     ├── vorgang.md                          Metadaten, status, Plan, Verlauf
     ├── notizen.md                          Notizen of the user, never changed by skills (LS-6.3)
@@ -92,6 +98,7 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
     ├── anschreiben-portal.txt              plain text for a portal text field (AS-8.1); see the rule below the tree
     ├── motivationsschreiben-portal.txt     plain text for a portal text field (MS-13); see the rule below the tree
     ├── pruefbericht.md                     Auswahl sections and Prüfung (LS-7.4)
+    ├── nachverfolgung.json                 confirmed events and Wiedervorlagen after the dispatch (`ergebnisauswertung` EA-3, `mail-verwaltung` MV-23)
     ├── versionen/                          frozen Versionen of this Vorgang's Lebenslauf (LV-3), optional
     └── export/                             PDF, DOCX, HTML, only on request (R-10)
 ```
@@ -219,15 +226,15 @@ Rules for the lifecycle:
 3. **Plan before generation.** S3 is written before S4 starts (solution skill, plan gate).
 4. **S7 and S8 are user statements.** The skill records what the user reports. It never sends,
    and it never infers a reply. The one exception is the proposal path of `mail-verwaltung/en.md`
-   MV-7: it may propose an *Verlauf* line and a change of `status` for S8 from a mail, and writes
-   it only after the user's approval of the exact line. S7 stays a statement of the user.
+   MV-7 and MV-18 to MV-22 (`kommunikation.py`): it may propose an *Verlauf* line and a change of `status` for S8 from a mail, and writes
+   it only after the user's approval of the exact line (bound by hash). S7 stays a statement of the user. A confirmed event goes to
+   `nachverfolgung.json` as well (`ergebnisauswertung` EA-3).
 5. **Folders are never moved after S1.** Links from `firmen/`, the Obsidian graph and the user's
    notes stay valid. Closed Vorgänge are found by status, not by location.
 6. **A second Vorgang for the same company and role** gets a numeric suffix:
    `musterfirma-senior-backend-2`.
-7. **Phase 1 limit.** No skill updates S7 and S8 on its own in Phase 1. The user maintains `vorgang.md`
-   and `notizen.md` by hand or in Obsidian. The mail proposal path of `mail-verwaltung/en.md` MV-7
-   is the first tracking function; a full tracking skill is an open point (LS-10).
+7. **Limit.** No skill updates S7 and S8 on its own. The user maintains `vorgang.md` and `notizen.md` by hand or in Obsidian, or confirms the
+   proposals of `job-application-follow-up` (`mail-verwaltung/en.md` MV-18 to MV-27). Reading a mailbox is not implemented (LS-10).
 8. **S10 Aufbewahrung und Löschung.** The rule names the place and the period; no skill deletes
    anything in Phase 1.
    - A Vorgang with the final status `absage`, `zurückgezogen`, `ohne Antwort` or `abgelehnt` is
@@ -452,7 +459,8 @@ The following changes are required before the skills follow the spec:
 | `job-application-posting-analysis` | Save the verbatim posting as `stellenanzeige.md`; create `vorgang.md` (S1) with Metadaten, an empty `notizen.md`, and `firmen/` entries on first use (LS-4) | done |
 | `job-application-cv-create`, `job-application-cover-letter-create`, `job-application-motivation-letter-create`, `job-application-quality-gate` | Use the sections of `pruefbericht.md` (LS-7.4) | done |
 | `job-application-quality-gate` | Check the status against the existence of the documents; compare `grundlage_hash` in `vorgang.md` | done |
-| Nachverfolgung (S7, S8) | No tracking skill in Phase 1. A tracking skill is a later requirement; the mail proposal path (`mail-verwaltung/en.md` MV-7) is specified but not yet implemented | open, deliberate |
+| Nachverfolgung (S7, S8) | `job-application-follow-up` with `scripts/kommunikation.py` proposes lines, status changes, events and Wiedervorlagen from handed-over messages and writes them only after the user's approval of the exact content (`mail-verwaltung/en.md` MV-18 to MV-27); S7 stays the user's statement. Reading a mailbox and sending are not implemented (no connector, no adapter) | done for the local part, connector open |
+| Evaluation | `scripts/lernen.py`: statistics, retrospective and proposals over confirmed results (`ergebnisauswertung/en.md`); derivations only, no change of a status, a document or personal data | done |
 | S10 Löschung | Rule defined (LS-6 rule 8, `loeschen_ab`); no skill deletes. The legal reference (AGG § 15 Abs. 4) is to be verified by the user | rule defined, no skill |
 | Ausprägung folders | Second folder kind in LS-3; `cv-create` and `export` tell it apart by the missing `vorgang.md` | done (skill, 0.2.0) |
 | `kontaktart` in `vorgang.md` | posting-analysis writes the KK-6 value into `vorgang.md` as well (LS-6.1) | done (skill, 0.2.0) |

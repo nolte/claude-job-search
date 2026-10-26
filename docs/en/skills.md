@@ -16,6 +16,7 @@ The *Stage* column names the step of the application process (S0 to S10, see
 | `job-application-cover-letter-create` | creation (S4) | One-page DIN-style cover letter, four variants |
 | `job-application-motivation-letter-create` | creation (S4) | Motivationsschreiben from your stated reasons and sourced proofs, with a provenance note |
 | `job-application-email-create` | creation (S4) | Cover e-mail with subject, attachment list and file names, only when you apply by e-mail |
+| `job-application-follow-up` | follow-up (S8) | Processes replies you hand over into proposals (Verlauf line, status, result, Wiedervorlage) that you approve one by one; keeps Wiedervorlagen, prepares the basis of a follow-up, and evaluates confirmed results (response rate, response times, retrospective, proposals). Sends nothing, reads no mailbox, changes no personal data. See [Follow-up and learning](follow-up.md) |
 | `job-application-quality-gate` | review (S5) | Quality gate: blockers, warnings, notes. Sets the status to `geprüft` (no blockers) or `in Arbeit` |
 | `job-application-export` | export (S6) | Exports a finished document to DOCX, HTML or Markdown; PDF through LaTeX (needs LuaLaTeX or the container) via `task export` |
 | `job-application-reviewer` (agent) | review (S5) | Read-only whole-set review from a recruiter's perspective |
@@ -37,9 +38,9 @@ else. The status in `vorgang.md` tells you how far an application has come:
 
 ## What you maintain yourself
 
-Sending and everything after it are your statements, not the plugin's. You record them in
-`vorgang.md` (date sent, channel, attachments, each reply, each interview, the final result)
-and keep your free notes in `notizen.md`. Obsidian is a comfortable place for this; the
+Sending is your statement, not the plugin's. You record it in `vorgang.md` (date sent, channel, attachments). Replies, interviews and the
+final result you record there too, or you let `job-application-follow-up` propose the lines from messages you hand over and approve each one.
+Your free notes stay in `notizen.md`, which no skill touches. Obsidian is a comfortable place for this; the
 plugin does not need it. [Getting started](getting-started.md#7-status-and-overview) shows the
 status values and an overview across all applications.
 
