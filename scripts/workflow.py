@@ -14,7 +14,7 @@ State: `<wurzel>/workflow/aufgaben.json`; readable derivation: `<wurzel>/workflo
 Usage: workflow.py [--konfiguration PFAD] [--jetzt ISO] <befehl> ...
 Commands: wurzel, starten, abgleichen, laufen, naechste, uebernehmen, fertig, fehler, weiter, freigeben, ablehnen, ausfuehren,
 ausgang, wiederholen, abbrechen, anlegen, zeige, uebersicht, grenzen.
-Output is one JSON object. Exit code 0 ok, 3 refused (`code` and `meldung`), 1 blocker. Standard library only.
+Output is one JSON object. Exit code 0 ok, 2 the command ran but reports ok=false (for example `fertig` with a missing result), 3 refused (`code` and `meldung`), 1 blocker. Standard library only.
 """
 
 import argparse
@@ -241,8 +241,9 @@ def lade(wurzel):
     if daten.get("version") != 1 or not isinstance(daten.get("aufgaben"), dict):
         raise Refused("speicher_ungueltig", "workflow/aufgaben.json hat kein bekanntes Format (version 1)")
     for task_id, task in daten["aufgaben"].items():
-        if not isinstance(task, dict) or FELDER - set(task) or task["id"] != task_id or task["typ"] not in TYPEN \
-                or task["status"] not in STATUS or any(not isinstance(task[k], t) for k, t in TYPEN_DER_FELDER.items()) \
+        if not isinstance(task, dict) or FELDER - set(task) or task["id"] != task_id \
+                or not isinstance(task["typ"], str) or not isinstance(task["status"], str) \
+                or task["typ"] not in TYPEN or task["status"] not in STATUS or any(not isinstance(task[k], t) for k, t in TYPEN_DER_FELDER.items()) \
                 or not (task["lease"] is None or isinstance(task["lease"], dict) and "bis" in task["lease"]) \
                 or not all(isinstance(d, str) for d in task["nach"]):
             raise Refused("speicher_ungueltig", f"Die Aufgabe {redact(task_id, 60)} in workflow/aufgaben.json ist unvollständig oder unbekannt")
@@ -433,7 +434,7 @@ def bewerte(w, daten, task, now):
         setze(task, ABGEBROCHEN, now, "Vorgang abgeschlossen", f"Der Vorgang hat den Endstatus {meta.get('status')}")
         return True
     # reality wins: work done outside the workflow is recognised from the files (never an external action of an adapter)
-    if katalog.get("abschluss") and katalog["ausfuehrung"] != "adapter" and task["status"] != FEHLGESCHLAGEN:
+    if katalog.get("abschluss") and katalog["ausfuehrung"] != "adapter" and task["status"] not in (FEHLGESCHLAGEN, LAEUFT):
         if katalog["abschluss"](w, task, now)[0]:
             ohne = [d for d in task["nach"] if tasks[d]["status"] != ERLEDIGT]
             erledige(w, task, now, "Zustand aus dem Vorgang übernommen")
@@ -777,12 +778,27 @@ def fehler(daten, task_id, klasse, grund, now, versuch=None):
             "naechster_versuch": task["naechster_versuch"]}
 
 
+def pruefbericht_veraltet(w, daten, task):
+    """A send approval covers documents the quality gate has seen: the report may not be older than a document (S5 before S6)."""
+    for dep in task["nach"]:
+        if daten["aufgaben"][dep]["typ"] != "pruefung":
+            continue
+        bericht = os.path.join(vorgang_dir(w, task), "pruefbericht.md")
+        if not os.path.isfile(bericht):
+            continue  # the status `geprüft` in vorgang.md is then the only record
+        neuer = [d for d in DOKUMENTE if os.path.isfile(os.path.join(vorgang_dir(w, task), d))
+                 and os.stat(os.path.join(vorgang_dir(w, task), d)).st_mtime_ns > os.stat(bericht).st_mtime_ns]
+        if neuer:
+            raise Refused("pruefung_veraltet", f"{', '.join(neuer)} ist nach dem Prüfbericht geändert worden; erst den Qualitätscheck erneut ausführen")
+
+
 def freigeben(w, daten, task_id, now):
     task = hole(daten, task_id)
     if not braucht_freigabe(task):
         raise Refused("keine_freigabe", f"{task_id} braucht keine Freigabe im Workflow (Plan und Suchauftrag werden dort freigegeben, wo sie liegen)")
     if task["status"] != FREIGABE:
         raise Refused("nicht_wartend", f"{task_id} ist {task['status']}, nicht {FREIGABE}: {task['hinweis']}")
+    pruefbericht_veraltet(w, daten, task)
     aktuell = TYPEN[task["typ"]]["inhalt"](w, task)
     if not aktuell:
         raise Refused("nichts_zu_genehmigen", "Es gibt keinen Inhalt, den die Freigabe abdecken könnte")
@@ -882,19 +898,17 @@ def abbrechen(daten, ziel, now):
     treffer = [t for t in daten["aufgaben"].values() if t["id"] == ziel or t["bezug"].get("vorgang") == ziel or t["bezug"].get("auftrag") == ziel]
     if not treffer:
         raise Refused("aufgabe_unbekannt", f"Keine Aufgabe und kein Vorgang {redact(ziel, 80)}")
-    beendet, unklar = [], []
+    unklar = [t["id"] for t in treffer if t["extern_begonnen"] and t["status"] in OFFEN]
+    if unklar:  # the record that a send may have happened stays until the user decides with `ausgang`; nothing is cancelled half
+        raise Refused("ausgang_unklar", f"Ob die externe Aktion lief, ist unklar ({', '.join(unklar)}); erst `ausgang` entscheiden, dann abbrechen")
+    beendet = []
     for task in treffer:
-        if task["extern_begonnen"] and task["status"] in OFFEN:
-            unklar.append(task["id"])  # the record that a send may have happened stays until the user decides with `ausgang`
-            continue
         if task["status"] in OFFEN or task["status"] == FEHLGESCHLAGEN:
             setze(task, ABGEBROCHEN, now, "vom Nutzer abgebrochen")
             task["lease"] = None
             schliesse_versuch(task, now, "fehler", "abbruch", "vom Nutzer abgebrochen")
             beendet.append(task["id"])
-    if unklar and not beendet and ziel in unklar:
-        raise Refused("ausgang_unklar", f"{ziel}: Ob die externe Aktion lief, ist unklar; erst `ausgang` entscheiden, dann abbrechen")
-    return {"ok": True, "abgebrochen": beendet, "nicht_abgebrochen_ausgang_unklar": unklar}
+    return {"ok": True, "abgebrochen": beendet}
 
 
 def grenzen(daten, werte):
@@ -956,8 +970,6 @@ def unbeaufsichtigt():
 
 def dispatch(args, w, daten, now):
     cmd = args.befehl
-    if cmd == "wurzel":
-        return {"ok": True, "wurzel": w}
     if cmd == "starten":
         return {"ok": True, "neu": starte_vorgang(w, daten, args.vorgang, now), "geaendert": abgleichen(w, daten, now)}
     if cmd == "abgleichen":
@@ -1016,17 +1028,35 @@ def dispatch(args, w, daten, now):
     return grenzen(daten, args.werte) if args.werte else {"ok": True, "grenzen": daten["grenzen"]}
 
 
+def haltbar_abgleichen(w, now):
+    """After a refused command: reconcile the stored state afresh (nothing of the failed command is kept) and save what changed."""
+    try:
+        frisch = lade(w)
+        vorher = json.dumps(frisch, sort_keys=True)
+        abgleichen(w, frisch, now)
+        if json.dumps(frisch, sort_keys=True) != vorher:
+            sichere(w, frisch)
+    except Refused:
+        pass
+
+
 def run(args):
     w = ss.find_wurzel(args.konfiguration)
     now = parse_time(args.jetzt) if args.jetzt else dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     if unbeaufsichtigt() and args.befehl in USER_ONLY:
         raise Refused("nur_interaktiv", f"{args.befehl} ist in einer unbeaufsichtigten Sitzung nicht erlaubt (WF-13)")
+    if args.befehl == "wurzel":
+        return {"ok": True, "wurzel": w}  # no store needed: this works even when aufgaben.json is damaged
     if args.befehl in READ_ONLY:
         return dispatch(args, w, lade(w), now)
     with ss.exclusive(w, *LOCK):
         daten = lade(w)
         vorher = json.dumps(daten, sort_keys=True)
-        result = dispatch(args, w, daten, now)
+        try:
+            result = dispatch(args, w, daten, now)
+        except Refused:
+            haltbar_abgleichen(w, now)  # the refusal must not undo a lease that ran out meanwhile
+            raise
         try:  # the state a command leaves behind is already reconciled (dependents follow at once)
             abgleichen(w, daten, now)
         except Refused as error:
@@ -1053,7 +1083,7 @@ def main(argv):
         print(f"{error.code}: {error.meldung}", file=sys.stderr)
         return 3
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return 0
+    return 2 if result.get("ok") is False else 0
 
 
 if __name__ == "__main__":

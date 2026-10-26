@@ -1053,8 +1053,7 @@ class ReviewRoundThreeTests(Base):  # third review of the workflow (pull request
         self.assertEqual(self.stand(task["id"]), wf.EINGABE)
         self.assertTrue(self.store()["aufgaben"][task["id"]]["extern_begonnen"])
         self.assertEqual(self.refused(wf.abbrechen, self.store(), task["id"], T0), "ausgang_unklar")
-        ergebnis = self.apply(wf.abbrechen, SLUG)  # by Vorgang: skipped and named
-        self.assertEqual(ergebnis["nicht_abgebrochen_ausgang_unklar"], [task["id"]])
+        self.assertEqual(self.refused(wf.abbrechen, self.store(), SLUG, T0), "ausgang_unklar")  # by Vorgang: refused, nothing half cancelled
         after = self.store()["aufgaben"][task["id"]]
         self.assertEqual(after["status"], wf.EINGABE)
         self.assertTrue(after["extern_begonnen"])
@@ -1105,6 +1104,86 @@ class ReviewRoundThreeTests(Base):  # third review of the workflow (pull request
         neu["geaendert"] = wf.stamp(later(days=-3))
         self.assertEqual(wf.raeume_auf(daten, T0), [alt["id"]])
         self.assertEqual(sorted(daten["aufgaben"]), sorted([neu["id"], offen["id"]]))
+
+
+    def test_cancelling_a_vorgang_with_an_unclear_send_cancels_nothing(self):
+        self.vorgang(status="versendet", extra="versendet_am: 2026-11-01\n", **{"nachricht.md": "Guten Tag"})
+        self.start()
+        daten = self.store()
+        task, _ = wf.neue_aufgabe(daten, "nachricht_senden", {"vorgang": SLUG, "datei": "nachricht.md"}, T0)
+        task["status"], task["extern_begonnen"] = wf.EINGABE, wf.stamp(T0)
+        wf.sichere(self.w, daten)
+        vorher = {i: t["status"] for i, t in self.store()["aufgaben"].items()}
+        self.assertEqual(self.refused(wf.abbrechen, self.store(), SLUG, T0), "ausgang_unklar")
+        self.assertEqual({i: t["status"] for i, t in self.store()["aufgaben"].items()}, vorher)
+
+    def test_a_send_approval_needs_a_quality_report_that_is_newer_than_the_documents(self):
+        self.alles_bis_pruefung()
+        self.start()
+        self.tick(later(minutes=1))
+        ordner = os.path.join(self.w, SLUG)
+        bericht, brief = os.path.join(ordner, "pruefbericht.md"), os.path.join(ordner, "anschreiben.md")
+        basis = 1_700_000_000_000_000_000
+
+        def zeit(pfad, sekunden):
+            os.utime(pfad, ns=(basis + sekunden * 10**9, basis + sekunden * 10**9))
+        for name in wf.DOKUMENTE:
+            if os.path.isfile(os.path.join(ordner, name)):
+                zeit(os.path.join(ordner, name), 0)
+        zeit(bericht, 1)
+        zeit(brief, 2)  # the letter was edited after the check
+        fid = self.tid("versand_freigabe")
+        self.assertEqual(self.refused(wf.freigeben, self.w, self.store(), fid, later(minutes=2)), "pruefung_veraltet")
+        self.assertIsNone(self.store()["aufgaben"][fid]["entscheidung"])
+        zeit(bericht, 3)  # the gate ran again
+        self.apply(wf.freigeben, fid, now=later(minutes=3))
+        self.assertEqual(self.stand(fid), wf.ERLEDIGT)
+
+    def test_a_refused_command_still_keeps_the_reconciliation_of_an_expired_lease(self):
+        self.vorgang()
+        self.start()
+        self.apply(wf.uebernehmen, self.tid("analyse"))
+        spaeter = later(minutes=wf.DEFAULT_LIMITS["lease_minuten"] + 5)
+        code, ausgabe, _ = self.cli("uebernehmen", self.tid("pruefung"), now=spaeter)  # refused: it is not ready
+        self.assertEqual((code, ausgabe["code"]), (3, "nicht_bereit"))
+        task = self.store()["aufgaben"][self.tid("analyse")]
+        self.assertIsNone(task["lease"])  # the expiry was saved although the command was refused
+        self.assertNotEqual(task["status"], wf.LAEUFT)
+
+    def test_a_damaged_store_is_refused_with_a_code_and_wurzel_still_works(self):
+        self.vorgang()
+        self.start()
+        daten = self.store()
+        daten["aufgaben"][self.tid("analyse")]["typ"] = []
+        with open(wf.store_path(self.w), "w", encoding="utf-8") as handle:
+            json.dump(daten, handle)
+        code, ausgabe, _ = self.cli("zeige", self.tid("analyse"))
+        self.assertEqual((code, ausgabe["code"]), (3, "speicher_ungueltig"))
+        code, ausgabe, _ = self.cli("wurzel")
+        self.assertEqual((code, ausgabe["wurzel"]), (0, self.w))
+
+    def test_a_result_with_ok_false_exits_with_2(self):
+        self.vorgang()
+        self.cli("starten", SLUG)
+        self.cli("uebernehmen", self.tid("analyse"))
+        code, ausgabe, _ = self.cli("fertig", self.tid("analyse"), "--versuch", "1")  # no analyse.md yet
+        self.assertEqual((code, ausgabe["ok"]), (2, False))
+
+    def test_a_running_task_is_not_closed_from_the_files_under_the_agent(self):
+        self.vorgang(status="analysiert", **{"analyse.md": "x"})
+        self.start()
+        self.assertEqual(self.stand(self.tid("analyse")), wf.ERLEDIGT)  # idle task: recognised
+        self.vorgang(slug="beispiel-ag")
+        self.start("beispiel-ag")
+        self.apply(wf.uebernehmen, self.tid("analyse", "beispiel-ag"))
+        self.datei("beispiel-ag", "analyse.md")
+        self.status("beispiel-ag", "analysiert")
+        self.tick(later(minutes=1))
+        self.assertEqual(self.stand(self.tid("analyse", "beispiel-ag")), wf.LAEUFT)
+        daten = self.store()
+        wf.fertig(self.w, daten, self.tid("analyse", "beispiel-ag"), later(minutes=2), 1)  # the session can still report
+        wf.sichere(self.w, daten)
+        self.assertEqual(self.stand(self.tid("analyse", "beispiel-ag")), wf.ERLEDIGT)
 
 
 class SecurityTests(Base):  # G

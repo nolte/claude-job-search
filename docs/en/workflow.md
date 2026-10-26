@@ -52,6 +52,8 @@ python3 <plugin>/scripts/workflow.py laufen          # or: task workflow -- lauf
    (information, an approval, a permission), it reports `fehler ... --klasse eingabe` (or `freigabe`, `berechtigung`, `qualitaet`):
    the task then waits until you run `workflow.py weiter <aufgabe>`.
 4. **Approve the documents to send:** after the quality gate, `workflow.py freigeben versand_freigabe:musterfirma-backend --ja`.
+   If a document was edited after `pruefbericht.md`, it is refused (`pruefung_veraltet`): run the quality gate again first.
+   An exit code of 2 means the command ran but reports `ok: false` (for example `fertig` without its result); 3 is a refusal.
    The approval covers exactly the documents as they are now. If you change one, it expires and the send step is held again.
    Sending is yours: you send, then enter `versendet` and `versendet_am` in `vorgang.md`; the next check closes `versand`.
 5. **Look into a failure:** `workflow.py zeige <aufgabe>` shows the attempts, the error class, the reason and the history.
@@ -98,7 +100,7 @@ Until you set something like this up, nothing runs by itself. Calling `laufen` t
 
 ## Verification
 
-`python3 -m unittest tests.test_workflow` (81 tests, no network, no model): statuses and transitions, dependencies and cycles,
+`python3 -m unittest tests.test_workflow` (87 tests, no network, no model): statuses and transitions, dependencies and cycles,
 restart and damaged stores, idempotence and racing sessions, approvals and the adapter gate, errors and retries, the schedule
 and the limits, the chain from a posting to a sent application, and the security cases. Not verified: a real adapter (none
 exists) and a long-running schedule on a real machine.

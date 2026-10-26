@@ -128,7 +128,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    `speichern_fehlgeschlagen` or `speicher_ungueltig`, before any command changes anything. A task that merely lacks an
    optional field (an older or hand-written file) is loaded with the default of that field; no result is invented.
 3. **Reconciliation (`abgleichen`).** In dependency order, for each task: a missing Vorgang folder blocks it; a final status of
-   the Vorgang cancels it; a met postcondition closes it (also for work done outside, with a hint when its dependencies were
+   the Vorgang cancels it; a met postcondition closes it (not a running task: its session still reports with `fertig`; also for work done outside, with a hint when its dependencies were
    not done; an approval task that is still open for that step is cancelled as no longer needed, never marked approved); failed dependencies block it, open ones keep it `wartend`; an expired lease is handled (WF-8 rule 4); a due
    retry becomes `bereit`; a date in `ab` holds it; a prerequisite or approval that fails puts it in the matching waiting
    status; otherwise it is `bereit`. A state left by a command is already reconciled.
@@ -143,6 +143,8 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 
 ## WF-7 Approvals and external actions
 
+0. **A send approval needs a checked package.** `freigeben` of `versand_freigabe` is refused (`pruefung_veraltet`) when a
+   document is newer than `pruefbericht.md`: the quality gate must have seen this content.
 1. **Approval is the user's, for one exact content.** `freigeben <aufgabe> --ja` stores the hash of the content as it is now
    (for `versand_freigabe` the hash over the existing documents of the Vorgang, for `nachricht_senden` the hash of the message
    file) with the time. The word `--ja` is the user's explicit yes; a command without it is refused.
@@ -195,8 +197,8 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    follows WF-7 rule 5. The attempt count includes it.
 5. **Repeat by the user.** `wiederholen` of a failed task starts the count again and releases it for the next reconciliation.
    `abbrechen` ends a failed task for good. It never cancels a task whose external action has an unclear outcome
-   (`extern_begonnen`): such a task is listed under `nicht_abgebrochen_ausgang_unklar`, and naming it directly is refused
-   (`ausgang_unklar`); only `ausgang` resolves it, then it can be cancelled.
+   (`extern_begonnen`): `abbrechen` is refused as a whole (`ausgang_unklar`), also for a Vorgang slug, so that
+   nothing is cancelled half; only `ausgang` resolves it, then it can be cancelled.
 6. **What is stored about an error.** Class, a reason of at most 200 characters with credentials replaced by `[entfernt]`, and
    the time. No page content and no personal data beyond what the task already refers to.
 7. **After a restart** the store is read, finished results and waiting or blocked tasks stay as they are, due retries become
@@ -318,6 +320,7 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | WA-AH | A running task's Vorgang vanishes or ends; a hold is overtaken by work done by hand | lease and attempt end; the hold is cleared |
 | WA-AI | A report without `--versuch`; a loaded store with a path in `bezug`, a half attempt or a bad limit | refused by the command line; `speicher_ungueltig` before any change |
 | WA-AJ | `ausfuehren` after the Vorgang was rejected; an unreadable Suchauftrag | refused after reconciling, nothing sent; planning goes on and lists the file |
+| WA-AL | `freigeben` after a document was edited since the quality report; a refused command after a lease ran out; a damaged store; a result with ok=false; a reported-running task whose files look finished | refused with `pruefung_veraltet`; the expiry is still saved; `speicher_ungueltig` and `wurzel` still works; exit code 2; the task stays `laeuft` until `fertig` |
 | WA-AF | The final reconciliation of a command fails | the command keeps its result and its saved state, with `warnung_abgleich` |
 | WA-AK | `wurzel`; a second message for one Vorgang; `abbrechen` of an unclear send; the content changes after the lease is saved; a step done by hand; a search finished 30 days ago | `wurzel` prints the Wurzel; each message is its own task; the unclear task stays; nothing is sent and the attempt ends as plain failure; the open approval is cancelled, none invented; `laufen` removes the old search task and lists it under `aufgeraeumt` |
 
@@ -331,4 +334,6 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | Replies and appointments | Not observed: S8 stays the user's (LS-6 rule 4) | open, depends on A-02 |
 | Cost of a command | A state-changing command reconciles up to three times and re-reads files each time under the lock; fine for the budgeted store size (`aufgaben_max`), not optimised | open, deliberate |
 | Code duplication | The start of an attempt and its lease is written in `uebernehmen` and `ausfuehren` (the adapter path saves between the two steps) | open, deliberate |
+| Quality report age | The check that the report is newer than the documents compares file times; a copy that resets times, or a missing report, is not caught | open, deliberate |
+| Follow-up draft time | `nachfassen` compares the draft's file time with the task's creation second; under `--jetzt` in the future it does not match | open, deliberate |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

@@ -55,7 +55,9 @@ python3 <plugin>/scripts/workflow.py laufen          # oder: task workflow -- la
    höchstens dreimal. Braucht der Agent etwas von dir (Angaben, eine Freigabe, eine Berechtigung), meldet er `fehler ... --klasse
    eingabe` (oder `freigabe`, `berechtigung`, `qualitaet`): Die Aufgabe wartet dann, bis du `workflow.py weiter <aufgabe>` aufrufst.
 4. **Unterlagen zum Versand freigeben:** nach dem Qualitätscheck `workflow.py freigeben versand_freigabe:musterfirma-backend
-   --ja`. Die Freigabe gilt genau für die Unterlagen, wie sie jetzt sind. Änderst du eine, verfällt sie und der Versandschritt
+   --ja`. Ist ein Dokument nach `pruefbericht.md` geändert worden, wird die Freigabe abgelehnt (`pruefung_veraltet`): erst den
+   Qualitätscheck erneut ausführen. Exit-Code 2 heißt: Der Befehl lief, meldet aber `ok: false` (etwa `fertig` ohne Ergebnis); 3
+   ist eine Ablehnung. Die Freigabe gilt genau für die Unterlagen, wie sie jetzt sind. Änderst du eine, verfällt sie und der Versandschritt
    ist wieder gehalten. Das Senden ist deins: Du sendest und trägst `versendet` und `versendet_am` in `vorgang.md` ein; die
    nächste Prüfung schließt `versand`.
 5. **Einen Fehler untersuchen:** `workflow.py zeige <aufgabe>` zeigt Versuche, Fehlerklasse, Grund und Verlauf. `workflow.py
@@ -108,7 +110,7 @@ Solange du so etwas nicht eingerichtet hast, läuft nichts von selbst. Zweimal `
 
 ## Prüfung
 
-`python3 -m unittest tests.test_workflow` (81 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
+`python3 -m unittest tests.test_workflow` (87 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
 Zyklen, Neustart und beschädigter Speicher, Idempotenz und konkurrierende Sitzungen, Freigaben und das Adaptertor, Fehler und
 Wiederholungen, Zeitplan und Grenzen, die Kette von der Anzeige bis zur versendeten Bewerbung und die Sicherheitsfälle. Nicht
 geprüft: ein echter Adapter (es gibt keinen) und ein langer Zeitplan auf einem echten Rechner.
