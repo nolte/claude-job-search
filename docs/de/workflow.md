@@ -50,7 +50,7 @@ python3 <plugin>/scripts/workflow.py laufen          # oder: task workflow -- la
    nennt, was für einen Agenten bereit ist, was für dich bereit ist, was auf deine Freigabe oder auf Angaben wartet, was
    fehlgeschlagen und was überfällig ist.
 3. **Ein Agent erledigt einen Schritt:** Claude ruft `uebernehmen analyse:musterfirma-backend` auf (die Antwort nennt eine
-   Versuchsnummer), arbeitet mit dem genannten Skill und meldet `fertig analyse:musterfirma-backend --versuch 1`. Steht das
+   Versuchsnummer), arbeitet mit dem genannten Skill und meldet `fertig analyse:musterfirma-backend --versuch 1` (die Versuchsnummer ist Pflicht, damit eine veraltete Sitzung nicht den Versuch ihres Nachfolgers beendet). Steht das
    Ergebnis nicht in den Dateien, zählt das als fehlgeschlagener Versuch und wird nach 5, 30 und 180 Minuten wiederholt,
    höchstens dreimal. Braucht der Agent etwas von dir (Angaben, eine Freigabe, eine Berechtigung), meldet er `fehler ... --klasse
    eingabe` (oder `freigabe`, `berechtigung`, `qualitaet`): Die Aufgabe wartet dann, bis du `workflow.py weiter <aufgabe>` aufrufst.
@@ -80,7 +80,9 @@ Solange du so etwas nicht eingerichtet hast, läuft nichts von selbst. Zweimal `
 
 ## Freigaben und Sicherheit
 
-- Freigaben sind an den genauen Inhalt und an dein ausdrückliches `--ja` gebunden. Ein Neustart, eine Wiederholung, ein Zeitplan
+- Freigaben sind an den genauen Inhalt und an dein ausdrückliches `--ja` gebunden. Das Flag ist dein Wort, kein Beweis dafür: Ein Agent könnte
+  es eintippen. Nimm `freigeben`, `weiter`, `ausgang` und `ausfuehren` nicht in die erlaubten Bash-Regeln von Claude Code auf, damit
+  jeder dieser Befehle dich erst fragt. Ein Neustart, eine Wiederholung, ein Zeitplan
   oder ein verstrichenes Datum erzeugt nie eine. Kann der Workflow nicht feststellen, ob eine Freigabe gilt, bleibt die Aufgabe
   blockiert.
 - Würde ein Versandschritt einmal von einem Adapter ausgeführt und der Ausgang bleibt unklar (Fehler, Absturz), fragt die
@@ -105,7 +107,7 @@ Solange du so etwas nicht eingerichtet hast, läuft nichts von selbst. Zweimal `
 
 ## Prüfung
 
-`python3 -m unittest tests.test_workflow` (67 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
+`python3 -m unittest tests.test_workflow` (75 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
 Zyklen, Neustart und beschädigter Speicher, Idempotenz und konkurrierende Sitzungen, Freigaben und das Adaptertor, Fehler und
 Wiederholungen, Zeitplan und Grenzen, die Kette von der Anzeige bis zur versendeten Bewerbung und die Sicherheitsfälle. Nicht
 geprüft: ein echter Adapter (es gibt keinen) und ein langer Zeitplan auf einem echten Rechner.

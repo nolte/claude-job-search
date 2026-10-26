@@ -70,6 +70,7 @@ DOKUMENTE = ("lebenslauf.md", "anschreiben.md", "motivationsschreiben.md", "emai
 KUERZEL = re.compile(r"[a-z0-9][a-z0-9-]*")
 DATEINAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.(?:md|txt)")
 
+OPTIONAL = {"passung"}  # a step the user may cancel without blocking what follows (the fit check is advice, not a gate)
 ADAPTER = {}  # task type -> function(task, freigabe) -> {"gesendet": bool, "sicher": bool, "beleg": str}; none ships (WF-7)
 
 
@@ -245,9 +246,20 @@ def lade(wurzel):
                 or not (task["lease"] is None or isinstance(task["lease"], dict) and "bis" in task["lease"]) \
                 or not all(isinstance(d, str) for d in task["nach"]):
             raise Refused("speicher_ungueltig", f"Die Aufgabe {redact(task_id, 60)} in workflow/aufgaben.json ist unvollständig oder unbekannt")
+        try:
+            pruefe_bezug(task["typ"], task["bezug"])
+        except Refused as error:
+            raise Refused("speicher_ungueltig", f"Die Aufgabe {redact(task_id, 60)}: {error.meldung}")
+        if any(not isinstance(v, dict) or not {"nr", "ergebnis"} <= set(v) for v in task["versuche"]) or not (
+                task["entscheidung"] is None or isinstance(task["entscheidung"], dict) and {"art", "kontext_hash"} <= set(task["entscheidung"])):
+            raise Refused("speicher_ungueltig", f"Die Aufgabe {redact(task_id, 60)} hat unvollständige Versuche oder eine unvollständige Entscheidung")
         for feld, wert in standardwerte(task).items():
             task.setdefault(feld, wert)
-    daten["grenzen"] = {**DEFAULT_LIMITS, **daten.get("grenzen", {})}
+    gespeichert = daten.get("grenzen", {})
+    if not isinstance(gespeichert, dict) or any(k in LIMIT_BOUNDS and not (isinstance(v, int) and not isinstance(v, bool)
+                                                and LIMIT_BOUNDS[k][0] <= v <= LIMIT_BOUNDS[k][1]) for k, v in gespeichert.items()):
+        raise Refused("speicher_ungueltig", "Die Grenzen in workflow/aufgaben.json sind keine Zahlen im erlaubten Bereich")
+    daten["grenzen"] = {**DEFAULT_LIMITS, **gespeichert}
     try:
         reihenfolge(daten)
     except Refused as error:  # a dangling reference or a cycle in the file: stop before any command changes anything
@@ -277,16 +289,21 @@ def setze(task, neu, now, text="", hinweis=None):
     return True
 
 
-def neue_aufgabe(daten, typ, bezug, now, nach=(), ab="", faellig="", suffix=""):
-    """Create a task from the catalog. An id is stable: the same id twice gives back the first task (WF-6)."""
-    if typ not in TYPEN:
-        raise Refused("aufgabentyp_unbekannt", f"Aufgabentyp {redact(typ, 40)} ist nicht im Katalog")
+def pruefe_bezug(typ, bezug):
+    """The reference of a task: exactly the kind the type needs, written as slugs and a plain file name (WF-13 rule 3)."""
     gebraucht = "auftrag" if typ == "suche" else "vorgang"
     if not isinstance(bezug, dict) or not bezug.get(gebraucht) or (bezug.get("vorgang") and bezug.get("auftrag")):
         raise Refused("aufgabe_ungueltig", f"Eine Aufgabe vom Typ {typ} hat als bezug genau {'einen Suchauftrag' if gebraucht == 'auftrag' else 'einen Vorgang'}")
     if not all(KUERZEL.fullmatch(str(bezug.get(k, "x"))) for k in ("vorgang", "auftrag")) or \
             (bezug.get("datei") is not None and not DATEINAME.fullmatch(str(bezug["datei"]))):
         raise Refused("aufgabe_ungueltig", "bezug.vorgang und bezug.auftrag sind Kürzel aus a-z, 0-9 und -; datei ist ein Dateiname")
+
+
+def neue_aufgabe(daten, typ, bezug, now, nach=(), ab="", faellig="", suffix=""):
+    """Create a task from the catalog. An id is stable: the same id twice gives back the first task (WF-6)."""
+    if typ not in TYPEN:
+        raise Refused("aufgabentyp_unbekannt", f"Aufgabentyp {redact(typ, 40)} ist nicht im Katalog")
+    pruefe_bezug(typ, bezug)
     if (ab and ss.valid_date(ab) != ab) or (faellig and ss.valid_date(faellig) != faellig):
         raise Refused("aufgabe_ungueltig", "ab und faellig sind echte Daten der Form JJJJ-MM-TT")
     task_id = f"{typ}:{bezug.get('vorgang') or bezug.get('auftrag')}" + (f":{suffix}" if suffix else "")
@@ -373,8 +390,15 @@ def erledige(w, task, now, text, ref=None, hash_wert=None):
     if hash_wert is None:
         hash_wert = datei_hash(os.path.join(vorgang_dir(w, task), pfad)) if pfad and task["bezug"].get("vorgang") else ""
     task["ergebnis"] = {"ref": pfad or "", "hash": hash_wert, "am": stamp(now)}
-    task["lease"], task["veraltet"] = None, False
+    task["lease"], task["veraltet"], task["halt"], task["naechster_versuch"] = None, False, "", ""
     schliesse_versuch(task, now, "ok")
+
+
+def beende_laufenden(task, now, grund):
+    """A running task that is stopped from outside (its Vorgang is gone or finished): the lease and the open attempt end too."""
+    if task["lease"] or (task["versuche"] and task["versuche"][-1]["ergebnis"] == "laeuft"):
+        schliesse_versuch(task, now, "fehler", "abbruch", grund)
+    task["lease"] = None
 
 
 def zustand(task):
@@ -389,6 +413,7 @@ def bewerte(w, daten, task, now):
         return False
     if vorgang and not os.path.isdir(os.path.join(w, vorgang)):
         if task["status"] in OFFEN:
+            beende_laufenden(task, now, "Vorgangsordner fehlt")
             setze(task, BLOCKIERT, now, "Vorgangsordner fehlt", "Den Ordner des Vorgangs gibt es nicht mehr")
         return zustand(task) != vorher
     meta = meta_von(w, task) if vorgang else None
@@ -400,8 +425,8 @@ def bewerte(w, daten, task, now):
         pruefe_veraltet(w, task)
         return zustand(task) != vorher
     if meta is not None and meta.get("status") in ENDSTATUS:
+        beende_laufenden(task, now, "Vorgang abgeschlossen")
         setze(task, ABGEBROCHEN, now, "Vorgang abgeschlossen", f"Der Vorgang hat den Endstatus {meta.get('status')}")
-        task["lease"] = None
         return True
     # reality wins: work done outside the workflow is recognised from the files (never an external action of an adapter)
     if katalog.get("abschluss") and katalog["ausfuehrung"] != "adapter" and task["status"] != FEHLGESCHLAGEN:
@@ -419,11 +444,11 @@ def bewerte(w, daten, task, now):
         return False  # an agent reported that it needs something: only the user's `weiter` lifts this, never the next reconciliation
     if task["status"] != LAEUFT:
         for dep in task["nach"]:  # a failed, blocked or cancelled step never releases what follows
-            if tasks[dep]["status"] in (FEHLGESCHLAGEN, BLOCKIERT, ABGEBROCHEN):
+            if tasks[dep]["status"] in (FEHLGESCHLAGEN, BLOCKIERT) or (tasks[dep]["status"] == ABGEBROCHEN and tasks[dep]["typ"] not in OPTIONAL):
                 setze(task, BLOCKIERT, now, f"Voraussetzung {dep} ist {tasks[dep]['status']}",
                       f"Voraussetzung {dep} ist {tasks[dep]['status']}")
                 return zustand(task) != vorher
-        offene = [d for d in task["nach"] if tasks[d]["status"] != ERLEDIGT]
+        offene = [d for d in task["nach"] if tasks[d]["status"] != ERLEDIGT and not (tasks[d]["status"] == ABGEBROCHEN and tasks[d]["typ"] in OPTIONAL)]
         if offene:
             setze(task, WARTEND, now, "", "wartet auf: " + ", ".join(offene))
             return zustand(task) != vorher
@@ -514,18 +539,24 @@ def abgleichen(w, daten, now):
 # ---------------------------------------------------------------- planning (WF-9)
 
 def starte_vorgang(w, daten, slug, now):
+    """Create the chain of a Vorgang, all of it or nothing (a chain cut off by the cap would never be completed)."""
     if not KUERZEL.fullmatch(slug or "") or not os.path.isfile(os.path.join(w, slug, "vorgang.md")):
         raise Refused("vorgang_unbekannt", f"Kein Vorgang {redact(slug, 60)} mit vorgang.md in der Wurzel")
     mit_passung = kettenlaenge(w) == len(BEWERBUNG)
+    fehlend = sum(1 for typ, _ in BEWERBUNG if (typ != "passung" or mit_passung) and f"{typ}:{slug}" not in daten["aufgaben"])
+    if len(daten["aufgaben"]) + fehlend > daten["grenzen"]["aufgaben_max"]:
+        raise Refused("budget_erschoepft", f"Die Kette braucht {fehlend} Aufgaben, aufgaben_max ({daten['grenzen']['aufgaben_max']}) reicht nicht")
     neu, ids = [], {}
     for typ, nach in BEWERBUNG:
-        if typ == "passung" and not mit_passung:
+        if typ == "passung" and not mit_passung and f"passung:{slug}" not in daten["aufgaben"]:
             continue
-        task, angelegt = neue_aufgabe(daten, typ, {"vorgang": slug}, now,
-                                      nach=[ids[d] for d in nach if d in ids])
+        task, angelegt = neue_aufgabe(daten, typ, {"vorgang": slug}, now, nach=[ids[d] for d in nach if d in ids])
         ids[typ] = task["id"]
         if angelegt:
             neu.append(task["id"])
+        for dep in (ids[d] for d in nach if d in ids):  # repair: a step added later (the fit check) joins what follows
+            if dep not in task["nach"] and task["status"] in (WARTEND, BEREIT, FREIGABE, EINGABE, BLOCKIERT):
+                task["nach"].append(dep)
     return neu
 
 
@@ -537,7 +568,7 @@ def kettenlaenge(w):
 
 def plane(w, daten, now):
     """Create what is due from the state that exists, within the budget per run. Executes nothing (WF-9)."""
-    budget, neu, zurueck, uebersprungen = daten["grenzen"]["neu_max_je_lauf"], [], [], []
+    budget, neu, zurueck, uebersprungen, defekte = daten["grenzen"]["neu_max_je_lauf"], [], [], [], []
 
     def anlegen(*args, **kwargs):
         nonlocal budget
@@ -559,11 +590,17 @@ def plane(w, daten, now):
             if budget < kettenlaenge(w):
                 zurueck.append(f"workflow:{slug}")
                 continue
-            for task_id in starte_vorgang(w, daten, slug, now):
-                budget -= 1
-                neu.append(task_id)
+            try:
+                for task_id in starte_vorgang(w, daten, slug, now):
+                    budget -= 1
+                    neu.append(task_id)
+            except Refused as error:  # the whole chain or none: the rest waits for room
+                if error.code != "budget_erschoepft":
+                    raise
+                zurueck.append(f"workflow:{slug} (aufgaben_max)")
+                break
         offene_suchen = {t["bezug"]["auftrag"] for t in daten["aufgaben"].values() if t["typ"] == "suche" and t["status"] in OFFEN}
-        for auftrag in ss.all_auftraege(w):
+        for auftrag in ss.all_auftraege(w, defekte):  # one unreadable order does not stop the planning of the others
             if auftrag["id"] not in offene_suchen and ss.due(w, auftrag, now)[0]:
                 vorhanden = daten["aufgaben"].get(f"suche:{auftrag['id']}:n{auftrag['lauf_zaehler']}")
                 if vorhanden and vorhanden["status"] in (ABGEBROCHEN, FEHLGESCHLAGEN):
@@ -580,7 +617,7 @@ def plane(w, daten, now):
         if error.code != "budget_erschoepft":
             raise
         zurueck.append("aufgaben_max erreicht")
-    return neu, zurueck, uebersprungen
+    return neu, zurueck, uebersprungen, defekte
 
 
 # ---------------------------------------------------------------- queries
@@ -862,8 +899,8 @@ def build_parser():
     add("laufen")
     add("naechste", n={"type": int, "default": 5})
     add("uebernehmen", "aufgabe")
-    add("fertig", "aufgabe", versuch={"type": int})
-    add("fehler", "aufgabe", klasse={"required": True}, grund={"default": ""}, versuch={"type": int})
+    add("fertig", "aufgabe", versuch={"type": int, "required": True})
+    add("fehler", "aufgabe", klasse={"required": True}, grund={"default": ""}, versuch={"type": int, "required": True})
     add("weiter", "aufgabe")
     add("freigeben", "aufgabe", ja={"action": "store_true"})
     add("ablehnen", "aufgabe", grund={"default": ""})
@@ -896,10 +933,10 @@ def dispatch(args, w, daten, now):
         return {"ok": True, "geaendert": abgleichen(w, daten, now)}
     if cmd == "laufen":
         abgleichen(w, daten, now)
-        neu, zurueck, uebersprungen = plane(w, daten, now)
+        neu, zurueck, uebersprungen, defekte = plane(w, daten, now)
         geaendert = abgleichen(w, daten, now)
         bereit = [kurz(t) for t in sortiert([t for t in daten["aufgaben"].values() if t["status"] == BEREIT], now)]
-        return {"ok": True, "neu": neu, "zurueckgestellt": zurueck, "nicht_ersetzt": uebersprungen, "geaendert": geaendert, "bereit": bereit,
+        return {"ok": True, "neu": neu, "zurueckgestellt": zurueck, "nicht_ersetzt": uebersprungen, "defekte_auftraege": defekte, "geaendert": geaendert, "bereit": bereit,
                 "hinweis": "Der Lauf plant und gleicht ab; er führt nichts aus und sendet nichts."}
     if cmd == "naechste":
         abgleichen(w, daten, now)
@@ -924,6 +961,7 @@ def dispatch(args, w, daten, now):
     if cmd == "ablehnen":
         return ablehnen(w, daten, args.aufgabe, args.grund, now)
     if cmd == "ausfuehren":
+        abgleichen(w, daten, now)  # a finished or vanished Vorgang cancels the task before anything is sent
         return ausfuehren(w, daten, args.aufgabe, now)
     if cmd == "ausgang":
         if args.gesendet == args.nicht_gesendet:

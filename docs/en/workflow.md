@@ -47,7 +47,7 @@ python3 <plugin>/scripts/workflow.py laufen          # or: task workflow -- lauf
 2. **See what is next:** `workflow.py naechste`, or open `workflow/uebersicht.md` in your vault. It lists what is ready for an
    agent, what is ready for you, what waits for your approval or for information, what failed and what is overdue.
 3. **An agent does a step:** Claude runs `uebernehmen analyse:musterfirma-backend` (it answers with an attempt number), does the
-   work with the named skill, then `fertig analyse:musterfirma-backend --versuch 1`. If the result is not in the files, that counts
+   work with the named skill, then `fertig analyse:musterfirma-backend --versuch 1` (the attempt number is required, so that a stale session cannot end the attempt of its successor). If the result is not in the files, that counts
    as a failed attempt and is retried after 5, 30 and 180 minutes, three attempts at most. If the agent needs something from you
    (information, an approval, a permission), it reports `fehler ... --klasse eingabe` (or `freigabe`, `berechtigung`, `qualitaet`):
    the task then waits until you run `workflow.py weiter <aufgabe>`.
@@ -75,7 +75,8 @@ Until you set something like this up, nothing runs by itself. Calling `laufen` t
 
 ## Approvals and safety
 
-- Approvals are bound to the exact content and to your explicit `--ja`. A restart, a retry, a schedule or a passed date never
+- Approvals are bound to the exact content and to your explicit `--ja`. The flag is your word, not proof of it: an agent could type it. Do not
+  put `freigeben`, `weiter`, `ausgang` or `ausfuehren` into the allowed Bash rules of Claude Code, so that each of them asks you first. A restart, a retry, a schedule or a passed date never
   creates one. If the workflow cannot tell whether an approval holds, the task stays blocked.
 - If a send step is ever done by an adapter and its outcome is unclear (an error, a crash), the task asks you instead of
   trying again. You answer with `workflow.py ausgang <aufgabe> --gesendet` or `--nicht-gesendet`. No adapter ships today.
@@ -96,7 +97,7 @@ Until you set something like this up, nothing runs by itself. Calling `laufen` t
 
 ## Verification
 
-`python3 -m unittest tests.test_workflow` (67 tests, no network, no model): statuses and transitions, dependencies and cycles,
+`python3 -m unittest tests.test_workflow` (75 tests, no network, no model): statuses and transitions, dependencies and cycles,
 restart and damaged stores, idempotence and racing sessions, approvals and the adapter gate, errors and retries, the schedule
 and the limits, the chain from a posting to a sent application, and the security cases. Not verified: a real adapter (none
 exists) and a long-running schedule on a real machine.

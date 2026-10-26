@@ -670,7 +670,7 @@ class IntegrationTests(Base):  # F
         self.assertEqual((code, aufgabe["skill"]), (0, "job-application-posting-analysis"))
         self.datei(SLUG, "analyse.md", "# Analyse")
         self.status(SLUG, "analysiert")
-        self.assertTrue(self.cli("fertig", self.tid("analyse"), now=later(minutes=5))[1]["ok"])
+        self.assertTrue(self.cli("fertig", self.tid("analyse"), "--versuch", "1", now=later(minutes=5))[1]["ok"])
         # S3 plan gate: the user's, written by job-application-solution
         self.cli("abgleichen", now=later(minutes=6))
         self.assertEqual(self.stand(self.tid("plan")), wf.BEREIT)
@@ -682,11 +682,11 @@ class IntegrationTests(Base):  # F
         self.datei(SLUG, "lebenslauf.md", "Lebenslauf")
         self.datei(SLUG, "anschreiben.md", "Anschreiben")
         self.status(SLUG, "erstellt", body="## Plan\nx\n## Verlauf\n")
-        self.assertTrue(self.cli("fertig", self.tid("unterlagen"), now=later(minutes=9))[1]["ok"])
+        self.assertTrue(self.cli("fertig", self.tid("unterlagen"), "--versuch", "1", now=later(minutes=9))[1]["ok"])
         # S5 quality gate
         self.cli("uebernehmen", self.tid("pruefung"), now=later(minutes=10))
         self.status(SLUG, "geprüft", body="## Plan\nx\n## Verlauf\n")
-        self.assertTrue(self.cli("fertig", self.tid("pruefung"), now=later(minutes=11))[1]["ok"])
+        self.assertTrue(self.cli("fertig", self.tid("pruefung"), "--versuch", "1", now=later(minutes=11))[1]["ok"])
         # the approval is the user's, then the user sends and enters S7
         self.assertEqual(self.stand(self.tid("versand_freigabe")), wf.FREIGABE)
         self.cli("freigeben", self.tid("versand_freigabe"), "--ja", now=later(minutes=12))
@@ -762,7 +762,7 @@ class ReviewTests(Base):  # findings of the review of the workflow (A-03)
                 self.vorgang()
                 self.cli("starten", SLUG)
                 self.assertEqual(self.cli("uebernehmen", self.tid("analyse"))[0], 0)
-                self.assertEqual(self.cli("fehler", self.tid("analyse"), "--klasse", klasse, "--grund", "braucht etwas")[0], 0)
+                self.assertEqual(self.cli("fehler", self.tid("analyse"), "--versuch", "1", "--klasse", klasse, "--grund", "braucht etwas")[0], 0)
                 for minute in (1, 2, 90):  # the next commands and a schedule reconcile again and again
                     self.cli("abgleichen", now=later(minutes=minute))
                     self.cli("laufen", now=later(minutes=minute))
@@ -887,6 +887,138 @@ class ReviewTests(Base):  # findings of the review of the workflow (A-03)
         self.assertTrue(ergebnis["ok"])
         self.assertIn("Zirkuläre", ergebnis["warnung_abgleich"])
         self.assertEqual(self.stand(self.tid("analyse")), wf.LAEUFT)  # the taken task is saved, not lost
+
+
+class ReviewRoundTwoTests(Base):  # second review of the workflow
+    def test_a_chain_is_created_whole_or_not_at_all(self):
+        self.vorgang()
+        self.cli("grenzen", "aufgaben_max=10")
+        daten = self.store()
+        for n in range(5):
+            wf.neue_aufgabe(daten, "analyse", {"vorgang": f"alt-{n}"}, T0)
+        wf.sichere(self.w, daten)
+        code, ausgabe, _ = self.cli("starten", SLUG)
+        self.assertEqual((code, ausgabe["code"]), (3, "budget_erschoepft"))
+        self.assertEqual(len(self.store()["aufgaben"]), 5)  # no half chain
+        code, ausgabe, _ = self.cli("laufen")
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.store()["aufgaben"]), 5)
+        self.assertTrue(any(SLUG in eintrag for eintrag in ausgabe["zurueckgestellt"]))
+        self.cli("grenzen", "aufgaben_max=50")
+        code, ausgabe, _ = self.cli("laufen", now=later(minutes=1))
+        self.assertEqual(len(ausgabe["neu"]), 6)  # the whole chain follows when there is room
+
+    def test_a_fit_check_added_later_joins_the_plan_and_a_cancelled_one_does_not_block_it(self):
+        self.vorgang(status="analysiert", **{"analyse.md": "x"})
+        self.cli("starten", SLUG)
+        self.assertNotIn(self.tid("passung"), self.store()["aufgaben"])
+        with open(os.path.join(self.w, "wunschprofil.md"), "w", encoding="utf-8") as handle:
+            handle.write("---\nbestaetigt: ja\n---\n")
+        self.status(SLUG, "erfasst")  # back before the plan, so that the chain is still open
+        os.remove(os.path.join(self.w, SLUG, "analyse.md"))
+        self.cli("abgleichen")
+        self.cli("starten", SLUG)
+        daten = self.store()
+        self.assertIn(self.tid("passung"), daten["aufgaben"])
+        self.assertIn(self.tid("passung"), daten["aufgaben"][self.tid("plan")]["nach"])
+        self.datei(SLUG, "analyse.md")
+        self.status(SLUG, "analysiert")
+        self.cli("abgleichen", now=later(minutes=1))
+        self.assertEqual(self.stand(self.tid("plan")), wf.WARTEND)  # waits for the fit check
+        self.cli("abbrechen", self.tid("passung"))
+        self.cli("abgleichen", now=later(minutes=2))
+        self.assertEqual(self.stand(self.tid("plan")), wf.BEREIT)  # the fit check is advice: cancelling it does not block
+        self.apply(wf.abbrechen, self.tid("analyse"), now=later(minutes=3))
+        self.assertEqual(self.stand(self.tid("analyse")), wf.ERLEDIGT)  # done tasks are not cancelled
+
+    def test_a_running_task_whose_vorgang_disappears_or_ends_releases_its_lease_and_attempt(self):
+        for fall in ("ordner", "ende"):
+            with self.subTest(fall=fall):
+                self.setUp()
+                self.vorgang()
+                self.start()
+                self.apply(wf.uebernehmen, self.tid("analyse"))
+                if fall == "ordner":
+                    import shutil
+                    shutil.rmtree(os.path.join(self.w, SLUG))
+                else:
+                    self.status(SLUG, "absage")
+                self.tick(later(minutes=5))
+                task = self.store()["aufgaben"][self.tid("analyse")]
+                self.assertEqual(task["status"], wf.BLOCKIERT if fall == "ordner" else wf.ABGEBROCHEN)
+                self.assertIsNone(task["lease"])
+                self.assertEqual(task["versuche"][-1]["ergebnis"], "fehler")
+                self.assertEqual(wf.laufende(self.store(), later(minutes=5)), 0)
+
+    def test_work_done_by_hand_after_a_hold_clears_the_hold(self):
+        self.vorgang()
+        self.cli("starten", SLUG)
+        self.cli("uebernehmen", self.tid("analyse"))
+        self.cli("fehler", self.tid("analyse"), "--versuch", "1", "--klasse", "eingabe", "--grund", "Angaben fehlen")
+        self.datei(SLUG, "analyse.md")
+        self.status(SLUG, "analysiert")
+        self.cli("abgleichen", now=later(minutes=1))
+        task = self.store()["aufgaben"][self.tid("analyse")]
+        self.assertEqual((task["status"], task["halt"], task["naechster_versuch"]), (wf.ERLEDIGT, "", ""))
+        self.assertEqual(self.refused(wf.weiter, self.w, self.store(), self.tid("analyse"), T0), "kein_halt")
+
+    def test_the_attempt_number_is_required_for_a_report(self):
+        self.vorgang()
+        self.cli("starten", SLUG)
+        self.cli("uebernehmen", self.tid("analyse"))
+        for befehl in (["fertig", self.tid("analyse")], ["fehler", self.tid("analyse"), "--klasse", "dienst"]):
+            code, ausgabe, stderr = self.cli(*befehl)
+            self.assertEqual(code, 2, befehl)
+            self.assertIn("--versuch", stderr)
+        self.assertEqual(self.stand(self.tid("analyse")), wf.LAEUFT)
+
+    def test_a_loaded_task_is_checked_deeply_before_anything_changes(self):
+        self.vorgang()
+        self.start()
+        fehlerhaft = (
+            lambda d: d["aufgaben"][self.tid("plan")]["bezug"].update(vorgang="../geheim"),
+            lambda d: d["aufgaben"][self.tid("plan")]["versuche"].append({"nr": 1}),
+            lambda d: d["aufgaben"][self.tid("plan")].update(entscheidung={"art": "erteilt"}),
+            lambda d: d["grenzen"].update(laufende_max="viele"),
+            lambda d: d["grenzen"].update(aufgaben_max=10 ** 9),
+        )
+        for aendern in fehlerhaft:
+            daten = json.load(open(wf.store_path(self.w), encoding="utf-8"))
+            aendern(daten)
+            json.dump(daten, open(wf.store_path(self.w), "w", encoding="utf-8"))
+            code, ausgabe, _ = self.cli("laufen")
+            self.assertEqual((code, ausgabe["code"]), (3, "speicher_ungueltig"))
+            self.setUp()
+            self.vorgang()
+            self.start()
+
+    def test_an_external_action_is_reconciled_first_and_a_finished_vorgang_cancels_it(self):
+        self.vorgang(status="versendet", extra="versendet_am: 2026-11-01\n", **{"nachricht.md": "Guten Tag"})
+        daten = self.store()
+        task, _ = wf.neue_aufgabe(daten, "nachricht_senden", {"vorgang": SLUG, "datei": "nachricht.md"}, T0)
+        wf.abgleichen(self.w, daten, T0)
+        wf.sichere(self.w, daten)
+        self.apply(wf.freigeben, task["id"])
+        self.assertEqual(self.stand(task["id"]), wf.BEREIT)
+        self.status(SLUG, "absage")  # since the last reconciliation the application was rejected
+        sendungen = []
+        args = wf.build_parser().parse_args(["--konfiguration", self.config, "--jetzt", ss.stamp(later(minutes=1)), "ausfuehren", task["id"]])
+        with unittest.mock.patch.dict(wf.ADAPTER, {"nachricht_senden": lambda t, f: sendungen.append(1) or {"gesendet": True}}):
+            with self.assertRaises(ss.Refused) as caught:
+                wf.run(args)
+        self.assertEqual((caught.exception.code, sendungen), ("keine_gueltige_freigabe", []))
+        self.cli("abgleichen", now=later(minutes=2))  # a refused command saves nothing; the next reconciliation cancels it
+        self.assertEqual(self.stand(task["id"]), wf.ABGEBROCHEN)
+
+    def test_one_unreadable_search_order_does_not_stop_the_planning(self):
+        self.vorgang()
+        os.makedirs(os.path.join(self.w, "suche", "auftraege"))
+        with open(os.path.join(self.w, "suche", "auftraege", "a-kaputt.json"), "w", encoding="utf-8") as handle:
+            handle.write("{kaputt")
+        code, ausgabe, _ = self.cli("laufen")
+        self.assertEqual(code, 0)
+        self.assertEqual(len(ausgabe["neu"]), 6)
+        self.assertEqual([d["datei"] for d in ausgabe["defekte_auftraege"]], ["a-kaputt.json"])
 
 
 class SecurityTests(Base):  # G

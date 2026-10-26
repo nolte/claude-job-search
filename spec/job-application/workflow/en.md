@@ -71,7 +71,9 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    `versand`. A step may be skipped by the user doing it in the files; the reconciliation recognises it (WF-2 rule 2).
 2. **Task ids are stable.** `<type>:<slug>` for a Vorgang, `<type>:<id>:<n>` for a recurring task of a Suchauftrag,
    `<type>:<slug>:<date>` for a follow-up. The same id is the same task; creating it again gives back the first (WF-6).
-3. **Not every application needs every step.** A step whose type is not in the chain is not created. Optional and
+3. **`passung` is advice, not a gate.** If the user cancels it, what follows is not blocked. If a confirmed Wunschprofil appears
+   after the chain was made, `starten` adds `passung` and puts it before `plan` as long as `plan` has not started.
+4. **Not every application needs every step.** A step whose type is not in the chain is not created. Optional and
    alternative paths are the user's decision in the files; the catalog is not a flow diagram for every variant.
 
 ## WF-4 Statuses and transitions
@@ -128,10 +130,12 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    not done); failed dependencies block it, open ones keep it `wartend`; an expired lease is handled (WF-8 rule 4); a due
    retry becomes `bereit`; a date in `ab` holds it; a prerequisite or approval that fails puts it in the matching waiting
    status; otherwise it is `bereit`. A state left by a command is already reconciled.
-4. **Idempotence.** Starting a workflow, planning and reconciling again create no task and change no finished one. A task
+4. **A running task that reality stops** (its Vorgang folder is gone, or the Vorgang reached a final status) loses its lease, and
+   its open attempt ends as an aborted one.
+5. **Idempotence.** Starting a workflow, planning and reconciling again create no task and change no finished one. A task
    taken by an agent cannot be taken again (`laeuft_bereits`) and two sessions racing for it end with one winner. A finished
    task is not taken again.
-5. **Internal and external.** An internal, repeatable task (an analysis) may be repeated by the rules of WF-8. An external
+6. **Internal and external.** An internal, repeatable task (an analysis) may be repeated by the rules of WF-8. An external
    action is never repeated to find out whether it worked (WF-7). The workflow does not claim exactly-once; it claims that an
    uncertain external outcome stops and asks.
 
@@ -145,7 +149,9 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    check or a passed due date creates or renews no approval. If the workflow cannot tell whether an approval holds, the
    task stays blocked.
 3. **A rejection** (`ablehnen`) cancels the task and blocks its dependents.
-4. **Who may approve.** Only an interactive command. A session marked unattended (`WORKFLOW_UNBEAUFSICHTIGT`, or
+4. **Who may approve.** Only an interactive command. In an interactive session the `--ja` is the user's word, not proof of it: an
+   agent can type the flag. So do not put `freigeben` (or `weiter`, `ausgang`, `ausfuehren`) into the allowed Bash rules of Claude Code;
+   then every one of them asks you first. The skills tell the agent never to run them for you. A session marked unattended (`WORKFLOW_UNBEAUFSICHTIGT`, or
    `STELLENSUCHE_GEPLANT` of the launcher) is refused `anlegen`, `weiter`, `freigeben`, `ablehnen`, `ausfuehren`, `ausgang`,
    `wiederholen`, `abbrechen` and `grenzen` with `nur_interaktiv`. It may plan, reconcile, look and take, finish or fail the
    tasks that are agent tasks.
@@ -181,7 +187,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 2. **Done without the result.** `fertig` checks the postcondition. When it does not hold, the attempt is a failure of class
    `ergebnis_fehlt`, not a success.
 3. **A report belongs to an attempt.** `uebernehmen` returns the number of the attempt; `fertig` and `fehler` take it as
-   `--versuch`. A report for an attempt that is no longer the latest (the lease ran out and another session took the task) is
+   `--versuch`, which the command line requires. A report for an attempt that is no longer the latest (the lease ran out and another session took the task) is
    refused with `veraltete_sitzung` and changes nothing.
 4. **Orphans.** A running task whose lease ran out is an aborted attempt (class `abbruch`) and follows rule 1; an external one
    follows WF-7 rule 5. The attempt count includes it.
@@ -195,7 +201,8 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 
 ## WF-9 Planning and the schedule
 
-1. **`starten <slug>`** creates the chain of WF-3 rule 1 for an existing Vorgang (`passung` only with a confirmed Wunschprofil).
+1. **`starten <slug>`** creates the chain of WF-3 rule 1 for an existing Vorgang (`passung` only with a confirmed Wunschprofil),
+   all of it or nothing: if `aufgaben_max` leaves no room for the whole chain, none of it is created.
 2. **`laufen`** is the call for a scheduler. It reconciles, plans what the existing state asks for, reconciles again and lists
    what is ready. It executes nothing and sends nothing. It plans:
    - the chain for each Vorgang without a workflow and without a final status;
@@ -203,6 +210,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
      `suche` task of the same round that was cancelled or has failed is not replaced by itself; `laufen` lists it under
      `nicht_ersetzt`. The user retries it with `wiederholen`, or pauses or ends the Suchauftrag to stop the search;
    - a `nachfassen` task for each Vorgang with `status: versendet` whose `wiedervorlage` date has come.
+   One unreadable Suchauftrag file is listed under `defekte_auftraege` and does not stop the rest.
    The overview derives, without tasks: the Stellen of the Warteschlange waiting for a decision, tasks waiting for approval,
    failed and blocked tasks, and overdue ones.
 3. **Deduplication** is by the task id (WF-3 rule 2): any number of calls gives one task.
@@ -302,6 +310,10 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | WA-AC | A cancelled or failed search task of this round | not replaced by itself and listed under `nicht_ersetzt`; a failed task can be cancelled |
 | WA-AD | A store with missing optional fields; one with a dangling reference or a wrong type | defaults are filled; the other is refused before any change |
 | WA-AE | An adapter answer that is no object; a heading `## Planungsnotizen`; a limit `laufende_max=²`; a date around midnight in another time zone | unclear outcome; no plan; refused; the local date counts |
+| WA-AG | The cap leaves room for half a chain; a fit check appears later; it is cancelled | the whole chain waits; `passung` joins `plan`; cancelling it does not block `plan` |
+| WA-AH | A running task's Vorgang vanishes or ends; a hold is overtaken by work done by hand | lease and attempt end; the hold is cleared |
+| WA-AI | A report without `--versuch`; a loaded store with a path in `bezug`, a half attempt or a bad limit | refused by the command line; `speicher_ungueltig` before any change |
+| WA-AJ | `ausfuehren` after the Vorgang was rejected; an unreadable Suchauftrag | refused after reconciling, nothing sent; planning goes on and lists the file |
 | WA-AF | The final reconciliation of a command fails | the command keeps its result and its saved state, with `warnung_abgleich` |
 
 | Area | Point | Status |
