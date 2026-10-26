@@ -183,4 +183,7 @@ Deterministic rules (CV-xx, BR-xx) decide the cases they can (figures, periods, 
 - Layout and visual quality, the tone of a letter and the fit to a person are for a human.
 - Without the Grundlage, a model or poppler-utils, the affected checks are `BLOCKED` or `NEEDS_REVIEW`; the toolchain does not
   hide this.
+- The report is not tamper-proof. The gate recomputes `gesamt` from the stored checks and refuses an inconsistent report, but whoever can write into the Vorgang folder can write a consistent one. It is a precondition for the approval, not a security boundary; the approval stays the user's `--ja`.
+- `entscheiden` is protected by `--ja` and the unattended-session guard, not by a channel only the user has. The skill forbids the model to run it.
+- `--grundlage <path>` looks at files and binds no Grundlage hash; only a run through the Anker (`--konfiguration`) does.
 - The report is stale as soon as a file changes; the user runs the check again before approving.

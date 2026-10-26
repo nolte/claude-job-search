@@ -219,9 +219,9 @@ def grundlage_laden(pfade, konfiguration):
                 pfade.append(gh.resolve(index))
             wert = info["hash"]
         else:
-            wert = digest(*[gh.sha256_file(p) for p in pfade if os.path.isfile(p)]) if all(os.path.exists(p) for p in pfade) else None
-        if wert is None:
-            return None, None, None, "Grundlage nicht gefunden"
+            wert = None  # explicit paths are for a look at files: the hash of the Anker is the only one the workflow can compare
+            if not all(os.path.exists(p) for p in pfade):
+                return None, None, None, "Grundlage nicht gefunden"
         return cv.read_sources(pfade), cv.load_records(pfade), wert, ""
     except (Blocker, gh.Blocker) as error:
         return None, None, None, clip(str(error), 200)
@@ -308,6 +308,8 @@ def qs_kontakt(ctx):
         for mail in EMAIL.findall(text):
             mails.setdefault(mail.lower(), name)
         for nummer in PHONE.findall(text):
+            if re.search(r"\d{1,2}/\d{4}", nummer):  # a period `03/2019 - 05/2022`, not a number
+                continue
             ziffern = re.sub(r"\D", "", nummer)
             ziffern = "0" + ziffern[4:] if ziffern.startswith("0049") else "0" + ziffern[2:] if ziffern.startswith("49") else ziffern
             if not re.fullmatch(r"(?:19|20)\d{2}(?:19|20)\d{2}", ziffern):  # a period `2019 – 2022`, not a number
@@ -320,6 +322,8 @@ def qs_kontakt(ctx):
 
 
 def qs_zeitangaben(ctx):
+    if not any(n in ctx["texte"] for n in ("anschreiben.md", "motivationsschreiben.md")):
+        return ergebnis("QS-03", nicht_anwendbar="kein Brief vorhanden")
     if ctx["records"] is None:
         return ergebnis("QS-03", blockiert="ohne Grundlage sind die Stationszeiträume nicht bekannt")
     jahre = {r["start"][0] for r in ctx["records"] if isinstance(r.get("start"), tuple)}
@@ -329,8 +333,6 @@ def qs_zeitangaben(ctx):
             for match in SEIT.finditer(line):
                 if int(match.group(1)) not in jahre:
                     befunde.append(befund("QS-03", "Warnung", name, number, f"„{match.group(0)}“ entspricht keinem Stationsbeginn der Grundlage"))
-    if not any(n in ctx["texte"] for n in ("anschreiben.md", "motivationsschreiben.md")):
-        return ergebnis("QS-03", nicht_anwendbar="kein Brief vorhanden")
     return ergebnis("QS-03", befunde)
 
 
@@ -346,14 +348,14 @@ def qs_uebernahme(ctx):
         return ergebnis("QS-04", nicht_anwendbar="kein Brief vorhanden")
     befunde = []
     firma = set(cv.normalise(ctx["meta"].get("firma", "")).split())
+    vorlage = cv.normalise(anzeige).split() if anzeige else []
+    fenster = {tuple(vorlage[i:i + UEBERNAHME_FENSTER]) for i in range(len(vorlage) - UEBERNAHME_FENSTER + 1)}
     for name in briefe:
         woerter = brief_woerter(ctx["texte"][name])
-        if anzeige:
-            vorlage = " " + " ".join(cv.normalise(anzeige).split()) + " "
-            for start in range(len(woerter) - UEBERNAHME_FENSTER + 1):
-                if " " + " ".join(woerter[start:start + UEBERNAHME_FENSTER]) + " " in vorlage:
-                    befunde.append(befund("QS-04", "Warnung", name, 0, f"Mindestens {UEBERNAHME_FENSTER} Wörter in Folge stehen wörtlich in der Anzeige: „{' '.join(woerter[start:start + UEBERNAHME_FENSTER])}“"))
-                    break
+        for start in range(len(woerter) - UEBERNAHME_FENSTER + 1):
+            if tuple(woerter[start:start + UEBERNAHME_FENSTER]) in fenster:
+                befunde.append(befund("QS-04", "Warnung", name, 0, f"Mindestens {UEBERNAHME_FENSTER} Wörter in Folge stehen wörtlich in der Anzeige: „{' '.join(woerter[start:start + UEBERNAHME_FENSTER])}“"))
+                break
         zaehler = Counter(w for w in woerter if len(w) >= 6 and w not in STOP and w not in firma)
         for wort, anzahl in zaehler.most_common(1):
             if anzahl >= HAEUFUNG_AB:
@@ -437,19 +439,26 @@ def pruefe_exporte(ctx):
             datei = manifest["ausgabe"]["datei"]
             soll = manifest["ausgabe"]["sha256"]
             fmt = manifest["format"]
-        except (ValueError, KeyError, TypeError):
+            quelle_manifest = manifest["quelle"]
+            if not (isinstance(datei, str) and isinstance(soll, str) and isinstance(fmt, str) and isinstance(quelle_manifest, dict)
+                    and isinstance(manifest["ausgabe"], dict) and isinstance(quelle_manifest.get("pfad"), str)):
+                raise TypeError
+        except (ValueError, KeyError, TypeError, AttributeError):
             integritaet.append(befund("EX-01", "Blocker", rel, 0, "Manifest nicht lesbar oder unvollständig"))
+            continue
+        quelle = os.path.normpath(os.path.join(ordner, "export", quelle_manifest["pfad"]))
+        if datei != os.path.basename(datei) or os.path.commonpath([os.path.abspath(ordner), os.path.abspath(quelle)]) != os.path.abspath(ordner):
+            integritaet.append(befund("EX-01", "Blocker", rel, 0, "Das Manifest verweist auf eine Datei außerhalb des Vorgangs"))
             continue
         abgedeckt.add(datei)
         pfad = os.path.join(ordner, "export", datei)
         if datei_hash(pfad) != soll:
             integritaet.append(befund("EX-01", "Blocker", rel, 0, f"{datei} fehlt oder weicht vom Hash des Manifests ab: der Export wurde nach dem Erzeugen verändert"))
             continue
-        quelle = os.path.normpath(os.path.join(ordner, "export", manifest.get("quelle", {}).get("pfad", "")))
-        if datei_hash(quelle) != manifest.get("quelle", {}).get("sha256"):
+        if datei_hash(quelle) != quelle_manifest.get("sha256"):
             integritaet.append(befund("EX-01", "Blocker", rel, 0, f"Der Export {datei} ist veraltet: die Quelle wurde nach dem Export geändert"))
             continue
-        if ctx["grundlage_hash"] and manifest.get("frontmatter", {}).get("grundlage_hash") not in (None, ctx["grundlage_hash"]):
+        if ctx["grundlage_hash"] and (manifest.get("frontmatter") or {}).get("grundlage_hash") not in (None, ctx["grundlage_hash"]):
             integritaet.append(befund("EX-01", "Warnung", rel, 0, "Der Export wurde mit einem anderen Stand der Datengrundlage erzeugt"))
         text, struktur, grund = extrahiere(pfad, fmt)
         if text is None:
@@ -472,8 +481,9 @@ def pruefe_exporte(ctx):
             inhalt.append(befund("EX-02", "Blocker", rel, 0, "offener Platzhalter im Export"))
         if fmt in ("pdf", "docx") and len(text.split()) < 30:
             ats.append(befund("EX-03", "Blocker", rel, 0, "Aus dem Export lässt sich kaum Text lesen (Bild statt Text?): ein ATS sieht ihn leer"))
+        ohne_umbruch = re.sub(r"[\s-]", "", text)  # a long address may be wrapped or hyphenated
         for kontakt in EMAIL.findall(body):
-            if kontakt not in text:
+            if re.sub(r"[\s-]", "", kontakt) not in ohne_umbruch:
                 ats.append(befund("EX-03", "Blocker", rel, 0, "Eine E-Mail-Adresse der Quelle steht nicht im extrahierten Text"))
         if struktur["tabellen"]:
             ats.append(befund("EX-03", "Warnung", rel, 0, f"{struktur['tabellen']} Tabelle(n): manche ATS lesen Tabellen spaltenweise falsch"))
@@ -481,7 +491,7 @@ def pruefe_exporte(ctx):
             ats.append(befund("EX-03", "Warnung", rel, 0, f"{struktur['bilder']} Bild(er): der Inhalt eines Bildes ist für ein ATS nicht lesbar"))
         if fmt == "pdf":
             seiten_ist = seitenzahl(pfad)
-            leer = [i for i, s in enumerate(seiten_roh[:seiten_ist], 1) if not s.strip()] if seiten_ist else []
+            leer = [i for i, s in enumerate(seiten_roh[:seiten_ist], 1) if not s.strip() or s.strip() == str(i)] if seiten_ist else []
             if seiten_ist is None:
                 luecken["EX-04"].append(f"{datei}: pdfinfo fehlt, die Seitenzahl ist nicht prüfbar")
             else:
@@ -531,7 +541,7 @@ def pruefe_urteil(ctx, urteil, stand_dokumente):
     check_id, name = urteil.get("check"), urteil.get("dokument")
     wert = urteil.get("ergebnis")
     erlaubt = ("A", "B", "C", "D") if check_id == "SEM-01" else ("ok", "pruefen", "fehler")
-    if check_id not in SEM_DOKUMENTE or wert not in erlaubt or not isinstance(name, str):
+    if not isinstance(check_id, str) or check_id not in SEM_DOKUMENTE or wert not in erlaubt or not isinstance(name, str):
         return "pruefen", "Urteil hat ein ungültiges Format"
     soll = stand_dokumente if name == "*" else dokument_hashes(ctx["ordner"]).get(name)
     if not soll or urteil.get("dokument_hash") != soll:
@@ -658,6 +668,8 @@ def aktualitaet(ordner, grundlage_hash=None):
         return "qualitaet_veraltet", "Dokumente oder Exporte haben sich seit dem Qualitätsbericht geändert: erneut prüfen"
     if grundlage_hash and bericht.get("grundlage_hash") not in (None, grundlage_hash):
         return "qualitaet_veraltet", "Die Datengrundlage hat sich seit dem Qualitätsbericht geändert: erneut prüfen"
+    if isinstance(bericht.get("checks"), list) and bericht["checks"] and gesamt(bericht["checks"]) != bericht.get("gesamt"):
+        return "qualitaet_veraltet", "Das Gesamtergebnis des Berichts folgt nicht aus seinen Prüfungen: erneut prüfen"
     if bericht.get("gesamt") not in FREIGABEFAEHIG:
         return "qualitaet_nicht_freigabefaehig", f"Der Qualitätsbericht steht auf {bericht.get('gesamt')}: nicht freigabefähig"
     return None

@@ -228,6 +228,48 @@ class DeterministicTests(Base):
         self.assertEqual((bericht["gesamt"], bericht["freigabefaehig"]), ("NICHT_GEPRUEFT", False))
 
 
+class ReviewRegressionTests(Base):
+    def test_a_verdict_with_a_check_that_is_no_string_does_not_crash_the_run(self):
+        def kaputt(liste):
+            liste.append({"check": ["SEM-01"], "dokument": "anschreiben.md", "ergebnis": "ok"})
+            liste.append({"check": {"a": 1}, "dokument": ["x"], "ergebnis": 5})
+        bericht = self.lauf(urteile=self.urteile(kaputt))
+        self.assertIn(bericht["gesamt"], ("MANUELL_ZU_PRUEFEN", "BEREIT_MIT_WARNUNGEN", "BEREIT"))
+
+    def test_a_period_with_a_hyphen_is_no_phone_number(self):
+        self.schreibe("lebenslauf.md", read("cv", "leitung.md") + "\n- 01/2018 - 12/2020 und 01/2021 - 03/2023\n")
+        self.assertEqual(self.check(self.lauf(), "QS-02")["status"], qa.PASS)
+
+    def test_a_manifest_of_the_wrong_shape_or_with_a_path_outside_the_vorgang_is_a_failure_and_no_crash(self):
+        for inhalt in ('{"ausgabe": "x", "format": "pdf", "quelle": {}}', '{"ausgabe": {"datei": "a", "sha256": "b"}, "format": "pdf", "quelle": "x"}',
+                       '{"ausgabe": {"datei": "../vorgang.md", "sha256": "b"}, "format": "md", "quelle": {"pfad": "../lebenslauf.md"}}',
+                       '{"ausgabe": {"datei": "a.md", "sha256": "b"}, "format": "md", "quelle": {"pfad": "../../../etc/passwd"}}', "[]"):
+            with self.subTest(inhalt=inhalt):
+                self.schreibe("export/x.md.manifest.json", inhalt)
+                self.assertEqual(self.check(self.lauf(), "EX-01")["status"], qa.FAIL)
+
+    def test_a_letter_without_a_grundlage_is_not_applicable_for_the_year_check_when_there_is_no_letter(self):
+        os.remove(os.path.join(self.ordner, "anschreiben.md"))
+        self.assertEqual(self.check(self.lauf(grundlage=False), "QS-03")["status"], qa.NA)
+
+    @unittest.skipUnless(HAS_POPPLER, "poppler-utils (pdftotext, pdfinfo) is not installed")
+    def test_a_blank_page_that_only_carries_its_page_number_is_found(self):
+        helfer = PdfTests("test_without_the_pdf_tools_the_export_is_blocked_and_never_a_pass")
+        helfer.ordner = self.ordner
+        helfer.schreibe = self.schreibe
+        helfer.pdf_export([LANG, "2", LANG], quelle_text=LANG + " " + LANG, seitenlimit=5)
+        meldungen = " ".join(b["befund"] for b in self.check(self.lauf(), "EX-04")["befunde"])
+        self.assertIn("Seite 2 ist leer", meldungen)
+
+    @unittest.skipUnless(HAS_POPPLER, "poppler-utils (pdftotext, pdfinfo) is not installed")
+    def test_an_address_wrapped_in_the_pdf_is_still_found(self):
+        adresse = "ab@beispiel-firma.example"
+        helfer = PdfTests("test_without_the_pdf_tools_the_export_is_blocked_and_never_a_pass")
+        helfer.ordner, helfer.schreibe = self.ordner, self.schreibe
+        helfer.pdf_export([LANG + " " + adresse.replace("@", "@ ", 1)], quelle_text=LANG + " " + adresse)  # the PDF breaks the line inside the address
+        self.assertNotIn("E-Mail-Adresse", " ".join(b["befund"] for b in self.check(self.lauf(), "EX-03")["befunde"]))
+
+
 class SemanticTests(Base):
     def test_valid_verdicts_with_quote_and_evidence_make_the_set_ready(self):
         bericht = self.lauf(urteile=self.urteile())
@@ -306,8 +348,17 @@ class DecisionAndReportTests(Base):
     def basis(self):
         return ["--grundlage", GRUNDLAGE, "--konfiguration", os.path.join(self._tmp.name, "nix.md")]
 
+    def mit_anker(self):
+        """Arguments through an Anker: only then the report is bound to the hash of the Datengrundlage (a copy outside the repository)."""
+        kopie = os.path.join(self._tmp.name, "grundlage.md")
+        shutil.copy(GRUNDLAGE, kopie)
+        anker = os.path.join(self._tmp.name, "konfiguration.md")
+        with open(anker, "w", encoding="utf-8") as handle:
+            handle.write(f"---\nwurzel: {self._tmp.name}\ngrundlage: {kopie}\n---\n")
+        return ["--konfiguration", anker]
+
     def test_the_report_is_written_with_hashes_and_marks_the_manual_steps(self):
-        code, _ = self.schnell("pruefen", self.ordner, *self.basis())
+        code, _ = self.schnell("pruefen", self.ordner, *self.mit_anker())
         self.assertEqual(code, 2)
         bericht = json.loads(read_file(os.path.join(self.ordner, qa.BERICHT)))
         self.assertEqual(bericht["dokumente"], qa.dokument_hashes(self.ordner))
@@ -323,12 +374,25 @@ class DecisionAndReportTests(Base):
 
     def test_a_report_is_current_only_for_exactly_these_documents(self):
         self.assertEqual(qa.aktualitaet(self.ordner)[0], "qualitaet_fehlt")
-        self.schnell("pruefen", self.ordner, *self.basis(), "--urteile", self.urteile())
+        self.schnell("pruefen", self.ordner, *self.mit_anker(), "--urteile", self.urteile())
         self.assertIsNone(qa.aktualitaet(self.ordner))
         self.assertEqual(qa.aktualitaet(self.ordner, "anderer-hash")[0], "qualitaet_veraltet")
         gespeichert = qa.lade_bericht(self.ordner)["grundlage_hash"]
         self.assertIsNone(qa.aktualitaet(self.ordner, gespeichert))
         self.schreibe("anschreiben.md", read_file(os.path.join(self.ordner, "anschreiben.md")) + "\nZusatz\n")
+        self.assertEqual(qa.aktualitaet(self.ordner)[0], "qualitaet_veraltet")
+
+    def test_explicit_grundlage_paths_bind_no_hash_so_the_gate_is_not_blocked_by_them(self):
+        self.schnell("pruefen", self.ordner, *self.basis(), "--urteile", self.urteile())
+        self.assertIsNone(qa.lade_bericht(self.ordner)["grundlage_hash"])
+        self.assertIsNone(qa.aktualitaet(self.ordner, "irgendein-hash"))
+
+    def test_an_overall_result_that_does_not_follow_from_the_checks_is_not_current(self):
+        self.schnell("pruefen", self.ordner, *self.basis())
+        bericht = qa.lade_bericht(self.ordner)
+        bericht["gesamt"], bericht["freigabefaehig"] = "BEREIT", True
+        with open(os.path.join(self.ordner, qa.BERICHT), "w", encoding="utf-8") as handle:
+            json.dump(bericht, handle)
         self.assertEqual(qa.aktualitaet(self.ordner)[0], "qualitaet_veraltet")
 
     def test_a_report_of_an_older_version_does_not_become_valid_again_by_a_status_change(self):

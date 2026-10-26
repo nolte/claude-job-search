@@ -191,5 +191,8 @@ Teamgrößen, Führung gegen das Kennzeichen `Führung:`). Sie machen aus einem 
 - Layout und optische Qualität, der Ton eines Briefes und die Passung zu einer Person sind Sache eines Menschen.
 - Ohne die Grundlage, ein Modell oder poppler-utils sind die betroffenen Prüfungen `BLOCKED` oder `NEEDS_REVIEW`; die
   Werkzeugkette verbirgt das nicht.
+- Der Bericht ist nicht manipulationssicher. Das Gate berechnet `gesamt` aus den gespeicherten Prüfungen neu und lehnt einen inkonsistenten Bericht ab, doch wer in den Vorgangsordner schreiben kann, kann einen konsistenten schreiben. Er ist eine Voraussetzung der Freigabe, keine Sicherheitsgrenze; die Freigabe bleibt das `--ja` der Nutzerin oder des Nutzers.
+- `entscheiden` ist durch `--ja` und die Sperre für unbeaufsichtigte Sitzungen geschützt, nicht durch einen Kanal, den nur die Nutzerin oder der Nutzer hat. Der Skill verbietet dem Modell, es auszuführen.
+- `--grundlage <Pfad>` sieht Dateien an und bindet keinen Grundlage-Hash; nur ein Lauf über den Anker (`--konfiguration`) tut das.
 - Der Bericht ist veraltet, sobald sich eine Datei ändert; vor der Freigabe führt die Nutzerin oder der Nutzer die Prüfung
   erneut aus.
