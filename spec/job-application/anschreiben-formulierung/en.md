@@ -156,13 +156,13 @@ are decisions of this plugin because no source gives one for a letter.
    candidate or this job. The lists below are the check basis (AF-12). Each list entry is a stem; inflected and
    punctuation variants match.
 
-| Class | Examples (German, as written) | Source |
-|---|---|---|
-| Opening formula | `hiermit bewerbe ich mich`, `mit großem Interesse habe ich ... gelesen`, `auf der Suche nach einer neuen Herausforderung`, `durch Zufall bin ich auf ... gestoßen` | `hiermit bewerbe ich mich`: Hays, Uni Saarland, Karrierebibel; the others are decisions |
-| Empty attribute | `teamfähig`, `belastbar`, `hochmotiviert`, `motiviert und engagiert`, `flexibel`, `diszipliniert`, `kommunikativ`, `dynamisch`, `zielorientiert`, `eigenverantwortlich` | `teamfähig`, `belastbar`, `hochmotiviert`, `motiviert`, `diszipliniert`: Uni Saarland, Hays; the others are decisions |
-| Empty claim | `ich bin überzeugt, dass ich die richtige Wahl bin`, `ich bringe alle Voraussetzungen mit`, `ich bin der ideale Kandidat` | decision |
-| Weak closing | `über eine Einladung würde ich mich freuen`, `ich würde mich über eine positive Rückmeldung freuen`, `wann darf ich Sie überzeugen`, `sind Sie neugierig geworden` | Robert Half (all four); Hays for the Konjunktiv form |
-| Padding | `wie Sie meinem Lebenslauf entnehmen können`, `in meiner derzeitigen Position`, followed by a list | decision |
+   | Class | Examples (German, as written) | Source |
+   |---|---|---|
+   | Opening formula | `hiermit bewerbe ich mich`, `mit großem Interesse habe ich ... gelesen`, `auf der Suche nach einer neuen Herausforderung`, `durch Zufall bin ich auf ... gestoßen` | `hiermit bewerbe ich mich`: Hays, Uni Saarland, Karrierebibel; the others are decisions |
+   | Empty attribute | `teamfähig`, `belastbar`, `hochmotiviert`, `motiviert und engagiert`, `flexibel`, `diszipliniert`, `kommunikativ`, `dynamisch`, `zielorientiert`, `eigenverantwortlich` | `teamfähig`, `belastbar`, `hochmotiviert`, `motiviert`, `diszipliniert`: Uni Saarland, Hays; the others are decisions |
+   | Empty claim | `ich bin überzeugt, dass ich die richtige Wahl bin`, `ich bringe alle Voraussetzungen mit`, `ich bin der ideale Kandidat` | decision |
+   | Weak closing | `über eine Einladung würde ich mich freuen`, `ich würde mich über eine positive Rückmeldung freuen`, `wann darf ich Sie überzeugen`, `sind Sie neugierig geworden` | Robert Half (all four); Hays for the Konjunktiv form |
+   | Padding | `wie Sie meinem Lebenslauf entnehmen können`, `in meiner derzeitigen Position`, followed by a list | decision |
 
 2. **Empty attributes need a behaviour.** An attribute from the list is replaced by what the candidate does,
    as far as a Grundlage entry shows it. "Teamfähig" becomes "Ich habe ein Team von fünf Personen geleitet" only
