@@ -449,6 +449,58 @@ class RetrospectiveAndProposals(Base):
         self.assertEqual(self.cli(lr, "aktualitaet", datei)[1]["aktuell"], True)
 
 
+class ReviewFixes(Base):
+    def test_a_changed_fit_check_or_quality_report_makes_a_retrospective_stale(self):
+        self.vorgang("a", "Firma A", "versendet", versendet="2026-08-01")
+        datei = self.cli(lr, "retrospektive")[1]["datei"]
+        self.assertTrue(self.cli(lr, "aktualitaet", datei)[1]["aktuell"])
+        with open(os.path.join(self.w, "a", "passung.md"), "w", encoding="utf-8") as handle:
+            handle.write("Ergebnis: Veto\n")
+        self.assertFalse(self.cli(lr, "aktualitaet", datei)[1]["aktuell"])
+
+    def test_a_retrospective_made_with_a_filter_is_checked_with_the_same_filter(self):
+        self.vorgang("a", "Firma A", "versendet", versendet="2026-08-01", extra="weg: portal\n")
+        self.vorgang("b", "Firma B", "versendet", versendet="2026-08-01", extra="weg: email\n")
+        datei = self.cli(lr, "retrospektive", "--kanal", "portal")[1]["datei"]
+        self.assertTrue(self.cli(lr, "aktualitaet", datei)[1]["aktuell"])
+
+    def test_a_report_with_criteria_writes_no_proposals(self):
+        self.vorgang("alt", "Firma 1", "erfasst", versendet="", extra="erfasst: 2026-08-01\n")
+        self.cli(lr, "retrospektive", "--arbeitgeber", "Firma 1")
+        self.assertFalse(os.path.exists(os.path.join(self.w, "lernen", "vorschlaege.json")))
+        self.cli(lr, "retrospektive", "--reife-tage", "7")
+        self.assertFalse(os.path.exists(os.path.join(self.w, "lernen", "vorschlaege.json")))
+        self.cli(lr, "retrospektive")
+        self.assertTrue(os.path.exists(os.path.join(self.w, "lernen", "vorschlaege.json")))
+
+    def test_the_effect_check_measures_the_way_the_baseline_was_measured(self):
+        self.vorgang("alt", "Firma 1", "erfasst", versendet="", extra="erfasst: 2026-10-10\n")
+        self.cli(lr, "vorschlaege", "erzeugen")
+        self.assertEqual(lr.lade_vorschlaege(self.w)["vorschlaege"], {})  # 16 days old: not yet a finding at 28
+        self.vorgang("alt2", "Firma 2", "erfasst", versendet="", extra="erfasst: 2026-10-10\n")
+        lr.erzeuge_vorschlaege(self.w, lr.parse_time(NOW), self.konfig, reife=7)
+        v = next(iter(lr.lade_vorschlaege(self.w)["vorschlaege"].values()))
+        self.assertEqual(v["pruefung"]["reife"], 7)
+        vid = v["id"]
+        self.cli(lr, "vorschlag", "vorlegen", vid)
+        self.cli(lr, "vorschlag", "entscheiden", vid, "--entscheidung", "angenommen", "--grund", "ok", "--ja")
+        self.assertEqual(self.cli(lr, "vorschlag", "pruefe", vid)[1]["reife_tage"], 7)  # not the default 28
+
+    def test_unlike_mixes_of_direction_are_noticed_by_their_shares_and_not_only_by_their_kinds(self):
+        for i in range(10):
+            self.vorgang(f"x{i}", f"Firma X{i}", "versendet", versendet="2026-10-01", extra=f"ausrichtung: {'ausschreibung' if i < 9 else 'initiativ'}\n")
+            self.vorgang(f"y{i}", f"Firma Y{i}", "versendet", versendet="2026-10-01", extra=f"ausrichtung: {'initiativ' if i < 9 else 'ausschreibung'}\n")
+        for i in range(10):  # split into two comparable groups by channel, each with the other mix
+            for slug, kanal in ((f"x{i}", "portal"), (f"y{i}", "email")):
+                pfad = os.path.join(self.w, slug, "vorgang.md")
+                with open(pfad, encoding="utf-8") as handle:
+                    text = handle.read().replace("status: versendet\n", f"status: versendet\nweg: {kanal}\n")
+                with open(pfad, "w", encoding="utf-8") as handle:
+                    handle.write(text)
+        hinweise = self.stat("--nach", "kanal")["segmente"]["vergleichbarkeit"]
+        self.assertTrue(any("Ausrichtung" in h for h in hinweise), hinweise)
+
+
 class Safety(Base):
     def test_the_evaluation_changes_no_data_of_the_applicant_and_writes_only_below_lernen(self):
         self.vorgang("a", "Firma A", "versendet", ereignisse=[ereignis("e-001", "eingangsbestaetigung", "2026-10-03")])

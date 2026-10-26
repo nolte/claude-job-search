@@ -328,16 +328,24 @@ def datenqualitaet(w, gruppe, ausgeschlossen):
             "hinweis": "Ein Ergebnis, das nur aus `status` in vorgang.md stammt, ist vom Nutzer gepflegt, aber nicht durch ein Ereignis belegt; unbestätigte Ereignisse und ungeprüfte Nachrichten fließen nicht ein."}
 
 
+QUELLDATEIEN = ("vorgang.md", "nachverfolgung.json", "passung.md", "qualitaet.json")  # every file of a Vorgang a figure reads
+GLOBALE_QUELLEN = (("suche", "warteschlange.json"), ("workflow", "aufgaben.json"))  # read only
+
+
 def quellen_hash(w, gruppe):
+    """Hash over every file the figures read, so that a changed fit check, quality report, queue or approval makes a derivation stale."""
     teile = []
     for d in sorted(gruppe, key=lambda x: x["slug"]):
-        for name in ("vorgang.md", "nachverfolgung.json"):
+        for name in QUELLDATEIEN:
             pfad = os.path.join(w, d["slug"], name)
             teile.append(f"{d['slug']}/{name}={sha256_file(pfad) if os.path.isfile(pfad) else '-'}")
+    for teil in GLOBALE_QUELLEN:
+        pfad = os.path.join(w, *teil)
+        teile.append(f"{'/'.join(teil)}={sha256_file(pfad) if os.path.isfile(pfad) else '-'}")
     return digest(*teile)
 
 
-def statistik(w, now, von=None, bis=None, nach=None, filter_=None, gewaehlt=None, reife=REIFE_TAGE_STANDARD, belege=False, alle=None):
+def statistik(w, now, von=None, bis=None, nach=None, filter_=None, gewaehlt=None, reife=REIFE_TAGE_STANDARD, belege=False, alle=None, mit_widerspruechen=True):
     gruppe, ausgeschlossen = gewaehlt or waehle(w, now, von, bis, filter_)
     if not isinstance(reife, int) or isinstance(reife, bool) or not 1 <= reife <= 365:
         raise Refused("reife_ungueltig", "--reife-tage ist eine ganze Zahl von 1 bis 365")
@@ -354,7 +362,7 @@ def statistik(w, now, von=None, bis=None, nach=None, filter_=None, gewaehlt=None
                                "hinweis": "Die Kennzahlen unter `aktivitaet` und `konversionen` zählen alle begonnenen Bewerbungen im Zeitraum; `zaehler` und `uebergaenge` nur die eingereichten."},
                 "reife_tage": reife, "aktivitaet": aktivitaet, "konversionen": konversionen, "zeiten": zeiten,
                 "nicht_erfasst": {"merkmale": list(NICHT_ERFASST), "hinweis": "Für diese Merkmale gibt es kein Feld in vorgang.md: sie sind nicht erfasst und werden weder gefiltert noch erfunden."}}
-    ergebnis["datenqualitaet"]["widersprueche"] = widersprueche(w, now, population)
+    ergebnis["datenqualitaet"]["widersprueche"] = widersprueche(w, now, population) if mit_widerspruechen else []
     ergebnis["datenqualitaet"]["ereignisse_ohne_datum"] = sum(1 for d in population for e in d["ereignisse"] if not ereignis_tag(e))
     if nach:
         if nach not in SEGMENTE:
@@ -472,12 +480,11 @@ def zeitkennzahlen(alle, stellen):
     for d in alle:
         s = nach_vorgang.get(d["slug"])
         d["entdeckt_am"] = tag10((s or {}).get("erstmals_gesehen"))
-        d["erste_antwort_am"] = ""
         d["rueckmeldung_nach_gespraech_am"] = ""
         tage_ = sorted(x for x in (ereignis_tag(e) for e in d["ereignisse"] if e["art"] in INHALTLICH) if x)
         d["erste_antwort_am"] = tage_[0] if tage_ else ""
         if d["gespraech_am"]:
-            nachher = sorted(x for x in (ereignis_tag(e) for e in d["ereignisse"] if e["art"] in INHALTLICH + ("angebot",) and e["art"] not in GESPRAECHE) if x and x > d["gespraech_am"])
+            nachher = sorted(x for x in (ereignis_tag(e) for e in d["ereignisse"] if e["art"] in tuple(set(INHALTLICH + ("angebot",))) and e["art"] not in GESPRAECHE and e["art"] != "gespraechseinladung") if x and x > d["gespraech_am"])
             d["rueckmeldung_nach_gespraech_am"] = nachher[0] if nachher else ""
     erfassung = []
     for d in alle:
@@ -645,14 +652,18 @@ def segmentiere(gruppe, nach, heute_datum):
                                            "mittleres_alter_tage": statistics.median(alter) if alter else None}}
     vergleichbar = [g for g in ergebnis.values() if g["vergleichbar"]]
     hinweise = []
-    if len(vergleichbar) >= 2 and len({tuple(g["zusammensetzung"]["ausrichtung"]) for g in vergleichbar}) > 1:
+    def anteile(g):
+        summe = sum(g["zusammensetzung"]["ausrichtung"].values()) or 1
+        return {k_: v_ / summe for k_, v_ in g["zusammensetzung"]["ausrichtung"].items()}
+    if len(vergleichbar) >= 2 and any(abs(anteile(a).get(k_, 0) - anteile(b).get(k_, 0)) > 0.25 for a in vergleichbar for b in vergleichbar
+                                      for k_ in set(anteile(a)) | set(anteile(b))):
         hinweise.append("Die Gruppen unterscheiden sich in der Ausrichtung der Bewerbungen: ein Unterschied der Quoten kann daran liegen.")
     if len(vergleichbar) >= 2:
         alter = [g["zusammensetzung"]["mittleres_alter_tage"] for g in vergleichbar if g["zusammensetzung"]["mittleres_alter_tage"] is not None]
         if alter and max(alter) - min(alter) > 30:
             hinweise.append("Die Gruppen sind unterschiedlich lange beobachtet (mittleres Alter weicht um mehr als 30 Tage ab): die Quoten sind nicht gleich weit gereift.")
     if len(vergleichbar) < 2:
-        hinweise.append("Weniger als zwei Gruppen mit mindestens 5 Bewerbungen: es gibt keinen Vergleich, nur Zahlen je Gruppe.")
+        hinweise.append(f"Weniger als zwei Gruppen mit mindestens {MIN_N} Bewerbungen: es gibt keinen Vergleich, nur Zahlen je Gruppe.")
     return ergebnis, hinweise
 
 
@@ -690,7 +701,9 @@ def retrospektive(w, now, von, bis, filter_, konfiguration=None, reife=REIFE_TAG
     gewaehlt = waehle(w, now, von, bis, filter_)  # read once: the figures and the lists come from the same Vorgänge
     alle = waehle_alle(w, now, von, bis, filter_)
     stat = statistik(w, now, von, bis, None, filter_, gewaehlt, reife, False, alle)
-    erzeuge_vorschlaege(w, now, konfiguration, reife)  # idempotent: a proposal exists once; it changes nothing until the user decides
+    neue_regeln = not any((filter_ or {}).values()) and not von and not bis and reife == REIFE_TAGE_STANDARD
+    if neue_regeln:  # the rules look at the whole Wurzel; a report with criteria must not write them (it only shows what exists)
+        erzeuge_vorschlaege(w, now, konfiguration, reife)  # idempotent: a proposal exists once; it changes nothing until the user decides
     gruppe, population = gewaehlt[0], alle[0]
     stellen = lade_stellen(w)
     absagen, themen = [], {}
@@ -730,6 +743,7 @@ def retrospektive(w, now, von, bis, filter_, konfiguration=None, reife=REIFE_TAG
     qualitaet = qualitaetsbefunde(w, population)
     zeilen = [
         "---", "abgeleitet: ja", f"erstellt: {stamp(now)}", f"zeitraum_von: {von or ''}", f"zeitraum_bis: {bis or ''}", f"reife_tage: {reife}",
+        f"filter: {json.dumps({k_: v_ for k_, v_ in (filter_ or {}).items() if v_}, ensure_ascii=False)}",
         f"quellen_hash: {stat['quellen_hash']}", f"ausgewertet: {stat['ausgewertet']}", "---", "",
         "# Retrospektive der Bewerbungen", "",
         "Abgeleitete Auswertung: Quelle der Wahrheit bleiben `vorgang.md`, `nachverfolgung.json` und die übrigen Dateien der Vorgänge. Ändert sich eine Quelle, ist diese Datei veraltet (`lernen.py aktualitaet`). "
@@ -780,6 +794,8 @@ def retrospektive(w, now, von, bis, filter_, konfiguration=None, reife=REIFE_TAG
               ["- Kein Thema wurde in mindestens zwei Vorgängen genannt."]
     zeilen += ["", "## D. Verbesserungsmöglichkeiten", "",
                "Jeder Vorschlag ist dokumentiert (`lernen.py vorschlag zeige <id>`). Er ändert nichts, bis du entscheidest; auch eine Annahme ändert keine Datei.", ""]
+    if not neue_regeln:
+        zeilen += ["Dieser Bericht nutzt Kriterien (Zeitraum, Filter oder eine andere Reife): er legt keine neuen Vorschläge an und zeigt nur die vorhandenen.", ""]
     vorschlaege = [v for v in lade_vorschlaege(w)["vorschlaege"].values() if v["status"] in ("erstellt", "zur_pruefung", "zurueckgestellt")]
     rang = {"hoch": 0, "mittel": 1, "niedrig": 2}
     for v in sorted(vorschlaege, key=lambda x: (rang.get(x["prioritaet"], 3), x["id"])):
@@ -816,7 +832,11 @@ def aktualitaet(w, now, datei):
         raise Refused("datei_fehlt", f"{redact(datei, 80)} gibt es nicht")
     meta = ss.read_frontmatter(pfad)
     von, bis = meta.get("zeitraum_von") or None, meta.get("zeitraum_bis") or None
-    gruppe, _ = waehle_alle(w, now, von, bis, None)  # the hash of a statistic covers every begun Vorgang of the period
+    try:
+        filter_ = json.loads(meta.get("filter") or "{}")
+    except ValueError:
+        filter_ = {}
+    gruppe, _ = waehle_alle(w, now, von, bis, filter_ if isinstance(filter_, dict) else {})  # the same criteria the file was made with
     aktuell = quellen_hash(w, gruppe) == meta.get("quellen_hash")
     return {"ok": True, "datei": datei, "aktuell": aktuell, "hinweis": "" if aktuell else "Eine Quelle hat sich geändert (oder das Löschdatum ist erreicht): die Retrospektive neu erstellen"}
 
@@ -854,7 +874,7 @@ def vorschlag_quellen_hash(w, quellen):
 
 def aktueller_wert(w, now, name, reife=REIFE_TAGE_STANDARD):
     """(Zähler, Nenner) of a named measure now, for the check of a proposal's effect. A name that is not known is refused."""
-    stat = statistik(w, now, reife=reife)
+    stat = statistik(w, now, reife=reife, mit_widerspruechen=False)
     for c in stat["konversionen"]:
         if c["name"] == name:
             return (c["reif"]["zaehler"], c["reif"]["nenner"]) if c["reif"] and name != "relevant_zu_begonnen" else (c["zaehler"], c["nenner"])
@@ -888,7 +908,7 @@ def erzeuge_vorschlaege(w, now, konfiguration, reife=REIFE_TAGE_STANDARD):
                                      "quellen": quellen, "begruendung": begruendung, "erwarteter_nutzen": nutzen, "unsicherheit": unsicherheit,
                                      "risiken": risiken, "prioritaet": prioritaet, "status": "erstellt", "erstellt": stamp(now), "aendert_stammdaten": False,
                                      "quellen_hash": vorschlag_quellen_hash(w, quellen), "entscheidungen": [], "erklaerung": erklaerung or begruendung,
-                                     "empfehlung": empfehlung or begruendung, "pruefung": pruefung}
+                                     "empfehlung": empfehlung or begruendung, "pruefung": pruefung() if callable(pruefung) else pruefung}
         neu.append(vid)
 
     themen = {}
@@ -907,7 +927,7 @@ def erzeuge_vorschlaege(w, now, konfiguration, reife=REIFE_TAGE_STANDARD):
                     "Überinterpretation weniger Absagen; auf keinen Fall eine Qualifikation in die Datengrundlage übernehmen, die nicht belegt ist", "mittel")
     def messen(name):
         zaehler, nenner = aktueller_wert(w, now, name, reife)
-        return {"kennzahl": name, "ausgangswert": {"zaehler": zaehler, "nenner": nenner, "am": heute_datum}}
+        return {"kennzahl": name, "reife": reife, "ausgangswert": {"zaehler": zaehler, "nenner": nenner, "am": heute_datum}}
     nicht_fertig = [{"vorgang": d["slug"]} for d in alle if not d["fertig"] and d["erfasst"] and tage(d["erfasst"], heute_datum) >= reife]
     if nicht_fertig:
         ablegen("prozess:nicht_fertig", "Begonnene Bewerbungen abschließen oder bewusst beenden", "prozess",
@@ -917,7 +937,7 @@ def erzeuge_vorschlaege(w, now, konfiguration, reife=REIFE_TAGE_STANDARD):
                 "ein vorschnelles Beenden einer Bewerbung, die noch gewollt ist", "mittel",
                 erklaerung="Mögliche Gründe: die Stelle passt doch nicht, die Zeit fehlt, der Status wurde nicht nachgezogen. Das lässt sich aus den Daten nicht unterscheiden.",
                 empfehlung="Jede Bewerbung einzeln ansehen: fertigstellen, mit `bewerbung.py statuswechsel` beenden oder den Status nachtragen.",
-                pruefung={**messen("begonnen_zu_fertig"), "wie": f"`lernen.py vorschlag pruefe <id>` vergleicht die Quote begonnen → fertig (mindestens {reife} Tage alt) mit dem Ausgangswert"})
+                pruefung=lambda: {**messen("begonnen_zu_fertig"), "wie": f"`lernen.py vorschlag pruefe <id>` vergleicht die Quote begonnen → fertig (mindestens {reife} Tage alt) mit dem Ausgangswert"})
     nicht_gesendet = [{"vorgang": d["slug"]} for d in alle if d["fertig"] and not d["versendet_am"] and d.get("fertig_am") and tage(d["fertig_am"], heute_datum) >= reife]
     if nicht_gesendet:
         ablegen("prozess:nicht_eingereicht", "Fertige Bewerbungen einreichen oder verwerfen", "prozess",
@@ -925,7 +945,7 @@ def erzeuge_vorschlaege(w, now, konfiguration, reife=REIFE_TAGE_STANDARD):
                 "Fertige Unterlagen veralten, und die Stelle kann besetzt sein.", "weniger veraltete Entwürfe",
                 "mittel: der Grund (Zweifel, Zeit, vergessene Eintragung von `versendet_am`) steht nicht in den Daten", "eine überstürzte Einreichung ohne erneute Prüfung",
                 "mittel", empfehlung="Prüfen, ob die Stelle noch offen ist und ob der Versand nur nicht eingetragen wurde (`versendet_am` gehört der Nutzerin oder dem Nutzer).",
-                pruefung={**messen("fertig_zu_eingereicht"), "wie": "`lernen.py vorschlag pruefe <id>` vergleicht die Quote fertig → eingereicht mit dem Ausgangswert"})
+                pruefung=lambda: {**messen("fertig_zu_eingereicht"), "wie": "`lernen.py vorschlag pruefe <id>` vergleicht die Quote fertig → eingereicht mit dem Ausgangswert"})
     veto = [{"vorgang": d["slug"]} for d in alle if d["bewertung"] == "Veto"]
     if len(veto) >= 2:
         ablegen("passung:veto_begonnen", "Passungsprüfung vor dem Bewerbungsbeginn ernster nehmen", "stellenauswahl",
@@ -934,7 +954,7 @@ def erzeuge_vorschlaege(w, now, konfiguration, reife=REIFE_TAGE_STANDARD):
                 "mittel: ein Veto kann bewusst übergangen worden sein", "eine zu enge Auswahl, wenn das Wunschprofil nicht mehr stimmt", "mittel",
                 erklaerung="Möglich: das Wunschprofil ist veraltet, oder die Stelle wurde bewusst trotzdem gewählt.",
                 empfehlung="Entscheiden, ob das Wunschprofil angepasst werden soll (`job-application-traumjob-interview`) oder Stellen mit Veto nicht mehr begonnen werden.",
-                pruefung={**messen("begonnen_trotz_veto"), "wie": "Die Zahl der Vorgänge mit Veto unter allen begonnenen wird später erneut gezählt"})
+                pruefung=lambda: {**messen("begonnen_trotz_veto"), "wie": "Die Zahl der Vorgänge mit Veto unter allen begonnenen wird später erneut gezählt"})
     for check, slugs in qualitaetsbefunde(w, alle).items():
         if len(slugs) >= 2:
             ablegen(f"qualitaet:{check}", f"Wiederkehrenden Befund der Qualitätsprüfung {check} beheben", "dokumentqualitaet",
@@ -942,14 +962,14 @@ def erzeuge_vorschlaege(w, now, konfiguration, reife=REIFE_TAGE_STANDARD):
                     "Ein Befund, der in mehreren Vorgängen wiederkehrt, deutet auf eine Gewohnheit oder eine Vorlage hin.", "weniger Nacharbeit vor dem Versand",
                     "gering bis mittel: die Ursache im einzelnen Vorgang kann verschieden sein", "keines", "mittel",
                     empfehlung=f"Den Befund {check} in einem der Vorgänge ansehen (`task quality -- status <vorgang>`) und die Ursache an der Vorlage oder der Grundlage beheben; die Grundlage ändert nur die Nutzerin oder der Nutzer.",
-                    pruefung={**messen(f"qualitaet_fehler:{check}"), "wie": "Die Zahl der Vorgänge mit diesem Befund wird später erneut gezählt"})
+                    pruefung=lambda: {**messen(f"qualitaet_fehler:{check}"), "wie": "Die Zahl der Vorgänge mit diesem Befund wird später erneut gezählt"})
     nur_status = [{"vorgang": d["slug"]} for d in gruppe if d["nur_status"]]
     if nur_status:
         ablegen("daten:ergebnis_nur_status", "Ergebnisse mit Ereignis und Datum belegen", "datenqualitaet",
                 f"{len(nur_status)} Ergebnisse stehen nur im Status, ohne bestätigtes Ereignis.", nur_status,
                 "Ohne Ereignis fehlen Datum und Beleg; Zeiten lassen sich nicht berechnen.", "Zeitkennzahlen und Belege werden möglich", "gering: es geht um fehlende Angaben",
                 "Aufwand beim Nachtragen", "niedrig", empfehlung="Das Datum nachtragen (`bewerbung.py ereignis erfassen … --eingetreten-am JJJJ-MM-TT`), nur wenn es bekannt ist.",
-                pruefung={**messen("ergebnis_nur_durch_status"), "wie": "Die Zahl der Ergebnisse nur aus Status wird später erneut gezählt"})
+                pruefung=lambda: {**messen("ergebnis_nur_durch_status"), "wie": "Die Zahl der Ergebnisse nur aus Status wird später erneut gezählt"})
     ohne_version = [{"vorgang": d["slug"]} for d in gruppe if not d["dokumente"]["eindeutig"]]
     if ohne_version:
         ablegen("dokumentversion", "Dokumentversionen der versendeten Bewerbungen nachweisbar machen", "datenqualitaet",
@@ -957,13 +977,13 @@ def erzeuge_vorschlaege(w, now, konfiguration, reife=REIFE_TAGE_STANDARD):
                 "Ohne Version lässt sich ein Ergebnis keiner Fassung der Unterlagen zuordnen; Vergleiche zwischen Fassungen sind dann nicht möglich.",
                 "Auswertungen nach Dokumentversion werden möglich.", "gering: es geht um fehlende Angaben, nicht um eine Deutung",
                 "Aufwand beim Eintragen von `anhaenge` und beim Ausführen von `task quality`", "niedrig",
-                pruefung={**messen("dokumentversion_nicht_eindeutig"), "wie": "Die Zahl der Bewerbungen ohne eindeutige Dokumentversion wird später erneut gezählt"})
+                pruefung=lambda: {**messen("dokumentversion_nicht_eindeutig"), "wie": "Die Zahl der Bewerbungen ohne eindeutige Dokumentversion wird später erneut gezählt"})
     offene = km.offene_vorschlaege(w)
     if offene:
         ablegen("nachrichten:" + digest(*sorted(n["id"] for n in offene))[:8], "Ungeprüfte Rückmeldungen im Eingang prüfen", "nachverfolgung",
                 f"{len(offene)} Nachrichten warten auf die Prüfung.", [{"vorgang": n["vorgang"]} for n in offene if n["vorgang"]] or [{"vorgang": "-"}],
                 "Solange Rückmeldungen nicht bestätigt sind, fließen sie nicht in die Auswertung ein.", "vollständigere Statistik", "gering", "keines", "hoch",
-                pruefung={**messen("nachrichten_noch_nicht_geprueft"), "wie": "Die Zahl der ungeprüften Nachrichten wird später erneut gezählt"})
+                pruefung=lambda: {**messen("nachrichten_noch_nicht_geprueft"), "wie": "Die Zahl der ungeprüften Nachrichten wird später erneut gezählt"})
     nachfass_tage = ss.read_frontmatter(konfiguration).get("nachfass_tage", "") if konfiguration and os.path.isfile(konfiguration) else ""
     if nachfass_tage.isdigit():
         heute_datum = km.heute(now)
@@ -1015,6 +1035,7 @@ def wirksamkeit(w, now, vid, reife=REIFE_TAGE_STANDARD):
     pruefung = v.get("pruefung")
     if not pruefung:
         return {"ok": True, "vorschlag": vid, "pruefbar": False, "hinweis": "Dieser Vorschlag hat keine Kennzahl; die Nutzerin oder der Nutzer beurteilt die Wirkung selbst."}
+    reife = pruefung.get("reife", reife)  # measured the way the baseline was
     zaehler, nenner = aktueller_wert(w, now, pruefung["kennzahl"], reife)
     vorher = pruefung["ausgangswert"]
     neu_n = nenner - vorher["nenner"]
@@ -1026,7 +1047,7 @@ def wirksamkeit(w, now, vid, reife=REIFE_TAGE_STANDARD):
         aussage = "Die beobachtete Änderung liegt innerhalb der Unsicherheit; die Daten zeigen keinen belastbaren Unterschied."
     else:
         aussage = "In den bisher erfassten Daten zeigt sich ein Unterschied zum Ausgangswert. Das ist eine Beobachtung und kein Beleg, dass die Umsetzung ihn bewirkt hat."
-    return {"ok": True, "vorschlag": vid, "pruefbar": True, "kennzahl": pruefung["kennzahl"], "ausgangswert": vorher, "aktuell": {"zaehler": zaehler, "nenner": nenner},
+    return {"ok": True, "vorschlag": vid, "pruefbar": True, "kennzahl": pruefung["kennzahl"], "reife_tage": reife, "ausgangswert": vorher, "aktuell": {"zaehler": zaehler, "nenner": nenner},
             "neue_faelle": neu_n, "konfidenz95_vorher": vor, "konfidenz95_jetzt": jetzt, "aussage": aussage}
 
 
