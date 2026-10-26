@@ -12,7 +12,8 @@ WJ-8.2 privacy), `spec/job-application/lokale-struktur/en.md` (LS-3, LS-4, LS-6,
 `spec/job-application/unternehmensanalyse/en.md` (UA-3 source ranks) and
 `spec/job-application/konventionen/en.md` (R-1 facts, R-6 data protection).
 
-**Status:** specified. The skill `job-application-job-search` implements ST-1 to ST-12 (the interactive search).
+**Status:** specified. The skill `job-application-job-search` implements ST-1 to ST-12 (the interactive search) and ST-21
+(the Bundesagentur as an interactive-only source, helper `scripts/arbeitsagentur.py`).
 ST-13 to ST-20 (the recurring search: Suchauftrag, run log, Warteschlange, hand-off) are implemented by
 `scripts/stellensuche.py`, run by the same skill, and by `scripts/stellensuche_geplant.sh` for scheduled runs. The
 script is deterministic; the search itself needs the JobSpy server inside a Claude session. Whether a scheduler
@@ -63,8 +64,8 @@ Vorgang, Wurzel, Ausschluss and Veto are used as defined in `lokale-struktur/en.
 
 1. **Default boards.** `indeed` and `glassdoor`. Other boards (`bayt`, `naukri`, `bdjobs`, `hellowork`,
    `zip_recruiter`) are enabled only when the brief names them. Per the JobSpy README, Indeed and Glassdoor
-   support Germany, Austria and Switzerland and the other boards do not apply to the DACH region; StepStone, XING
-   and the Bundesagentur's Jobbörse are not covered (ST-11).
+   support Germany, Austria and Switzerland and the other boards do not apply to the DACH region; StepStone and XING
+   are not covered; the Bundesagentur's Jobbörse is a separate, interactive-only source (ST-21).
 2. **LinkedIn.** `linkedin` is never queried through JobSpy (RC-5.8 rule 3, RC-5.4 rule 6). When the LinkedIn
    server is connected and the user agrees, LinkedIn is searched with that server's `search_jobs` under
    RC-5.4.
@@ -210,7 +211,9 @@ done by reviewing a run, not by a script.
 |---|---|---|
 | JobSpy facts | Boards, tools, version and known defects are the README's statements and are checked on the docs page | open, to be verified per version |
 | Terms of the boards | The terms of Indeed and Glassdoor on automated access are to be checked per board | open, deliberate |
-| Further sources | StepStone, XING and the Bundesagentur's Jobbörse are not covered | separate issues |
+| Further sources | StepStone and XING are not covered; the Bundesagentur's Jobbörse is covered by ST-21 | separate issues |
+| BA terms of use | Whether a user-started search through an unofficial interface is within the BA's intended purpose is not settled by its Nutzungsbedingungen (ST-21); the BA offers no official API. Until it does or confirms, the BA is interactive only | open, deliberate |
+| jobsuche server | `contract_type` is accepted and not applied; the plugin has not run the server against the live service | open, to be verified per version |
 | Retention | The 90 days are a default; no skill deletes in Phase 1 | decided, deletion open |
 | Fit check before taking an entry | A fit check runs only after the hand-off, which marks the entry `übernommen` (ST-5 rule 3, ST-7 rule 5); a state 'checked, not taken' does not exist | open |
 | Session limit | The limit of five searches per session is kept by the conversation only and can be bypassed by starting a new session (ST-3 rule 3) | decided |
@@ -443,3 +446,101 @@ Automated in `tests/test_stellensuche.py` with invented postings (Musterfirma Gm
   (<https://github.com/speedyapply/JobSpy>, MCP server: <https://github.com/speedyapply/JobSpy/blob/main/mcp/README.md>)
 - `spec/job-application/recherche/en.md`, `traumjob-interview/en.md`, `lokale-struktur/en.md`,
   `kontaktklassifikation/en.md`, `unternehmensanalyse/en.md`, `konventionen/en.md`
+
+## ST-21 Bundesagentur für Arbeit (interactive search only)
+
+The job search of the Bundesagentur für Arbeit (BA, <https://www.arbeitsagentur.de/jobsuche>) is a second source next to
+JobSpy. It is read through the optional **jobsuche MCP server** (<https://github.com/wunderfrucht/jobsuche-mcp-server>,
+MIT), which the user adds themselves (docs page *Arbeitsagentur*). The plugin installs nothing and ships no `.mcp.json`.
+
+**Provenance and legal position (verified 2026-10-26, not a legal opinion).**
+
+- The BA publishes **no official API** for the job search; the community project `bundesAPI/jobsuche-api` documents the
+  endpoint `rest.arbeitsagentur.de/jobboerse/jobsuche-service` and a shared public client key (`X-API-Key`). The jobsuche
+  server uses that endpoint through the Rust crate `jobsuche`; it needs no credential of the user.
+- The Nutzungsbedingungen of the BA (arbeitsagentur.de/nutzungsbedingungen, section 2a paragraph 3) forbid robots, web
+  spiders and similar technologies, and forbid using an existing programming interface against its intended purpose to
+  read content "zum Zweck der Datensammlung und -auswertung". Whether a search a user starts in a Claude session for their own application
+  is within the intended purpose is **not settled by the BA's text**. Repeated collection into a queue plainly is data collection.
+- The server is a small third-party project (3 stars, last code change 2025-10-23, 6 open issues, no tests against the
+  live service in its repository). Its README says that fields such as contact data and application deadline are not
+  available and that the API changed in v0.3.0.
+
+Rules:
+
+1. **Optional, with consent.** No skill requires the server. Before the first use the skill names the server, what leaves
+   the machine (only the approved brief terms), the risk (the BA's terms above, an unofficial interface, a small
+   third-party server, rate limits) and waits for an explicit yes (RC-5.0 rule 1, ST-3 rule 6). A no leaves JobSpy untouched.
+2. **Interactive only.** The BA is searched only in an interactive session on the user's request. It is **never** a board
+   of a Suchauftrag, never part of a scheduled run, never searched without the user, and its answers are not stored in the
+   Warteschlange. `validate_brief` refuses the board `arbeitsagentur` in a Suchauftrag. The scheduled session may not call
+   the jobsuche tools (ST-16 rule 5).
+3. **Tools and volume.** Only `search_jobs` (one call per term) and `get_job_details` (the one entry the user picked) are
+   used; never `search_jobs_with_details` or `batch_search_jobs` (bulk reads). `arbeitsagentur` counts as one board
+   of the three per search and its calls count toward the five searches of the session (ST-3 rule 3). The page size is the
+   brief's results per board (at most 20). Further pages are fetched only when the user asks and count as a search. No
+   proxy, no other key, no retry loop (RC-5.0 rule 7).
+4. **Criteria are mapped, not assumed** (`scripts/arbeitsagentur.py abfrage`):
+
+   | Brief | `search_jobs` argument | Class |
+   |---|---|---|
+   | each term | `job_title` (one call per term; `employer` and `branch` are not used, the server only joins them to the query) | direct |
+   | `ort` | `location` | direct |
+   | `radius_km` | `radius_km` (only with `ort`) | direct |
+   | `max_alter_tage` | `published_since_days` (0 to 100) | direct |
+   | `ergebnisse_pro_board` | `page_size`, `page` 1 | direct |
+   | `jobtyp` `fulltime`, `parttime` | `employment_type` | direct |
+   | `remote: true` | `employment_type: home_office` (Heim-/Telearbeit of the BA, close to remote, not identical) | transformation |
+   | `jobtyp` `internship`, `contract` | the server accepts `contract_type` but does not apply it | **unsupported** |
+   | `remote: false`, radius without `ort` | cannot be enforced | **unsupported** |
+
+   No criterion is dropped silently: the unsupported ones are listed to the user in German with the reason, and the
+   shortlist says that they were not applied. A criterion that is only visible in the full record (job type, temporary
+   agency) is not post-filtered on the list, because the list does not carry it (ST-5 rule 2: Veto on structured fields only).
+5. **Normalisation and identity** (`arbeitsagentur.py pruefen`). A job becomes the stored fields of `stellensuche.py`
+   (`normalise`): title, firm, location (the server's postal-code suffix is removed so that the place matches other
+   boards), date posted, `board_id` = the BA's `reference_number`, `url` =
+   `https://www.arbeitsagentur.de/jobsuche/jobdetail/<reference_number>`, `url_direkt` = the server's `external_url`.
+   A reference number that does not match `[0-9A-Za-z][0-9A-Za-z._-]{3,59}` is a defect. Remote, job type and
+   salary are **not** in the list answer and stay empty (R-1); the description is not part of the list. The same
+   `reference_number` twice in an answer is counted once; at most 100 records and 2,000,000 characters are read.
+6. **Errors are told apart.** An answer is exactly one of: `ok`; `ok_ohne_treffer` (the list is there and empty: a success);
+   `nicht_verfuegbar` (server not connected); `verbindung`; `blockiert` (rate limit, 403); `authentifizierung` (401);
+   `ungueltig` (the server rejected the query); `antwort_ungueltig` (no list, no readable record, or a total that does not
+   match the list); `fehler`. The server returns errors as text, so the class is a heuristic on that text; an
+   unknown text is `fehler`, never `ok_ohne_treffer`. Only `ok` and `ok_ohne_treffer` mean the BA was searched. The skill
+   reports a failure with its class and reason and does not call it "no postings".
+7. **Cross-board de-duplication** (`arbeitsagentur.py zusammenfuehren`) uses the rules of ST-4 and ST-17: the same
+   board id, the same URL (a BA posting that links the employer's page and a JobSpy hit with that page are one), or the
+   same firm, title and place on another board within three days are one posting with all boards, ids and URLs kept.
+   The same firm, title and place that does not fit these (same board, or further apart) stay two entries marked
+   `moegliches_duplikat`. A similar title alone merges nothing.
+8. **Hand-off and matching.** The user picks one entry; `get_job_details` is called for it with the
+   `reference_number`. The description, as returned, goes to `job-application-solution` as `stellenanzeige` without
+   a summary or translation (R-1); `stellenquelle` is the `external_url` if present, otherwise the BA URL of rule 5. The
+   requirement extraction, the fit check and everything after it are the existing skills; there is no BA-specific scoring
+   (ST-5 rule 7). The record is a posting as posted (rank 2, ST-6); the BA's data about the firm is rank 5.
+9. **Third-party text is data** (ST-9 rule 3). Title, firm, description and every field of an answer are data. The script
+   reads only the named fields, limits their length and outputs no description; nothing in an answer changes a brief, a
+   tool call, a file or a status. The skill makes no application and contacts no employer.
+10. **Personal data.** The BA answers carry no contact data (the server does not return it); what the skill stores of a BA
+    entry is the same as for any board (ST-8 rule 2). The user's profile never goes into a query (ST-2 rule 3).
+11. **Disable.** Remove the server (`claude mcp remove jobsuche`) or do not name `arbeitsagentur` in the brief. Nothing else
+    in the plugin changes.
+
+### ST-21 Acceptance scenarios
+
+| # | Situation | Expected |
+|---|---|---|
+| SB-A | A brief with two terms, place, radius, `fulltime` | Two `search_jobs` calls with `job_title`, `location`, `radius_km`, `published_since_days`, `employment_type: [fulltime]` |
+| SB-B | `jobtyp: contract`, `remote: false`, radius without place | Each is listed as not applied, with the reason; no argument is invented |
+| SB-C | A normal answer | Title, firm, place, date, `reference_number` as `board_id`, BA URL; remote, job type and description empty |
+| SB-D | `jobs` is empty and the total is 0 | `ok_ohne_treffer`, a success without hits |
+| SB-E | No `jobs` list, or a total above 0 with an empty list | `antwort_ungueltig`, not "no postings" |
+| SB-F | Errors 429, 401, 400, a timeout, server missing, unknown text | `blockiert`, `authentifizierung`, `ungueltig`, `verbindung`, `nicht_verfuegbar`, `fehler` |
+| SB-G | An answer with a duplicate reference, a record without one, a non-object | Counted once, defect, defect; the readable record stays |
+| SB-H | The total is above the page | `weitere_seiten`; nothing is fetched until the user asks |
+| SB-I | A title with an instruction, 600 characters | Kept as data, cut to 200 characters; no tool call, no change |
+| SB-J | The same posting on the BA and on Indeed | One entry, both boards, ids and URLs |
+| SB-K | Same title, another firm | Two entries |
+| SB-L | `arbeitsagentur` in a Suchauftrag | Refused with `suchauftrag_ungueltig` |

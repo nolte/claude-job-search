@@ -160,7 +160,7 @@ Laut README verhalten sich die Börsen bei einer Suche im deutschsprachigen Raum
 | ZipRecruiter | USA und Kanada: gilt nicht |
 | Bayt, Naukri, BDJobs, HelloWork | Andere Regionen (Naukri: Indien, BDJobs: Bangladesch, HelloWork: Frankreich): gelten nicht für DACH |
 
-**Nicht abgedeckt:** StepStone, XING und die Jobbörse der Bundesagentur für Arbeit. Eine Suche
+**Nicht abgedeckt:** StepStone und XING. Die Jobbörse der Bundesagentur für Arbeit ist eine eigene Quelle, nur interaktiv: siehe [Arbeitsagentur](arbeitsagentur.md). Eine Suche
 über JobSpy übersieht deshalb viele deutsche Anzeigen. Sieh die Shortlist als Ausschnitt des
 Marktes, nicht als dessen Gesamtheit.
 
