@@ -164,7 +164,7 @@ class ClassificationTests(Base):
     def test_each_mail_type_is_recognised_from_its_wording(self):
         faelle = {"eingangsbestaetigung": "Wir bestätigen den Eingang Ihrer Bewerbung.", "einladung": "Wir laden Sie zum Vorstellungsgespräch ein.",
                   "absage": "Leider müssen wir Ihnen eine Absage erteilen.", "angebot": "Anbei unser Vertragsangebot.",
-                  "rueckfrage": "Bitte senden Sie uns noch Ihre Zeugnisse.", "zusage": "Herzlich willkommen im Team!",
+                  "rueckfrage": "Wir haben noch eine Rückfrage zu Ihren Angaben.", "unterlagen_anfrage": "Bitte senden Sie uns noch Ihre Zeugnisse.", "zusage": "Herzlich willkommen im Team!",
                   "gespraechsfeedback": "Vielen Dank für das Gespräch, hier unser Feedback zum Gespräch."}
         for erwartet, text in faelle.items():
             self.assertEqual(self.klasse("Ihre Bewerbung", text)[0], erwartet, text)

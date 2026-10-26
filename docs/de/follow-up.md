@@ -82,6 +82,42 @@ Nachrichten, Bewerbungen ohne Antwort nach deinem `nachfass_tage`). Jeder hat Qu
 dir vorlegen (`vorlegen`) und entscheidest mit `--ja`. Die Annahme ändert **keine Datei**: Datengrundlage und `profil.md` änderst nur du, in
 `job-application-cv-maintain`, mit Beleg.
 
+## Nachrichten von Arbeitgebern: Import, Angaben, Antwortentwürfe (R-02)
+
+Spec: `spec/job-application/mail-verwaltung/en.md` MV-28 bis MV-36. **Nichts hiervon sendet eine Nachricht an einen Arbeitgeber.** Es gibt keinen Gmail-Connector und keinen Versandadapter.
+
+**Import.** Speichere Mails als `.eml`-Dateien und starte `task mail-import -- <Ordner> > nachrichten.json`, danach `task communication -- verarbeiten --nachrichten nachrichten.json`. Der Import liest nur Dateien. Die Kennung ist die `Message-ID`
+(oder ein stabiler Hash, wenn es keine gibt), eine Mail ohne gültigen `Date`-Header wird nicht importiert, Anhänge werden nie geöffnet oder gespeichert (ein riskanter Dateityp steht als gesperrt in der Liste), und eine Datei, die sich nicht lesen lässt, wird mit
+Klasse und ohne Inhalt gemeldet. Dieselbe Mail zweimal ist ein Datensatz. `verarbeiten --erneut` liest Nachrichten, die nur vorgeschlagen sind, noch einmal (etwa nach einem neuen Vorgang) und behält deine manuelle Zuordnung.
+
+**Typen und Angaben.** Neben Einladung, Angebot, Absage, Rückfrage und Eingangsbestätigung kennt das Skript Terminvorschlag, -bestätigung, -verschiebung und -absage, Bitte um Unterlagen, Eingang von Unterlagen, Zwischenstand und Rückfrage zum Angebot. Passen zwei Typen,
+wird nicht geraten: nur in den aufgelisteten Fällen gewinnt der speziellere, sonst entscheidest du. Das Skript liest außerdem Termin, Frist, Format, Kontaktperson, angeforderte Unterlagen und Referenznummer mit dem Satz, aus dem sie stammen. Ein Datum ohne Jahr, eine Uhrzeit
+ohne Zeitzone oder „nächsten Dienstag“ ist `unsicher` und wird nie in ein Datum umgerechnet. Nichts wird von selbst übernommen:
+
+```bash
+task communication -- bestaetigen m1 --hash <hash> --ja --uebernehmen termin,kontakt_name --frist-aus-nachricht --termin-aus-nachricht
+```
+
+Eine `unsicher`e Angabe braucht `--trotz-unsicherheit`. Eine Frist, die der Arbeitgeber nennt, wird eine Wiedervorlage mit `arbeitgeber_frist`; ein vom Arbeitgeber vorgeschlagener Termin wird dein eigener Planungspunkt, markiert als noch nicht zugesagt.
+Bei einer unklaren Nachricht zeigt `zeige`, was offen ist.
+
+**Antwortentwürfe.** Nur für eine Nachricht, deren Zuordnung du bestätigt hast.
+
+```bash
+task reply -- anlegen m1 --an personal@musterfirma.example --vorlage termin_bestaetigen    # oder --text-datei antwort.txt
+task reply -- zeige musterfirma-backend antwort-01.md       # Zustand, Text, offene Punkte, Versionen
+task reply -- aendern musterfirma-backend antwort-01.md --text-datei neu.txt    # eine neue Version
+task reply -- vorlegen musterfirma-backend antwort-01.md    # danach: task workflow -- starten / laufen
+task workflow -- freigeben nachricht_senden:musterfirma-backend:antwort-01.md --ja
+```
+
+Eine Vorlage nutzt nur Angaben, die du übernommen hast; alles andere bleibt `[ERGÄNZEN: …]` (deine Antwort, deine Verfügbarkeit, dein Name), und ein Entwurf mit offener Stelle lässt sich nicht vorlegen. Den Empfänger gibst du selbst an; es ist genau eine Adresse auf der Domain
+des Absenders, außer du sagst `--abweichender-empfaenger`. Die Freigabe im Workflow gilt für die ganze Entwurfsdatei: Eine Änderung an Text, Empfänger, Betreff oder Kanal macht sie ungültig. Zustände: `entwurf`, `wartet_auf_freigabe`, `freigegeben`, `abgelehnt`, `gesendet`,
+`versand_fehlgeschlagen`, `versand_unklar`, `verworfen`. Jeder Schritt steht als Ereignis (`antwort_*`) im Verlauf des Vorgangs.
+
+**Senden.** Ohne Adapter antwortet `workflow.py ausfuehren` mit `kein_adapter`, und ein freigegebener Entwurf bleibt ein freigegebener Entwurf. `antwort.adapter(wurzel, anbieter)` ist die abgesicherte Funktion, die eine Anbindung registrieren kann: Sie sendet nur die freigegebene
+Datei, genau einmal, und meldet Erfolg nur mit einer Kennung des Anbieters. Getestet ist sie nur mit einem simulierten Anbieter; eine echte Mail-Anbindung (OAuth mit dem engsten Umfang, Geheimnisse außerhalb des Repositorys) baust und prüfst du selbst.
+
 ## Grenzen
 
 - Es werden weder ein Gmail-Connector noch ein Versandadapter mitgeliefert; die Schnittstelle ist die JSON-Liste und die Freigabeaufgabe `nachricht_senden`.

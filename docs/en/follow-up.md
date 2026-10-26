@@ -80,9 +80,45 @@ checked, applications without a reply after your `nachfass_tage`). Each has sour
 (`vorlegen`), then decide with `--ja`. Accepting a proposal changes **no file**: your Datengrundlage and `profil.md` change only through you, in
 `job-application-cv-maintain`, with evidence.
 
+## Employer messages: import, facts, reply drafts (R-02)
+
+Spec: `spec/job-application/mail-verwaltung/en.md` MV-28 to MV-36. **Nothing here sends a message to an employer.** No Gmail connector and no send adapter ship.
+
+**Import.** Save mails as `.eml` files and run `task mail-import -- <folder> > nachrichten.json`, then `task communication -- verarbeiten --nachrichten nachrichten.json`. The importer reads files only; the id is the
+`Message-ID` (or a stable hash when there is none), a mail without a valid `Date` is not imported, attachments are never opened or stored (a risky file type is listed as blocked), and a file it cannot read is reported with a class and no content.
+The same mail twice is one record. `verarbeiten --erneut` reads messages that are still only proposed again (after a new Vorgang, say) and keeps your manual assignment.
+
+**Types and facts.** Besides invitation, offer, refusal, query and receipt the script knows appointment proposal, confirmation, shift and cancellation, request for documents, receipt of documents, interim status and a query about an offer. Two matching types
+are not guessed: the more specific one wins only in the listed cases, otherwise the mail goes to you. The script also reads appointment, deadline, format, contact person, requested documents and reference number with the sentence they come from. A date without a year,
+a time without a time zone or "nächsten Dienstag" is marked `unsicher` and never turned into a date. Nothing is taken over by itself:
+
+```bash
+task communication -- bestaetigen m1 --hash <hash> --ja --uebernehmen termin,kontakt_name --frist-aus-nachricht --termin-aus-nachricht
+```
+
+An `unsicher` fact needs `--trotz-unsicherheit`. A deadline the employer named becomes a Wiedervorlage marked `arbeitgeber_frist`; an appointment the employer proposed becomes your own planning item, marked as not yet accepted.
+When a message is unclear, `zeige` lists what is still open.
+
+**Reply drafts.** Only for a message whose assignment you confirmed.
+
+```bash
+task reply -- anlegen m1 --an personal@musterfirma.example --vorlage termin_bestaetigen    # or --text-datei antwort.txt
+task reply -- zeige musterfirma-backend antwort-01.md       # state, text, open points, versions
+task reply -- aendern musterfirma-backend antwort-01.md --text-datei neu.txt    # a new version
+task reply -- vorlegen musterfirma-backend antwort-01.md    # then: task workflow -- starten / laufen
+task workflow -- freigeben nachricht_senden:musterfirma-backend:antwort-01.md --ja
+```
+
+A template uses only facts you took over; everything else stays `[ERGÄNZEN: …]` (your answer, your availability, your name), and a draft with an open point cannot be presented. The recipient is typed by you, must be one address, and must be on the
+sender's domain unless you say `--abweichender-empfaenger`. The approval of the workflow is bound to the whole draft file, so a change of text, recipient, subject or channel voids it. States: `entwurf`, `wartet_auf_freigabe`, `freigegeben`, `abgelehnt`, `gesendet`,
+`versand_fehlgeschlagen`, `versand_unklar`, `verworfen`. Every step is an event in the history of the Vorgang (`antwort_*`).
+
+**Sending.** Without an adapter, `workflow.py ausfuehren` answers `kein_adapter` and an approved draft stays an approved draft. `antwort.adapter(wurzel, anbieter)` is the guarded function an integration can register: it sends only the approved file, once, and reports success only
+on an id from the provider. It is tested with a simulated provider only; a real mail integration (OAuth with the narrowest scope, secrets outside the repository) is yours to build and review.
+
 ## Limits
 
-- No Gmail connector and no send adapter ship; the interface is the JSON list and the approval task `nachricht_senden`.
+- No Gmail connector and no send adapter ship; the interfaces are the JSON list (and the local `.eml` import) and the approval task `nachricht_senden`. A send is tested only with a simulated provider.
 - Mail types and reasons are found by fixed German patterns; unusual wording is `unbekannt` and needs your decision.
 - The document version of a Vorgang is unambiguous only with a current `qualitaet.json` and named attachments in `vorgang.md`.
 - Runs start when you ask; the plugin sets no timer.

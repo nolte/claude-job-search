@@ -26,6 +26,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import antwort as aw  # noqa: E402
 import grundlage_hash as gh  # noqa: E402
 import kommunikation as km  # noqa: E402
 import lernen as lr  # noqa: E402
@@ -261,7 +262,7 @@ TYPEN = {
                           abschluss=a_wiedervorlage, zweck="Wiedervorlage bearbeiten (erzeugt keine Nachricht)"),
     "lernvorschlag_pruefen": dict(ausfuehrung="nutzer", skill="job-application-follow-up (lernen.py vorschlag)", prio=2,
                                   abschluss=a_lernvorschlag, zweck="Verbesserungsvorschlag prüfen und entscheiden"),
-    "nachricht_senden": dict(ausfuehrung="adapter", skill="Versandadapter (A-02, nicht ausgeliefert)", prio=4, extern=True,
+    "nachricht_senden": dict(ausfuehrung="adapter", skill="Versandadapter (nicht ausgeliefert; `antwort.adapter` ist die Vorlage, R-02)", prio=4, extern=True,
                              freigabe=True, inhalt=lambda w, t: hash_von(w, t["bezug"]["vorgang"], [t["bezug"].get("datei", "-")]),
                              zweck="Nachricht senden (nur mit Adapter und gültiger Freigabe)"),
 }
@@ -417,6 +418,17 @@ def braucht_freigabe(task):
     return bool(katalog.get("freigabe") or katalog.get("nur_freigabe"))
 
 
+def protokolliere(w, task, art, now, detail="", von="system"):
+    """Record a step of a message to an employer in the R-01 history (R-02). A failure to record shows in the task and never changes the step."""
+    datei = task["bezug"].get("datei", "")
+    if task["typ"] != "nachricht_senden" or not aw.DATEI.fullmatch(datei):
+        return
+    try:
+        aw.ereignis(w, task["bezug"]["vorgang"], art, datei, now, detail, von)
+    except Refused as error:
+        verlauf(task, now, f"Ereignis {art} nicht erfasst: {error.code}")
+
+
 def freigabe_gueltig(w, task):
     """True when no approval is needed, or the approval of the user covers exactly the content as it is now (WF-7)."""
     if not braucht_freigabe(task):
@@ -453,6 +465,7 @@ def erledige(w, task, now, text, ref=None, hash_wert=None):
     task["lease"], task["veraltet"], task["halt"], task["naechster_versuch"] = None, False, "", ""
     task["extern_begonnen"] = ""  # the outcome is known now
     schliesse_versuch(task, now, "ok")
+    protokolliere(w, task, "antwort_versendet", now, "Beleg " + redact(str((task["ergebnis"] or {}).get("hash", ""))[:12], 20), "system")
 
 
 def beende_laufenden(task, now, grund):
@@ -710,6 +723,8 @@ def plane_nachverfolgung(w, daten, now, anlegen):
             versand = f"versand:{slug}"
             anlegen("rueckmeldung_pruefen", {"vorgang": slug}, now, nach=[versand] if versand in daten["aufgaben"] else [],
                     suffix=f"n{zahl('rueckmeldung_pruefen', 'vorgang', slug) + 1}")
+        for datei in aw.vorgelegt(w, slug):  # a draft the user presented for approval becomes the task that asks for it (R-02); it sends nothing
+            anlegen("nachricht_senden", {"vorgang": slug, "datei": datei}, now)
         for eintrag in km.faellige_wiedervorlagen(w, slug, now):
             anlegen("wiedervorlage", {"vorgang": slug}, now, ab=eintrag["faellig"], faellig=eintrag["faellig"], suffix=eintrag["id"])
     try:
@@ -913,6 +928,7 @@ def freigeben(w, daten, task_id, now):
         raise Refused("nichts_zu_genehmigen", "Es gibt keinen Inhalt, den die Freigabe abdecken könnte")
     task["entscheidung"] = {"art": "erteilt", "kontext_hash": aktuell, "am": stamp(now), "von": "nutzer"}
     verlauf(task, now, "Freigabe erteilt für Inhalt " + aktuell[:12])
+    protokolliere(w, task, "antwort_freigegeben", now, "Freigabe für Inhalt " + aktuell[:12], "nutzer")
     bewerte(w, daten, task, now)
     return {"ok": True, "aufgabe": task_id, "status": task["status"], "inhalt": aktuell[:12]}
 
@@ -923,6 +939,7 @@ def ablehnen(w, daten, task_id, grund, now):
         raise Refused("nicht_wartend", f"{task_id} wartet nicht auf eine Freigabe")
     task["entscheidung"] = {"art": "abgelehnt", "kontext_hash": TYPEN[task["typ"]]["inhalt"](w, task), "am": stamp(now),
                             "von": "nutzer", "grund": redact(grund)}
+    protokolliere(w, task, "antwort_abgelehnt", now, redact(grund, 100), "nutzer")
     bewerte(w, daten, task, now)
     return {"ok": True, "aufgabe": task_id, "status": task["status"]}
 
@@ -955,6 +972,7 @@ def ausfuehren(w, daten, task_id, now):
             raise TypeError("Antwort des Adapters ist kein Objekt")
     except Exception as error:  # the outcome of an external action is unknown after an exception or an answer that cannot be read
         versuch_endet(daten, task, now, "unklar", f"Adapter: {type(error).__name__}")
+        protokolliere(w, task, "antwort_versand_fehlgeschlagen", now, "Ausgang unklar (Ausnahme des Adapters)")
         return {"ok": False, "aufgabe": task_id, "status": task["status"], "hinweis": task["hinweis"]}
     if antwort.get("gesendet"):
         erledige(w, task, now, "Adapter meldet: gesendet", ref="beleg", hash_wert=digest(str(antwort.get("beleg", ""))))
@@ -962,6 +980,7 @@ def ausfuehren(w, daten, task_id, now):
     if antwort.get("sicher"):
         task["extern_begonnen"] = ""  # the adapter is sure nothing left: this is a plain failure, not an unclear outcome
     versuch_endet(daten, task, now, "vorlaeufig" if antwort.get("sicher") else "unklar", "Adapter meldet: nicht gesendet")
+    protokolliere(w, task, "antwort_versand_fehlgeschlagen", now, redact(antwort.get("grund") or "Adapter meldet: nicht gesendet", 120))
     return {"ok": False, "aufgabe": task_id, "status": task["status"], "hinweis": task["hinweis"]}
 
 

@@ -177,7 +177,8 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    changed between the check and the call, it refuses. That check belongs to the adapter, because the workflow cannot see it.
 6. **No adapter ships.** `ausfuehren` answers `kein_adapter`. Sending an application and every message stays the user's
    (LS-6 rule 4); the type `versand` is observed, never executed. The adapter interface is the place A-02 plugs in; until
-   then the overview lists such tasks under *Noch nicht integriert*.
+   then the overview lists such tasks under *Noch nicht integriert*. `antwort.adapter` (mail-verwaltung MV-34) is the guarded form of such an adapter for
+   `nachricht_senden`; it is not registered by the plugin.
 7. **Nothing else sends.** Creating documents, a passed quality gate, a draft, a due date and a general instruction to
    automate the process are no approval and no authority to send, to answer an employer, to give a salary, to confirm an
    appointment or to pass on personal data.
