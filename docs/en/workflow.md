@@ -46,15 +46,18 @@ python3 <plugin>/scripts/workflow.py laufen          # or: task workflow -- lauf
    ready.
 2. **See what is next:** `workflow.py naechste`, or open `workflow/uebersicht.md` in your vault. It lists what is ready for an
    agent, what is ready for you, what waits for your approval or for information, what failed and what is overdue.
-3. **An agent does a step:** Claude runs `uebernehmen analyse:musterfirma-backend`, does the work with the named skill, then
-   `fertig analyse:musterfirma-backend`. If the result is not in the files, that counts as a failed attempt and is retried
-   after 5, 30 and 180 minutes, three attempts at most.
+3. **An agent does a step:** Claude runs `uebernehmen analyse:musterfirma-backend` (it answers with an attempt number), does the
+   work with the named skill, then `fertig analyse:musterfirma-backend --versuch 1`. If the result is not in the files, that counts
+   as a failed attempt and is retried after 5, 30 and 180 minutes, three attempts at most. If the agent needs something from you
+   (information, an approval, a permission), it reports `fehler ... --klasse eingabe` (or `freigabe`, `berechtigung`, `qualitaet`):
+   the task then waits until you run `workflow.py weiter <aufgabe>`.
 4. **Approve the documents to send:** after the quality gate, `workflow.py freigeben versand_freigabe:musterfirma-backend --ja`.
    The approval covers exactly the documents as they are now. If you change one, it expires and the send step is held again.
    Sending is yours: you send, then enter `versendet` and `versendet_am` in `vorgang.md`; the next check closes `versand`.
 5. **Look into a failure:** `workflow.py zeige <aufgabe>` shows the attempts, the error class, the reason and the history.
    `workflow.py wiederholen <aufgabe>` lets a failed task try again.
-6. **Cancel:** `workflow.py abbrechen musterfirma-backend` ends all open tasks of that Vorgang.
+6. **Cancel:** `workflow.py abbrechen musterfirma-backend` ends all open and failed tasks of that Vorgang. A cancelled or failed
+   search task is not replaced by itself; `laufen` lists it under `nicht_ersetzt` (retry with `wiederholen`, or pause the Suchauftrag).
 7. **Limits:** `workflow.py grenzen` shows them, `workflow.py grenzen laufende_max=1 neu_max_je_lauf=5` changes them within
    fixed bounds. Defaults: 2 tasks running at once, 10 new tasks per run, 200 tasks in total, a lease of 60 minutes, 3 attempts.
 
@@ -77,7 +80,7 @@ Until you set something like this up, nothing runs by itself. Calling `laufen` t
 - If a send step is ever done by an adapter and its outcome is unclear (an error, a crash), the task asks you instead of
   trying again. You answer with `workflow.py ausgang <aufgabe> --gesendet` or `--nicht-gesendet`. No adapter ships today.
 - An unattended session (a scheduled run) may plan and look, and may take, finish or fail agent tasks. It may not approve, cancel,
-  create or change anything else; those commands answer `nur_interaktiv`. Set `WORKFLOW_UNBEAUFSICHTIGT=1` for such sessions.
+  create or change anything else, and may not lift a hold (`weiter`); those commands answer `nur_interaktiv`. Set `WORKFLOW_UNBEAUFSICHTIGT=1` for such sessions.
 - A posting is data. Its text never becomes a task, a type, a limit or an approval.
 - Error reasons are shortened and credentials are replaced by `[entfernt]`.
 
@@ -93,7 +96,7 @@ Until you set something like this up, nothing runs by itself. Calling `laufen` t
 
 ## Verification
 
-`python3 -m unittest tests.test_workflow` (57 tests, no network, no model): statuses and transitions, dependencies and cycles,
+`python3 -m unittest tests.test_workflow` (67 tests, no network, no model): statuses and transitions, dependencies and cycles,
 restart and damaged stores, idempotence and racing sessions, approvals and the adapter gate, errors and retries, the schedule
 and the limits, the chain from a posting to a sent application, and the security cases. Not verified: a real adapter (none
 exists) and a long-running schedule on a real machine.

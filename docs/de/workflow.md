@@ -49,16 +49,20 @@ python3 <plugin>/scripts/workflow.py laufen          # oder: task workflow -- la
 2. **Sehen, was als Nächstes ansteht:** `workflow.py naechste`, oder `workflow/uebersicht.md` im Vault öffnen. Die Übersicht
    nennt, was für einen Agenten bereit ist, was für dich bereit ist, was auf deine Freigabe oder auf Angaben wartet, was
    fehlgeschlagen und was überfällig ist.
-3. **Ein Agent erledigt einen Schritt:** Claude ruft `uebernehmen analyse:musterfirma-backend` auf, arbeitet mit dem genannten
-   Skill und meldet `fertig analyse:musterfirma-backend`. Steht das Ergebnis nicht in den Dateien, zählt das als
-   fehlgeschlagener Versuch und wird nach 5, 30 und 180 Minuten wiederholt, höchstens dreimal.
+3. **Ein Agent erledigt einen Schritt:** Claude ruft `uebernehmen analyse:musterfirma-backend` auf (die Antwort nennt eine
+   Versuchsnummer), arbeitet mit dem genannten Skill und meldet `fertig analyse:musterfirma-backend --versuch 1`. Steht das
+   Ergebnis nicht in den Dateien, zählt das als fehlgeschlagener Versuch und wird nach 5, 30 und 180 Minuten wiederholt,
+   höchstens dreimal. Braucht der Agent etwas von dir (Angaben, eine Freigabe, eine Berechtigung), meldet er `fehler ... --klasse
+   eingabe` (oder `freigabe`, `berechtigung`, `qualitaet`): Die Aufgabe wartet dann, bis du `workflow.py weiter <aufgabe>` aufrufst.
 4. **Unterlagen zum Versand freigeben:** nach dem Qualitätscheck `workflow.py freigeben versand_freigabe:musterfirma-backend
    --ja`. Die Freigabe gilt genau für die Unterlagen, wie sie jetzt sind. Änderst du eine, verfällt sie und der Versandschritt
    ist wieder gehalten. Das Senden ist deins: Du sendest und trägst `versendet` und `versendet_am` in `vorgang.md` ein; die
    nächste Prüfung schließt `versand`.
 5. **Einen Fehler untersuchen:** `workflow.py zeige <aufgabe>` zeigt Versuche, Fehlerklasse, Grund und Verlauf. `workflow.py
    wiederholen <aufgabe>` lässt eine fehlgeschlagene Aufgabe neu versuchen.
-6. **Abbrechen:** `workflow.py abbrechen musterfirma-backend` beendet alle offenen Aufgaben dieses Vorgangs.
+6. **Abbrechen:** `workflow.py abbrechen musterfirma-backend` beendet alle offenen und fehlgeschlagenen Aufgaben dieses Vorgangs.
+   Eine abgebrochene oder fehlgeschlagene Suchaufgabe wird nicht von selbst ersetzt; `laufen` nennt sie unter `nicht_ersetzt`
+   (mit `wiederholen` neu versuchen oder den Suchauftrag pausieren).
 7. **Grenzen:** `workflow.py grenzen` zeigt sie, `workflow.py grenzen laufende_max=1 neu_max_je_lauf=5` ändert sie in festen
    Schranken. Standard: 2 Aufgaben gleichzeitig, 10 neue Aufgaben je Lauf, 200 Aufgaben insgesamt, 60 Minuten Lease, 3 Versuche.
 
@@ -83,7 +87,7 @@ Solange du so etwas nicht eingerichtet hast, läuft nichts von selbst. Zweimal `
   Aufgabe dich, statt es erneut zu versuchen. Du antwortest mit `workflow.py ausgang <aufgabe> --gesendet` oder
   `--nicht-gesendet`. Heute wird kein Adapter mitgeliefert.
 - Eine unbeaufsichtigte Sitzung (ein geplanter Lauf) darf planen und ansehen sowie Agentenaufgaben übernehmen, abschließen oder
-  als fehlgeschlagen melden. Alles andere darf sie nicht anlegen, freigeben, abbrechen oder ändern; diese Befehle antworten
+  als fehlgeschlagen melden. Alles andere darf sie nicht anlegen, freigeben, abbrechen oder ändern und keinen Halt aufheben (`weiter`); diese Befehle antworten
   `nur_interaktiv`. Setze für solche Sitzungen `WORKFLOW_UNBEAUFSICHTIGT=1`.
 - Eine Anzeige ist Daten. Ihr Text wird nie zu einer Aufgabe, einem Typ, einer Grenze oder einer Freigabe.
 - Fehlergründe werden gekürzt, Zugangsdaten durch `[entfernt]` ersetzt.
@@ -101,7 +105,7 @@ Solange du so etwas nicht eingerichtet hast, läuft nichts von selbst. Zweimal `
 
 ## Prüfung
 
-`python3 -m unittest tests.test_workflow` (57 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
+`python3 -m unittest tests.test_workflow` (67 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
 Zyklen, Neustart und beschädigter Speicher, Idempotenz und konkurrierende Sitzungen, Freigaben und das Adaptertor, Fehler und
 Wiederholungen, Zeitplan und Grenzen, die Kette von der Anzeige bis zur versendeten Bewerbung und die Sicherheitsfälle. Nicht
 geprüft: ein echter Adapter (es gibt keinen) und ein langer Zeitplan auf einem echten Rechner.

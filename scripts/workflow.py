@@ -12,7 +12,7 @@ It runs no skill itself: an agent takes a ready task (`uebernehmen`), does the w
 State: `<wurzel>/workflow/aufgaben.json`; readable derivation: `<wurzel>/workflow/uebersicht.md`.
 
 Usage: workflow.py [--konfiguration PFAD] [--jetzt ISO] <befehl> ...
-Commands: wurzel, starten, abgleichen, laufen, naechste, uebernehmen, fertig, fehler, freigeben, ablehnen, ausfuehren,
+Commands: wurzel, starten, abgleichen, laufen, naechste, uebernehmen, fertig, fehler, weiter, freigeben, ablehnen, ausfuehren,
 ausgang, wiederholen, abbrechen, anlegen, zeige, uebersicht, grenzen.
 Output is one JSON object. Exit code 0 ok, 3 refused (`code` and `meldung`), 1 blocker. Standard library only.
 """
@@ -91,7 +91,8 @@ def hash_von(wurzel, vorgang, dateien):
 
 
 def heute(now):
-    return now.date().isoformat()
+    """The local date of the machine: the dates the user types (`ab`, `faellig`, `wiedervorlage`) are local dates."""
+    return now.astimezone().date().isoformat()
 
 
 def vorgang_dir(w, t):
@@ -127,7 +128,7 @@ def a_plan(w, t, now):
     meta, plan = meta_von(w, t), False
     if meta is not None:
         with open(os.path.join(vorgang_dir(w, t), "vorgang.md"), encoding="utf-8-sig", errors="replace") as handle:
-            plan = "## Plan" in handle.read()
+            plan = re.search(r"^## Plan\s*$", handle.read(), re.M) is not None
     return rang(meta) >= RANG["geplant"] and plan, "der Plan ist nicht freigegeben und gespeichert (Plan-Gate von job-application-solution)"
 
 
@@ -224,6 +225,14 @@ def store_path(wurzel):
 
 
 FELDER = {"id", "typ", "bezug", "status", "nach", "versuche", "entscheidung", "lease", "verlauf"}
+TYPEN_DER_FELDER = {"bezug": dict, "nach": list, "versuche": list, "verlauf": list}
+
+
+def standardwerte(task):
+    """Fields a task may lack (an older or hand-written file): filled with their defaults, never invented results."""
+    return {"hinweis": "", "erstellt": "", "geaendert": "", "epoch": 0, "ab": "", "faellig": "", "zweck": TYPEN[task["typ"]]["zweck"],
+            "prioritaet": TYPEN[task["typ"]]["prio"], "versuche_ab": 0, "letzter_fehler": None, "ergebnis": None, "eingaben": {},
+            "veraltet": False, "extern_begonnen": "", "naechster_versuch": "", "halt": ""}
 
 
 def lade(wurzel):
@@ -232,9 +241,17 @@ def lade(wurzel):
         raise Refused("speicher_ungueltig", "workflow/aufgaben.json hat kein bekanntes Format (version 1)")
     for task_id, task in daten["aufgaben"].items():
         if not isinstance(task, dict) or FELDER - set(task) or task["id"] != task_id or task["typ"] not in TYPEN \
-                or task["status"] not in STATUS:
+                or task["status"] not in STATUS or any(not isinstance(task[k], t) for k, t in TYPEN_DER_FELDER.items()) \
+                or not (task["lease"] is None or isinstance(task["lease"], dict) and "bis" in task["lease"]) \
+                or not all(isinstance(d, str) for d in task["nach"]):
             raise Refused("speicher_ungueltig", f"Die Aufgabe {redact(task_id, 60)} in workflow/aufgaben.json ist unvollständig oder unbekannt")
+        for feld, wert in standardwerte(task).items():
+            task.setdefault(feld, wert)
     daten["grenzen"] = {**DEFAULT_LIMITS, **daten.get("grenzen", {})}
+    try:
+        reihenfolge(daten)
+    except Refused as error:  # a dangling reference or a cycle in the file: stop before any command changes anything
+        raise Refused("speicher_ungueltig", error.meldung)
     return daten
 
 
@@ -282,7 +299,7 @@ def neue_aufgabe(daten, typ, bezug, now, nach=(), ab="", faellig="", suffix=""):
             "erstellt": stamp(now), "geaendert": stamp(now), "epoch": int(now.timestamp()), "ab": ab, "faellig": faellig,
             "prioritaet": katalog["prio"], "nach": list(nach), "versuche": [], "versuche_ab": 0, "letzter_fehler": None,
             "ergebnis": None, "eingaben": {}, "veraltet": False, "entscheidung": None, "lease": None,
-            "extern_begonnen": "", "naechster_versuch": "", "verlauf": []}
+            "extern_begonnen": "", "naechster_versuch": "", "halt": "", "verlauf": []}
     verlauf(task, now, "angelegt")
     daten["aufgaben"][task_id] = task
     try:
@@ -398,6 +415,8 @@ def bewerte(w, daten, task, now):
         return False
     if task["status"] == EINGABE and task["extern_begonnen"]:
         return False  # the outcome of an external action is unclear: only `ausgang` of the user resolves it, never time or a retry
+    if task["halt"] and task["status"] in (EINGABE, FREIGABE, BLOCKIERT):
+        return False  # an agent reported that it needs something: only the user's `weiter` lifts this, never the next reconciliation
     if task["status"] != LAEUFT:
         for dep in task["nach"]:  # a failed, blocked or cancelled step never releases what follows
             if tasks[dep]["status"] in (FEHLGESCHLAGEN, BLOCKIERT, ABGEBROCHEN):
@@ -466,6 +485,8 @@ def versuch_endet(daten, task, now, klasse, grund):
     extern = bool(TYPEN[task["typ"]].get("extern"))
     anzahl = len(task["versuche"]) - task["versuche_ab"]
     text = f"{klasse}: {redact(grund, 120)}"
+    if klasse in ("eingabe", "freigabe", "berechtigung", "qualitaet"):
+        task["halt"] = klasse  # stays until the user lifts it with `weiter`
     if klasse == "eingabe":
         setze(task, EINGABE, now, text, "Es fehlen Angaben: " + redact(grund, 160))
     elif klasse == "freigabe":
@@ -516,7 +537,7 @@ def kettenlaenge(w):
 
 def plane(w, daten, now):
     """Create what is due from the state that exists, within the budget per run. Executes nothing (WF-9)."""
-    budget, neu, zurueck = daten["grenzen"]["neu_max_je_lauf"], [], []
+    budget, neu, zurueck, uebersprungen = daten["grenzen"]["neu_max_je_lauf"], [], [], []
 
     def anlegen(*args, **kwargs):
         nonlocal budget
@@ -544,6 +565,11 @@ def plane(w, daten, now):
         offene_suchen = {t["bezug"]["auftrag"] for t in daten["aufgaben"].values() if t["typ"] == "suche" and t["status"] in OFFEN}
         for auftrag in ss.all_auftraege(w):
             if auftrag["id"] not in offene_suchen and ss.due(w, auftrag, now)[0]:
+                vorhanden = daten["aufgaben"].get(f"suche:{auftrag['id']}:n{auftrag['lauf_zaehler']}")
+                if vorhanden and vorhanden["status"] in (ABGEBROCHEN, FEHLGESCHLAGEN):
+                    # not replaced by itself: a cancelled search stays cancelled, a failed one waits for `wiederholen`
+                    uebersprungen.append(f"{vorhanden['id']}: {vorhanden['status']}")
+                    continue
                 anlegen("suche", {"auftrag": auftrag["id"], "zaehler": auftrag["lauf_zaehler"]}, now, suffix=f"n{auftrag['lauf_zaehler']}")
         for slug in sorted({t["bezug"].get("vorgang") for t in daten["aufgaben"].values()} - {None}):
             meta = ss.vorgang_meta(os.path.join(w, slug, "vorgang.md"))
@@ -554,7 +580,7 @@ def plane(w, daten, now):
         if error.code != "budget_erschoepft":
             raise
         zurueck.append("aufgaben_max erreicht")
-    return neu, zurueck
+    return neu, zurueck, uebersprungen
 
 
 # ---------------------------------------------------------------- queries
@@ -659,15 +685,23 @@ def uebernehmen(w, daten, task_id, now):
     task["versuche"].append({"nr": len(task["versuche"]) + 1, "start": stamp(now), "ende": "", "ergebnis": "laeuft", "klasse": "", "grund": ""})
     task["lease"] = {"von": stamp(now), "bis": bis}
     setze(task, LAEUFT, now, f"Versuch {len(task['versuche'])}")
-    return {"ok": True, "aufgabe": task_id, "skill": katalog["skill"], "zweck": task["zweck"], "bezug": task["bezug"],
+    nr = task["versuche"][-1]["nr"]
+    return {"ok": True, "aufgabe": task_id, "versuch": nr, "skill": katalog["skill"], "zweck": task["zweck"], "bezug": task["bezug"],
             "nachbedingung": katalog["abschluss"](w, task, now)[1], "lease_bis": bis,
-            "danach": f"workflow.py fertig {task_id}  oder  workflow.py fehler {task_id} --klasse <klasse> --grund <kurz>"}
+            "danach": f"workflow.py fertig {task_id} --versuch {nr}  oder  workflow.py fehler {task_id} --versuch {nr} --klasse <klasse> --grund <kurz>"}
 
 
-def fertig(w, daten, task_id, now):
+def eigener_versuch(task, versuch):
+    """A report names the attempt it belongs to; a session whose lease ran out cannot end the attempt of its successor."""
+    if versuch is not None and (not task["versuche"] or task["versuche"][-1]["nr"] != versuch):
+        raise Refused("veraltete_sitzung", f"{task['id']}: Versuch {versuch} gehört nicht mehr zu dieser Aufgabe (eine andere Sitzung hat sie übernommen)")
+
+
+def fertig(w, daten, task_id, now, versuch=None):
     task = hole(daten, task_id)
     if task["status"] != LAEUFT:
         raise Refused("nicht_laufend", f"{task_id} ist {task['status']}; nur eine übernommene Aufgabe wird als fertig gemeldet")
+    eigener_versuch(task, versuch)
     ok, text = TYPEN[task["typ"]]["abschluss"](w, task, now)
     if ok:
         erledige(w, task, now, "vom Agenten gemeldet, Nachbedingung geprüft")
@@ -676,10 +710,11 @@ def fertig(w, daten, task_id, now):
     return {"ok": False, "aufgabe": task_id, "status": task["status"], "grund": text, "hinweis": task["hinweis"]}
 
 
-def fehler(daten, task_id, klasse, grund, now):
+def fehler(daten, task_id, klasse, grund, now, versuch=None):
     task = hole(daten, task_id)
     if task["status"] != LAEUFT:
         raise Refused("nicht_laufend", f"{task_id} ist {task['status']}; einen Fehler meldet nur die übernommene Aufgabe")
+    eigener_versuch(task, versuch)
     versuch_endet(daten, task, now, klasse, grund)
     return {"ok": True, "aufgabe": task_id, "status": task["status"], "hinweis": task["hinweis"],
             "naechster_versuch": task["naechster_versuch"]}
@@ -729,7 +764,9 @@ def ausfuehren(w, daten, task_id, now):
     sichere(w, daten)
     try:
         antwort = ADAPTER[task["typ"]](task, task["entscheidung"])
-    except Exception as error:  # the outcome of an external action is unknown after an exception
+        if not isinstance(antwort, dict):
+            raise TypeError("Antwort des Adapters ist kein Objekt")
+    except Exception as error:  # the outcome of an external action is unknown after an exception or an answer that cannot be read
         versuch_endet(daten, task, now, "unklar", f"Adapter: {type(error).__name__}")
         return {"ok": False, "aufgabe": task_id, "status": task["status"], "hinweis": task["hinweis"]}
     if antwort.get("gesendet"):
@@ -766,6 +803,19 @@ def wiederholen(w, daten, task_id, now):
     return {"ok": True, "aufgabe": task_id, "status": task["status"]}
 
 
+def weiter(w, daten, task_id, now):
+    """The user lifts a hold an agent reported (missing information, a needed approval, a missing permission, quality)."""
+    task = hole(daten, task_id)
+    if not task["halt"]:
+        raise Refused("kein_halt", f"{task_id} hat keinen Halt, den der Nutzer aufheben müsste (Status {task['status']})")
+    verlauf(task, now, f"Halt ({task['halt']}) vom Nutzer aufgehoben")
+    task["halt"] = ""
+    if task["status"] != WARTEND:
+        setze(task, WARTEND, now)
+    bewerte(w, daten, task, now)
+    return {"ok": True, "aufgabe": task_id, "status": task["status"]}
+
+
 def abbrechen(daten, ziel, now):
     """Cancel one task, or every open task of a Vorgang (by its slug)."""
     treffer = [t for t in daten["aufgaben"].values() if t["id"] == ziel or t["bezug"].get("vorgang") == ziel or t["bezug"].get("auftrag") == ziel]
@@ -773,7 +823,7 @@ def abbrechen(daten, ziel, now):
         raise Refused("aufgabe_unbekannt", f"Keine Aufgabe und kein Vorgang {redact(ziel, 80)}")
     beendet = []
     for task in treffer:
-        if task["status"] in OFFEN:
+        if task["status"] in OFFEN or task["status"] == FEHLGESCHLAGEN:
             setze(task, ABGEBROCHEN, now, "vom Nutzer abgebrochen")
             task["lease"] = None
             schliesse_versuch(task, now, "fehler", "abbruch", "vom Nutzer abgebrochen")
@@ -784,7 +834,7 @@ def abbrechen(daten, ziel, now):
 def grenzen(daten, werte):
     for eintrag in werte:
         schluessel, _, wert = eintrag.partition("=")
-        if schluessel not in LIMIT_BOUNDS or not wert.isdigit() or not LIMIT_BOUNDS[schluessel][0] <= int(wert) <= LIMIT_BOUNDS[schluessel][1]:
+        if schluessel not in LIMIT_BOUNDS or not re.fullmatch(r"[0-9]{1,6}", wert) or not LIMIT_BOUNDS[schluessel][0] <= int(wert) <= LIMIT_BOUNDS[schluessel][1]:
             raise Refused("grenze_ungueltig", f"{redact(eintrag, 40)}: erlaubt sind " + ", ".join(f"{k}={a}..{b}" for k, (a, b) in LIMIT_BOUNDS.items()))
         daten["grenzen"][schluessel] = int(wert)
     return {"ok": True, "grenzen": daten["grenzen"]}
@@ -812,8 +862,9 @@ def build_parser():
     add("laufen")
     add("naechste", n={"type": int, "default": 5})
     add("uebernehmen", "aufgabe")
-    add("fertig", "aufgabe")
-    add("fehler", "aufgabe", klasse={"required": True}, grund={"default": ""})
+    add("fertig", "aufgabe", versuch={"type": int})
+    add("fehler", "aufgabe", klasse={"required": True}, grund={"default": ""}, versuch={"type": int})
+    add("weiter", "aufgabe")
     add("freigeben", "aufgabe", ja={"action": "store_true"})
     add("ablehnen", "aufgabe", grund={"default": ""})
     add("ausfuehren", "aufgabe")
@@ -830,7 +881,7 @@ def build_parser():
 
 READ_ONLY = ("wurzel", "zeige")
 # what only the user does: never in an unattended session, whatever its prompt says (WF-7, WF-13)
-USER_ONLY = ("anlegen", "freigeben", "ablehnen", "ausfuehren", "ausgang", "wiederholen", "abbrechen", "grenzen")
+USER_ONLY = ("anlegen", "weiter", "freigeben", "ablehnen", "ausfuehren", "ausgang", "wiederholen", "abbrechen", "grenzen")
 
 
 def unbeaufsichtigt():
@@ -845,10 +896,10 @@ def dispatch(args, w, daten, now):
         return {"ok": True, "geaendert": abgleichen(w, daten, now)}
     if cmd == "laufen":
         abgleichen(w, daten, now)
-        neu, zurueck = plane(w, daten, now)
+        neu, zurueck, uebersprungen = plane(w, daten, now)
         geaendert = abgleichen(w, daten, now)
         bereit = [kurz(t) for t in sortiert([t for t in daten["aufgaben"].values() if t["status"] == BEREIT], now)]
-        return {"ok": True, "neu": neu, "zurueckgestellt": zurueck, "geaendert": geaendert, "bereit": bereit,
+        return {"ok": True, "neu": neu, "zurueckgestellt": zurueck, "nicht_ersetzt": uebersprungen, "geaendert": geaendert, "bereit": bereit,
                 "hinweis": "Der Lauf plant und gleicht ab; er führt nichts aus und sendet nichts."}
     if cmd == "naechste":
         abgleichen(w, daten, now)
@@ -860,9 +911,11 @@ def dispatch(args, w, daten, now):
         abgleichen(w, daten, now)
         return uebernehmen(w, daten, args.aufgabe, now)
     if cmd == "fertig":
-        return fertig(w, daten, args.aufgabe, now)
+        return fertig(w, daten, args.aufgabe, now, args.versuch)
     if cmd == "fehler":
-        return fehler(daten, args.aufgabe, args.klasse, args.grund, now)
+        return fehler(daten, args.aufgabe, args.klasse, args.grund, now, args.versuch)
+    if cmd == "weiter":
+        return weiter(w, daten, args.aufgabe, now)
     if cmd == "freigeben":
         if not args.ja:
             raise Refused("freigabe_nicht_bestaetigt", "Die Freigabe braucht das ausdrückliche Ja des Nutzers (--ja)")
@@ -904,7 +957,10 @@ def run(args):
         daten = lade(w)
         vorher = json.dumps(daten, sort_keys=True)
         result = dispatch(args, w, daten, now)
-        abgleichen(w, daten, now)  # the state a command leaves behind is already reconciled (dependents follow at once)
+        try:  # the state a command leaves behind is already reconciled (dependents follow at once)
+            abgleichen(w, daten, now)
+        except Refused as error:
+            result["warnung_abgleich"] = error.meldung
         if json.dumps(daten, sort_keys=True) != vorher or not os.path.isfile(store_path(w)):
             sichere(w, daten)
         try:  # the overview is a derivation: its failure must not hide the outcome of the command

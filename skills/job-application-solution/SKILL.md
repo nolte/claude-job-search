@@ -144,12 +144,12 @@ steps, their dependencies, attempts and the user's approvals of the send package
 
 - After S1 run `starten <slug>`. Before continuing a Vorgang, or when the user asks "what is next", run `naechste` and say which
   tasks are ready for you, which wait for the user and which wait for an approval.
-- Before doing a step as an agent, run `uebernehmen <aufgabe>`: it refuses when another session has the task. After the step,
-  run `fertig <aufgabe>`; the script checks the result in the files. If you cannot finish, run `fehler <aufgabe> --klasse <klasse>
-  --grund "<kurz>"` (classes: `vorlaeufig`, `dienst`, `zeitlimit`, `eingabe`, `freigabe`, `berechtigung`, `qualitaet`, `daten`,
+- Before doing a step as an agent, run `uebernehmen <aufgabe>`: it refuses when another session has the task and answers with an
+  attempt number. After the step, run `fertig <aufgabe> --versuch <nr>`; the script checks the result in the files. If you cannot
+  finish, run `fehler <aufgabe> --versuch <nr> --klasse <klasse> --grund "<kurz>"` (classes: `vorlaeufig`, `dienst`, `zeitlimit`, `eingabe`, `freigabe`, `berechtigung`, `qualitaet`, `daten`,
   `dauerhaft`, `unklar`). A `fertig` without the result counts as a failed attempt.
-- **Never approve for the user.** `freigeben`, `ablehnen`, `ausfuehren`, `ausgang`, `wiederholen`, `abbrechen`, `anlegen` and
-  `grenzen` are the user's. `freigeben <aufgabe> --ja` is run only after the user said yes to exactly these documents; it
+- **Never approve for the user.** `freigeben`, `ablehnen`, `weiter`, `ausfuehren`, `ausgang`, `wiederholen`, `abbrechen`, `anlegen`
+  and `grenzen` are the user's. A hold you report (`eingabe`, `freigabe`, `berechtigung`, `qualitaet`) stays until the user runs `weiter`. `freigeben <aufgabe> --ja` is run only after the user said yes to exactly these documents; it
   expires when a document changes. The plan gate (step 3) and sending (S7) stay as written above; the workflow observes them.
 
 ## Resume

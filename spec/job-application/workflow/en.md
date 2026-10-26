@@ -58,7 +58,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 |---|---|---|---|---|
 | `analyse` | agent | `job-application-posting-analysis` | `stellenanzeige.md` and `vorgang.md` exist | `status` is at least `analysiert` and `analyse.md` exists |
 | `passung` | agent | `job-application-fit-check` | (only created with a confirmed Wunschprofil) `analyse` | `passung.md` exists |
-| `plan` | user | plan gate of `job-application-solution` | `analyse` (and `passung`) | `status` is at least `geplant` and `vorgang.md` has `## Plan` |
+| `plan` | user | plan gate of `job-application-solution` | `analyse` (and `passung`) | `status` is at least `geplant` and `vorgang.md` has a heading `## Plan` |
 | `unterlagen` | agent | `job-application-solution` steps 4 and 5 | `plan` | `status` is at least `erstellt`; `lebenslauf.md` and `anschreiben.md` exist |
 | `pruefung` | agent | `job-application-quality-gate` | `unterlagen` | `status` is `geprüft` |
 | `versand_freigabe` | user | the user's decision | `pruefung` | an approval covers the hash of the documents (WF-7) |
@@ -94,7 +94,11 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    approval whose content changed after it was given.
 2. **A blocked task is not run.** `blockiert` becomes `wartend` or `bereit` again only when the reconciliation finds its
    prerequisites met. A task waiting for an approval is not released by a general workflow call (WF-7).
-3. **The status of a task is not the status of an application.** `erledigt` of `versand` follows `versendet` in the Vorgang,
+3. **A hold reported by an agent stays.** When an agent reports that it needs information, an approval, a permission or a
+   quality fix (`fehler` with class `eingabe`, `freigabe`, `berechtigung` or `qualitaet`), the task keeps the matching
+   status through every reconciliation and every schedule run, and is not offered to an agent again. Only the user lifts it
+   with `weiter`; the files and the clock never do.
+4. **The status of a task is not the status of an application.** `erledigt` of `versand` follows `versendet` in the Vorgang,
    never the other way round. The workflow writes nothing into a Vorgang.
 
 ## WF-5 Dependencies
@@ -116,10 +120,12 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    answers `beschaeftigt`. The readable derivation `workflow/uebersicht.md` is rewritten after each command; its failure does
    not hide the command's result (`warnung_uebersicht`).
 2. **A damaged store is reported, not repaired.** Unreadable JSON, an unknown version, a task of an unknown type or status,
-   or a task without its fields gives `speichern_fehlgeschlagen` or `speicher_ungueltig` and changes nothing.
+   a task whose key fields have the wrong type, a reference to a task that does not exist, or a cycle gives
+   `speichern_fehlgeschlagen` or `speicher_ungueltig`, before any command changes anything. A task that merely lacks an
+   optional field (an older or hand-written file) is loaded with the default of that field; no result is invented.
 3. **Reconciliation (`abgleichen`).** In dependency order, for each task: a missing Vorgang folder blocks it; a final status of
    the Vorgang cancels it; a met postcondition closes it (also for work done outside, with a hint when its dependencies were
-   not done); failed dependencies block it, open ones keep it `wartend`; an expired lease is handled (WF-8 rule 3); a due
+   not done); failed dependencies block it, open ones keep it `wartend`; an expired lease is handled (WF-8 rule 4); a due
    retry becomes `bereit`; a date in `ab` holds it; a prerequisite or approval that fails puts it in the matching waiting
    status; otherwise it is `bereit`. A state left by a command is already reconciled.
 4. **Idempotence.** Starting a workflow, planning and reconciling again create no task and change no finished one. A task
@@ -140,7 +146,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    task stays blocked.
 3. **A rejection** (`ablehnen`) cancels the task and blocks its dependents.
 4. **Who may approve.** Only an interactive command. A session marked unattended (`WORKFLOW_UNBEAUFSICHTIGT`, or
-   `STELLENSUCHE_GEPLANT` of the launcher) is refused `anlegen`, `freigeben`, `ablehnen`, `ausfuehren`, `ausgang`,
+   `STELLENSUCHE_GEPLANT` of the launcher) is refused `anlegen`, `weiter`, `freigeben`, `ablehnen`, `ausfuehren`, `ausgang`,
    `wiederholen`, `abbrechen` and `grenzen` with `nur_interaktiv`. It may plan, reconcile, look and take, finish or fail the
    tasks that are agent tasks.
 5. **The adapter gate (`ausfuehren`).** An external action by an adapter runs only when an adapter for the type is registered,
@@ -149,6 +155,8 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    start leaves the task `wartet_auf_eingabe` with the hint that the outcome is unclear. Neither time nor a retry resolves it;
    only `ausgang --gesendet` or `--nicht-gesendet` of the user does. After `--nicht-gesendet` a new approval is needed. If the
    adapter says it is sure that nothing left, the task fails and is not repeated by itself either.
+   The adapter receives the approval with the approved hash and has to send exactly the content with that hash; if the file
+   changed between the check and the call, it refuses. That check belongs to the adapter, because the workflow cannot see it.
 6. **No adapter ships.** `ausfuehren` answers `kein_adapter`. Sending an application and every message stays the user's
    (LS-6 rule 4); the type `versand` is observed, never executed. The adapter interface is the place A-02 plugs in; until
    then the overview lists such tasks under *Noch nicht integriert*.
@@ -172,12 +180,16 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    A task that is an external action is never retried automatically, whatever the class.
 2. **Done without the result.** `fertig` checks the postcondition. When it does not hold, the attempt is a failure of class
    `ergebnis_fehlt`, not a success.
-3. **Orphans.** A running task whose lease ran out is an aborted attempt (class `abbruch`) and follows rule 1; an external one
+3. **A report belongs to an attempt.** `uebernehmen` returns the number of the attempt; `fertig` and `fehler` take it as
+   `--versuch`. A report for an attempt that is no longer the latest (the lease ran out and another session took the task) is
+   refused with `veraltete_sitzung` and changes nothing.
+4. **Orphans.** A running task whose lease ran out is an aborted attempt (class `abbruch`) and follows rule 1; an external one
    follows WF-7 rule 5. The attempt count includes it.
-4. **Repeat by the user.** `wiederholen` of a failed task starts the count again and releases it for the next reconciliation.
-5. **What is stored about an error.** Class, a reason of at most 200 characters with credentials replaced by `[entfernt]`, and
+5. **Repeat by the user.** `wiederholen` of a failed task starts the count again and releases it for the next reconciliation.
+   `abbrechen` ends a failed task for good.
+6. **What is stored about an error.** Class, a reason of at most 200 characters with credentials replaced by `[entfernt]`, and
    the time. No page content and no personal data beyond what the task already refers to.
-6. **After a restart** the store is read, finished results and waiting or blocked tasks stay as they are, due retries become
+7. **After a restart** the store is read, finished results and waiting or blocked tasks stay as they are, due retries become
    ready, orphans are handled, and nothing is approved. A failure never disappears by a new status alone: the attempt and the
    error stay in the task.
 
@@ -187,11 +199,14 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 2. **`laufen`** is the call for a scheduler. It reconciles, plans what the existing state asks for, reconciles again and lists
    what is ready. It executes nothing and sends nothing. It plans:
    - the chain for each Vorgang without a workflow and without a final status;
-   - a `suche` task for each approved, active Suchauftrag that is due (`stellensuche` ST-16) and has no open `suche` task;
+   - a `suche` task for each approved, active Suchauftrag that is due (`stellensuche` ST-16) and has no open `suche` task. A
+     `suche` task of the same round that was cancelled or has failed is not replaced by itself; `laufen` lists it under
+     `nicht_ersetzt`. The user retries it with `wiederholen`, or pauses or ends the Suchauftrag to stop the search;
    - a `nachfassen` task for each Vorgang with `status: versendet` whose `wiedervorlage` date has come.
    The overview derives, without tasks: the Stellen of the Warteschlange waiting for a decision, tasks waiting for approval,
    failed and blocked tasks, and overdue ones.
 3. **Deduplication** is by the task id (WF-3 rule 2): any number of calls gives one task.
+   **Dates** (`ab`, `faellig`, `wiedervorlage`) are local dates of the machine, because the user types them as such.
 4. **The plugin starts no process.** The user calls `workflow.py laufen` from cron or a timer. Until the user has done that,
    nothing runs by itself, and the docs say so.
 5. **Limits stay in force.** The search keeps its own budget (ST-16); the workflow never lifts it. A task for a search is
@@ -243,7 +258,11 @@ stored state only and invents no result.
    folder; anything with a path separator is refused.
 4. The workflow writes only below `<wurzel>/workflow/`, after the repository boundary check of `lokale-struktur` LS-2.4. It
    reads Vorgang files and the state of `stellensuche`, and writes into neither.
-5. Errors are shortened and stripped of credentials (WF-8 rule 5). The folder is personal data and belongs in a private
+5. **The limit of a local file.** The store is a file the user owns. The workflow protects against its own commands and
+   sessions, not against someone who edits the file by hand or an agent that may write the Wurzel: a forged entry in
+   `entscheidung` would be believed. Skills write only their own files (LS-5.7) and no skill writes `workflow/`; the
+   unattended sessions of the launchers may write only the folder for search results.
+6. Errors are shortened and stripped of credentials (WF-8 rule 6). The folder is personal data and belongs in a private
    repository (R-6, LS-9).
 
 ## WF-14 Acceptance scenarios and open points
@@ -278,6 +297,12 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | WA-X | An input changes after a result | `veraltet`, still `erledigt`, not reset |
 | WA-Y | A posting with instructions; a tampered store; credentials in an error | no task, no limit, no type; refused; stripped |
 | WA-Z | The overview file cannot be written | the command keeps its result with `warnung_uebersicht` |
+| WA-AA | An agent reports a hold (information, approval, permission, quality) | it survives every reconciliation and schedule run; an unattended session cannot lift it; `weiter` of the user does |
+| WA-AB | A session whose lease ran out reports | `veraltete_sitzung`; the successor's attempt is untouched |
+| WA-AC | A cancelled or failed search task of this round | not replaced by itself and listed under `nicht_ersetzt`; a failed task can be cancelled |
+| WA-AD | A store with missing optional fields; one with a dangling reference or a wrong type | defaults are filled; the other is refused before any change |
+| WA-AE | An adapter answer that is no object; a heading `## Planungsnotizen`; a limit `laufende_max=²`; a date around midnight in another time zone | unclear outcome; no plan; refused; the local date counts |
+| WA-AF | The final reconciliation of a command fails | the command keeps its result and its saved state, with `warnung_abgleich` |
 
 | Area | Point | Status |
 |---|---|---|
