@@ -31,13 +31,13 @@ the evaluation that reads these results), `spec/job-application/workflow/en.md` 
 |---|---|
 | `id` | the folder name |
 | `stelle`: company, title, `ref_nr`, `stellenquelle`, seat (from `firmen/`), whether `stellenanzeige.md` is kept | `vorgang.md`, `firmen/`, `stellenanzeige.md` (the posting is kept verbatim, so the reference survives a posting that disappears) |
-| `versand`: `versendet_am`, `weg`, `anhaenge`, whether the dispatch is evidenced | `vorgang.md` (S7 is the user's statement) |
+| `versand`: `versendet_am`, `weg` (the channel used), `bewerbungsweg` (the planned route, LS-6.1), `anhaenge`, whether the dispatch is evidenced | `vorgang.md` (S7 is the user's statement) |
 | `dokumente`: Lebenslauf, Anschreiben, Motivationsschreiben, E-Mail with hash and `version_datum`; the export manifests; the state of the quality report | the files, `qualitaet.json`; `version_eindeutig` only as in EA-8 rule 3 |
 | `ereignisse`: counts of confirmed, to check, dropped | `nachverfolgung.json` |
 | `aufgaben`: the open workflow tasks of the Vorgang | `workflow/aufgaben.json` |
 | `unbekannt`: items not stored | computed |
 
-`bewerbung.py anlegen --firma … --stelle … [--ref-nr … --stellenquelle … --weg …] --ja` creates a minimal `vorgang.md` at the status `erfasst` for an
+`bewerbung.py anlegen --firma … --stelle … [--ref-nr … --stellenquelle … --bewerbungsweg …] --ja` creates a minimal `vorgang.md` at the status `erfasst` for an
 application made outside the plugin or before it. It refuses an existing folder and a second open application for the same company, title and
 reference number. It invents no analysis and keeps no posting; `job-application-posting-analysis` can add it. `bewerbung.py finde` searches by
 company, status, outcome, reference number or text and includes the closed applications (BE-12).

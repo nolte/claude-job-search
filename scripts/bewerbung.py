@@ -53,7 +53,7 @@ ART_STATUS = {
     "abgeschlossen": "abgeschlossen",
 }
 # Events that only a Vorgang past the dispatch can have. A reply to an application that was never sent is a contradiction (BE-9).
-NACH_VERSAND = tuple(a for a in km.ARTEN_ARBEITGEBER) + ("angebot_angenommen", "angebot_abgelehnt")
+NACH_VERSAND = tuple(a for a in km.ARTEN_ARBEITGEBER if a != "kontaktaufnahme") + ("angebot_angenommen", "angebot_abgelehnt")  # a recruiter may write first
 
 
 # ---------------------------------------------------------------- lifecycle (BE-3)
@@ -178,7 +178,7 @@ def ansicht(w, slug, now):
         "ok": True, "id": slug, "stelle": {"firma": meta.get("firma", ""), "titel": meta.get("stelle", ""), "ref_nr": meta.get("ref_nr", ""),
                                            "quelle": meta.get("stellenquelle", ""), "sitz": firmen.get("sitz", ""), "anzeige_gesichert": os.path.isfile(os.path.join(w, slug, "stellenanzeige.md"))},
         "status": status, "phase": phase_von(status, fakten, freigabe), "ergebnis": ergebnis_von(status, fakten),
-        "versand": {"versendet_am": versendet, "weg": meta.get("weg", ""), "anhaenge": meta.get("anhaenge", ""), "belegt": bool(versendet)},
+        "versand": {"versendet_am": versendet, "weg": meta.get("weg", ""), "bewerbungsweg": meta.get("bewerbungsweg", ""), "anhaenge": meta.get("anhaenge", ""), "belegt": bool(versendet)},
         "dokumente": dokumente(w, slug), "ereignisse": {"bestaetigt": len(fakten), "zur_pruefung": sum(1 for e in nv["ereignisse"] if e.get("status") in ("zur_pruefung", "erkannt")),
                                                       "verworfen": sum(1 for e in nv["ereignisse"] if e.get("status") == "verworfen")},
         "aufgaben": [{"id": t["id"], "typ": t["typ"], "status": t["status"]} for t in aufgaben if t["status"] not in ("erledigt", "abgebrochen")],
@@ -322,15 +322,16 @@ def pruefe_alle(w, now, slug=None):
     befunde = []
     for name in vorgaenge:
         befunde += pruefe_vorgang(w, name, now)
+    alle = km.alle_vorgaenge(w)
     if not slug:
         try:
             for n in km.lade_eingang(w)["nachrichten"].values():
-                if n.get("vorgang") and n["vorgang"] not in km.alle_vorgaenge(w):
+                if n.get("vorgang") and n["vorgang"] not in alle:
                     befunde.append(befund("Fehler", "BE-V05", n["vorgang"], f"die Nachricht {redact(n['id'], 40)} verweist auf einen Vorgang, den es nicht gibt"))
         except Refused as error:
             befunde.append(befund("Fehler", "BE-V06", "-", f"eingang.json ist nicht lesbar: {error.meldung}"))
     gruppen = {}
-    for name, meta in km.alle_vorgaenge(w).items():
+    for name, meta in alle.items():
         if meta.get("status") in ALLE and not slug:
             schluessel = (ss.norm(meta.get("firma", "")), ss.norm(meta.get("stelle", "")), (meta.get("ref_nr") or "").strip())
             gruppen.setdefault(schluessel, []).append(name)
@@ -354,13 +355,29 @@ def pruefe_zeit(text, name, zukunft_erlaubt=False, heute_datum=""):
 
 
 def schreibe_nv_dann_vorgang(w, slug, nv_neu, nv_alt, schreibe):
-    """The event file first, then vorgang.md; when the second write fails the first is put back, so no event stays without its line."""
+    """The event file first, then vorgang.md. When a later write fails, for whatever reason, both files are put back as they were: no event
+    stays without its line, no line or key without its event."""
+    pfad = km.vorgang_pfad(w, slug)
+    with open(pfad, "rb") as handle:
+        vorher = handle.read()
+    nv_pfad = km.nachverfolgung_pfad(w, slug)
+    gab_es = os.path.exists(nv_pfad)
     km.speichere_nachverfolgung(w, slug, nv_neu)
     try:
         schreibe()
-    except Refused:
-        km.speichere_nachverfolgung(w, slug, nv_alt)
-        raise
+    except Exception as error:
+        try:
+            with open(pfad, "wb") as handle:
+                handle.write(vorher)
+            if gab_es:
+                km.speichere_nachverfolgung(w, slug, nv_alt)
+            else:
+                os.remove(nv_pfad)  # there was no event file before: there is none now
+        except (OSError, Refused):
+            pass
+        if isinstance(error, Refused):
+            raise
+        raise Refused("speichern_fehlgeschlagen", f"Schreiben fehlgeschlagen, der alte Stand wurde zurückgelegt: {redact(error)}")
 
 
 def wechsle(w, slug, meta, ziel, grund_text, datum, ereignis_id):
@@ -382,8 +399,8 @@ def erfassen(w, slug, art, o, jetzt):
     erinnerung = pruefe_zeit(o.get("erinnerung") or "", "erinnerung", True, heute_datum)
     if art == "versendet" and not wann:
         raise Refused("datum_fehlt", "Ein Versand braucht sein Datum (--eingetreten-am): es wird nicht geschätzt, und ohne Datum gibt es keine Antwortzeit")
-    if art in TERMIN_ARTEN and art != "weiterer_termin" and not termin and art == "gespraech_vereinbart":
-        raise Refused("termin_fehlt", "Ein vereinbartes Gespräch braucht seinen Termin (--termin)")
+    if art in ("gespraech_vereinbart", "gespraech_verschoben") and not termin:
+        raise Refused("termin_fehlt", "Ein vereinbartes oder verschobenes Gespräch braucht seinen Termin (--termin)")
     typ, bestaetigung, methode = o.get("quelle_typ") or "nutzer", o.get("bestaetigung") or "bestaetigt", o.get("methode") or "manuell"
     if typ not in QUELLEN or bestaetigung not in BESTAETIGUNG or methode not in METHODEN:
         raise Refused("angabe_ungueltig", f"quelle-typ: {', '.join(QUELLEN)}; bestaetigung: {', '.join(BESTAETIGUNG)}; methode: {', '.join(METHODEN)}")
@@ -465,14 +482,13 @@ def statuswechsel(w, slug, ziel, grund, jetzt):
 
 def ereignis_aendern(w, slug, ereignis_id, aktion, felder, jetzt):
     """A correction keeps the old values (`korrekturen`); the file is replaced in one piece (BE-6 rule 5)."""
-    ergebnis = lr.ergebnis_aendern(w, slug, ereignis_id, aktion, felder, jetzt)
-    nv = km.lade_nachverfolgung(w, slug)
-    e = next(x for x in nv["ereignisse"] if x["id"] == ereignis_id)
-    if aktion == "korrigieren":
-        e["eingetreten_am"] = e.get("datum", "")
-        e["schluessel"] = km.schluessel_von(slug, e["art"], e["eingetreten_am"], (e.get("quelle") or {}).get("nachricht_id") or (e.get("quelle") or {}).get("referenz") or (e.get("beschreibung") or "")[:40], (e.get("quelle") or {}).get("typ"))
-        km.speichere_nachverfolgung(w, slug, nv)
-    km.schreibe_verlauf(w, slug, [f"- {km.heute(jetzt)}: Ereignis {ereignis_id} {'korrigiert' if aktion == 'korrigieren' else 'verworfen'} ({clean_text(felder.get('grund', ''), 80) or 'ohne Grund'})"], None)
+    nv_alt = km.lade_nachverfolgung(w, slug)
+    ergebnis = lr.ergebnis_aendern(w, slug, ereignis_id, aktion, felder, jetzt)  # one write: the key follows kind and day there
+    try:
+        km.schreibe_verlauf(w, slug, [f"- {km.heute(jetzt)}: Ereignis {ereignis_id} {'korrigiert' if aktion == 'korrigieren' else 'verworfen'} ({clean_text(felder.get('grund', ''), 80) or 'ohne Grund'})"], None)
+    except Refused:
+        km.speichere_nachverfolgung(w, slug, nv_alt)
+        raise
     return ergebnis
 
 
@@ -499,7 +515,7 @@ def anlegen(w, slug, firma, stelle, optionen, jetzt):
         if gleich and (not optionen.get("ref_nr") or meta.get("ref_nr") == optionen["ref_nr"]) and meta.get("status") not in FINAL:
             raise Refused("vorgang_doppelt", f"Für diese Stelle gibt es schon den offenen Vorgang {name}: dort weiterarbeiten oder ihn abschließen")
     zeilen = ["---", f"firma: {clean_text(firma, 120)}", f"stelle: {clean_text(stelle, 160)}", f"ref_nr: {clean_text(optionen.get('ref_nr') or '', 60)}",
-              f"stellenquelle: {clean_text(optionen.get('stellenquelle') or '', 300)}", f"bewerbungsweg: {optionen.get('weg') or ''}", "status: erfasst",
+              f"stellenquelle: {clean_text(optionen.get('stellenquelle') or '', 300)}", f"bewerbungsweg: {optionen.get('bewerbungsweg') or ''}", "status: erfasst",
               f"erfasst: {km.heute(jetzt)}", "versendet_am:", "weg:", "anhaenge: []", "wiedervorlage:", "loeschen_ab:", "tags: []", "---", "", f"# {clean_text(firma, 120)}: {clean_text(stelle, 160)}", "",
               "## Verlauf", f"- {km.heute(jetzt)}: erfasst, bewerbung.py anlegen (nachträglich angelegt; keine Analyse, keine Anzeige gesichert)", ""]
     os.makedirs(os.path.join(w, slug))
@@ -592,8 +608,8 @@ def migriere_vorgang(w, slug, jetzt, anwenden):
         datum, alt, neu_status = treffer.group(1), treffer.group(2).strip(), treffer.group(3).strip()
         if alt not in ALLE or neu_status not in ALLE or ss.valid_date(datum) != datum:
             continue
-        _, neu = km.ereignis_bauen(nv, slug, "statuswechsel", datum, {"typ": "verlauf", "referenz": f"vorgang.md Zeile {nummer}"}, "", None, "bestaetigt", jetzt, "migriert", "bestaetigt",
-                                   vorgang=slug, beschreibung="aus einer Zeile von ## Verlauf", status_vorher=alt, status_nachher=neu_status, migriert=True, zeitangabe="datum der verlaufszeile")
+        _, neu = km.ereignis_bauen(nv, slug, "statuswechsel", datum, {"typ": "verlauf", "referenz": f"{alt}->{neu_status}"}, "", None, "bestaetigt", jetzt, "migriert", "bestaetigt",
+                                   vorgang=slug, beschreibung=f"aus Zeile {nummer} von ## Verlauf", status_vorher=alt, status_nachher=neu_status, migriert=True, zeitangabe="datum der verlaufszeile")
         if neu:
             plan.append({"neu": "statuswechsel", "aus": f"Zeile {nummer}", "von": alt, "nach": neu_status})
     if plan and anwenden:
@@ -634,7 +650,7 @@ def build_parser():
     a.add_argument("--stelle", default="")
     a.add_argument("--ref-nr")
     a.add_argument("--stellenquelle")
-    a.add_argument("--weg", choices=("email", "portal", "post"))
+    a.add_argument("--bewerbungsweg", choices=("email", "portal", "post"), help="the planned route (LS-6.1); the channel really used is `weg`, set by the dispatch")
     a.add_argument("--ja", action="store_true")
     f = sub.add_parser("finde")
     f.add_argument("--firma")
@@ -699,7 +715,15 @@ def run(args):
         namen = [args.vorgang] if args.vorgang else [n for n, m in km.alle_vorgaenge(w).items() if m.get("status") not in FINAL]
         if args.vorgang:
             km.vorgang_meta(w, args.vorgang)
-        return {"ok": True, "schritte": {n: s for n in namen for s in [naechste_schritte(w, n, now)] if s}}
+        schritte = {}
+        for n in namen:
+            try:
+                s = naechste_schritte(w, n, now)
+            except Refused as error:  # one damaged file must not hide the next steps of the others
+                s = [{"art": "daten_defekt", "hinweis": error.meldung}]
+            if s:
+                schritte[n] = s
+        return {"ok": True, "schritte": schritte}
     if befehl == "pruefen":
         befunde = pruefe_alle(w, now, args.vorgang)
         zaehler = {g: sum(1 for b in befunde if b["grad"] == g) for g in ("Fehler", "Warnung", "Hinweis")}
@@ -708,7 +732,7 @@ def run(args):
         return migrieren(w, args.vorgang, now, False)
     with ss.exclusive(w, *km.LOCK):
         if befehl == "anlegen":
-            return anlegen(w, args.slug, args.firma, args.stelle, {"ref_nr": args.ref_nr, "stellenquelle": args.stellenquelle, "weg": args.weg}, now)
+            return anlegen(w, args.slug, args.firma, args.stelle, {"ref_nr": args.ref_nr, "stellenquelle": args.stellenquelle, "bewerbungsweg": args.bewerbungsweg}, now)
         if befehl == "migrieren":
             return migrieren(w, args.vorgang, now, True)
         if befehl == "statuswechsel":

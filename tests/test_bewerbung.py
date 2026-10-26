@@ -152,7 +152,7 @@ class LifecycleTests(Base):
         self.assertEqual(self.status()["versand"]["belegt"], False)  # generated documents are no dispatch
         code, antwort = self.versendet("2026-10-02")
         s = self.status()
-        self.assertEqual((code, s["status"], s["phase"], s["versand"]), (0, "versendet", "eingereicht", {"versendet_am": "2026-10-02", "weg": "email", "anhaenge": "[]", "belegt": True}))
+        self.assertEqual((code, s["status"], s["phase"], s["versand"]), (0, "versendet", "eingereicht", {"versendet_am": "2026-10-02", "weg": "email", "bewerbungsweg": "", "anhaenge": "[]", "belegt": True}))
         self.assertIn("versendet_am: 2026-10-02", self.lies(SLUG, "vorgang.md"))
         self.assertIn("- 2026-10-01: erstellt → geprüft, job-application-quality-gate", self.lies(SLUG, "vorgang.md"))  # older lines stay
 
@@ -280,6 +280,77 @@ class ErrorTests(Base):
         self.assertEqual(self.nv()["ereignisse"][1]["status"], "bestaetigt")
         self.assertEqual(self.status()["status"], "versendet")  # confirming states the fact; the status change is its own step
         self.assertEqual(self.b("statuswechsel", SLUG, "--nach", "absage", "--grund", "Absage vom 12.10. bestätigt", "--ja")[0], 0)
+
+
+class ReviewFindingsTests(Base):
+    def test_correcting_an_unconfirmed_event_does_not_confirm_it(self):
+        self.versendet()
+        self.ereignis("absage", "--eingetreten-am", "2026-10-12", "--bestaetigung", "unsicher")
+        self.b("ereignis", "korrigieren", SLUG, "--id", "e-002", "--datum", "2026-10-13", "--grund", "Datum", "--ja")
+        e = self.nv()["ereignisse"][1]
+        self.assertEqual((e["status"], e["eingetreten_am"]), ("zur_pruefung", "2026-10-13"))
+        self.assertEqual(self.status()["ergebnis"]["bekannt"], False)
+        self.assertEqual(self.b("statuswechsel", SLUG, "--nach", "absage", "--grund", "x", "--ja")[0], 0)  # the user may still state it
+
+    def test_a_correction_cannot_make_two_live_events_the_same(self):
+        self.versendet()
+        self.ereignis("eingangsbestaetigung", "--eingetreten-am", "2026-10-05")
+        self.ereignis("eingangsbestaetigung", "--eingetreten-am", "2026-10-06")
+        self.assertEqual(self.b("ereignis", "korrigieren", SLUG, "--id", "e-003", "--datum", "2026-10-05", "--grund", "x", "--ja")[1]["code"], "ereignis_doppelt")
+        self.assertEqual(self.nv()["ereignisse"][2]["eingetreten_am"], "2026-10-06")
+
+    def test_the_migration_key_does_not_depend_on_the_line_number(self):
+        self.vorgang(SLUG, vorgang_text("geprüft"))
+        self.b("migrieren", "--ja")
+        anzahl = len(self.nv()["ereignisse"])
+        text = self.lies(SLUG, "vorgang.md").replace("# Vorgang\n", "# Vorgang\n\nEine neue Zeile oben.\nNoch eine.\n")
+        self.vorgang(SLUG, text)
+        self.assertEqual(self.b("migrieren", "--ja")[1]["anzahl"], 0)
+        self.assertEqual(len(self.nv()["ereignisse"]), anzahl)
+
+    def test_a_mail_for_a_fact_that_is_already_recorded_is_not_taken_over_twice(self):
+        self.vorgang(SLUG, vorgang_text("versendet", "2026-10-02"))
+        self.ereignis("gespraechseinladung", "--eingetreten-am", "2026-10-05", "--quelle-typ", "nachricht", "--referenz", "m1", "--methode", "importiert")
+        datei = os.path.join(self._tmp.name, "m.json")
+        with open(datei, "w", encoding="utf-8") as handle:
+            json.dump([{"id": "m1", "thread_id": "t1", "von": "jobs@musterfirma.example", "betreff": "Ihre Bewerbung 4711", "datum": "2026-10-05", "text": "Wir laden Sie zum Vorstellungsgespräch ein."}], handle)
+        self.cli(km, "verarbeiten", "--nachrichten", datei)
+        h = self.cli(km, "zeige", "m1")[1]["nachricht"]["vorschlag"]["hash"]
+        vorher = self.dateien()
+        self.assertEqual(self.cli(km, "bestaetigen", "m1", "--hash", h, "--ja", "--faellig", "2026-11-01")[1]["code"], "bereits_erfasst")
+        self.assertEqual(self.dateien(), vorher)  # no second line, no second reminder
+
+    def test_the_planned_route_and_the_channel_used_are_two_fields(self):
+        self.b("anlegen", "--slug", "neu", "--firma", "Beispiel AG", "--stelle", "Admin", "--bewerbungsweg", "email", "--ja")
+        v = self.status("neu")["versand"]
+        self.assertEqual((v["bewerbungsweg"], v["weg"]), ("email", ""))
+        self.ereignis("versendet", "--eingetreten-am", "2026-10-02", "--kanal", "portal", slug="neu")
+        v = self.status("neu")["versand"]
+        self.assertEqual((v["bewerbungsweg"], v["weg"]), ("email", "portal"))
+
+    def test_a_recruiter_who_writes_first_is_no_contradiction_and_a_missing_appointment_is_refused(self):
+        self.vorgang(SLUG, vorgang_text("versendet", "2026-10-02"))
+        self.ereignis("kontaktaufnahme", "--eingetreten-am", "2026-09-25")
+        self.assertEqual([x for x in self.b("pruefen", SLUG)[1]["befunde"] if "vor dem Versand" in x["befund"]], [])
+        self.assertEqual(self.ereignis("gespraech_verschoben", "--eingetreten-am", "2026-10-08")[1]["code"], "termin_fehlt")
+
+    def test_one_damaged_file_does_not_hide_the_next_steps_of_the_others(self):
+        self.vorgang("kaputt", vorgang_text("versendet", "2026-10-02"))
+        with open(os.path.join(self.w, "kaputt", "nachverfolgung.json"), "w", encoding="utf-8") as handle:
+            handle.write("{kaputt")
+        km.wiedervorlage_anlegen(self.w, SLUG, "nachfassen", "2026-10-20", "", bw.parse_time(NOW))
+        schritte = self.b("naechste")[1]["schritte"]
+        self.assertEqual(schritte["kaputt"][0]["art"], "daten_defekt")
+        self.assertTrue(schritte[SLUG])
+
+    def test_any_failure_of_the_second_write_puts_both_files_back(self):
+        self.vorgang(SLUG, vorgang_text("geprüft"))
+        vorher = self.dateien()
+        with unittest.mock.patch.object(km, "schreibe_verlauf", side_effect=OSError("kaputt")):
+            code, antwort = self.versendet("2026-10-02")
+        self.assertEqual((code, antwort["code"]), (3, "speichern_fehlgeschlagen"))
+        self.assertEqual(self.dateien(), vorher)  # versendet_am is back, too, and no event stays
+        self.assertEqual(self.versendet("2026-10-02")[0], 0)
 
 
 class QualityTests(Base):

@@ -564,9 +564,11 @@ def bestaetigen(w, daten, nachricht_id, hash_wert, optionen, jetzt):
     zeilen = [z for z in jetzt_vorschlag["zeilen"] if neu_status or "→" not in z]
     nv = lade_nachverfolgung(w, slug)
     korrigiert = bool(n.get("manuell")) or bool(optionen.get("kategorie") or optionen.get("thema") or optionen.get("aussage"))
-    ereignis, _neu = ereignis_bauen(nv, slug, jetzt_vorschlag["art"], n["datum"], {"typ": "nachricht", "nachricht_id": n["id"], "thread_id": n["thread_id"]}, n["original"],
+    ereignis, neues_ereignis = ereignis_bauen(nv, slug, jetzt_vorschlag["art"], n["datum"], {"typ": "nachricht", "nachricht_id": n["id"], "thread_id": n["thread_id"]}, n["original"],
                                     n["interpretation"], "korrigiert" if korrigiert else "bestaetigt", jetzt, "nachricht", "bestaetigt",
                                     gewissheit=n["gewissheit"], mailtyp=n["mailtyp"], status_vorher=jetzt_vorschlag["status_alt"], status_nachher=neu_status or "")
+    if not neues_ereignis:
+        raise Refused("bereits_erfasst", f"Dieselbe Tatsache ist schon als Ereignis {ereignis['id']} erfasst: verwerfen oder dort korrigieren, nicht doppelt übernehmen")
     if optionen.get("kategorie") and not KATEGORIE_FORM.fullmatch(optionen["kategorie"]):
         raise Refused("kategorie_ungueltig", "--kategorie besteht aus a-z, 0-9 und _")
     if optionen.get("kategorie") or optionen.get("thema") or optionen.get("aussage"):

@@ -331,7 +331,13 @@ def ergebnis_aendern(w, slug, ereignis_id, aktion, felder, now):
                 raise Refused("datum_ungueltig", "--datum ist ein echtes Datum der Form JJJJ-MM-TT")
             e["datum"] = felder["datum"]
             e["eingetreten_am"] = felder["datum"]
-        e["status"] = "korrigiert"
+        if e["status"] in BESTAETIGT:  # a correction of a fact; an unconfirmed event stays unconfirmed (the user confirms it apart)
+            e["status"] = "korrigiert"
+        if e.get("schluessel"):  # the key follows kind and day, and two live events must not share one
+            quelle = e.get("quelle") or {}
+            e["schluessel"] = km.schluessel_von(slug, e["art"], e.get("eingetreten_am", ""), quelle.get("nachricht_id") or quelle.get("referenz") or (e.get("beschreibung") or "")[:40], quelle.get("typ"))
+            if any(x is not e and x.get("schluessel") == e["schluessel"] and x.get("status") != "verworfen" for x in nv["ereignisse"]):
+                raise Refused("ereignis_doppelt", "Mit dieser Art und diesem Tag gibt es das Ereignis schon: es würde doppelt gezählt")
     e.setdefault("korrekturen", []).append({"am": stamp(now), "vorher": vorher, "grund": clean_text(felder.get("grund", ""), 160)})
     km.speichere_nachverfolgung(w, slug, nv)
     return {"ok": True, "ereignis": ereignis_id, "status": e["status"]}
