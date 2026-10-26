@@ -226,8 +226,9 @@ class RetrospectiveTests(Base):
         self.assertRegex(antwort["datei"], r"^lernen/retrospektive-2026-10-26-[0-9a-f]{6}\.md$")  # criteria in the name: another filter, another file
         text = self.lies(antwort["datei"])
         self.assertIn("abgeleitet: ja", text)
-        for erwartet in ("## Datenbasis", "Zeitraum (nach Versanddatum): 2026-10-01 bis offen", "Ausgewertete Vorgänge: 6", "Offene Vorgänge: 3",
-                         "## Vergleichbarkeit", "## Einschränkungen", "Offene Bewerbungen sind nicht erfolglos"):
+        for erwartet in ("## A. Zusammenfassung", "Zeitraum nach Versand- oder Erfassungstag: 2026-10-01 bis offen", "davon eingereicht: 6", "Noch offen: 3",
+                         "## B. Prozessqualität", "## C. Reaktionen des Arbeitsmarkts", "## D. Verbesserungsmöglichkeiten", "Nach quelle:",
+                         "## Einschränkungen", "Offene Bewerbungen sind nicht erfolglos"):
             self.assertIn(erwartet, text)
         self.assertEqual(len(re.findall(r"quellen_hash: [0-9a-f]{64}", text)), 1)
 

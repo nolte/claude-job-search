@@ -26,8 +26,8 @@ see_also:
 
 Spec: `spec/job-application/bewerbungsergebnis/en.md` BE-1 to BE-17 (status, phase, outcome, events, next steps, validation, migration),
 `spec/job-application/mail-verwaltung/en.md` MV-18 to MV-36 (messages, proposals, approval, Wiedervorlage, follow-up, mail types, facts, reply drafts, import, send contract) and
-MV-5, MV-6, MV-7 (relevance, assignment, record), `spec/job-application/ergebnisauswertung/en.md` EA-1 to EA-16 (results, statistics,
-retrospective, proposals). Paths, status and retention: `spec/job-application/lokale-struktur/en.md` LS-2, LS-5, LS-6 (rules 1, 2, 4, 8)
+MV-5, MV-6, MV-7 (relevance, assignment, record), `spec/job-application/ergebnisauswertung/en.md` EA-1 to EA-24 (results, statistics, funnel, rates, times,
+retrospective, proposals, check of effect). Paths, status and retention: `spec/job-application/lokale-struktur/en.md` LS-2, LS-5, LS-6 (rules 1, 2, 4, 8)
 and LS-9. Counterpart and communication: `spec/job-application/kontaktklassifikation/en.md` KK-4, KK-5. Facts and data protection:
 `spec/job-application/konventionen/en.md` R-1, R-4, R-6. Tasks and approvals: `spec/job-application/workflow/en.md` WF-3, WF-7.
 
@@ -136,7 +136,13 @@ scripts' rules and from the user's own words in this session.
    angenommen|abgelehnt|zurueckgestellt|umgesetzt --grund … --ja`. Show observation, sources, reasons, effect and uncertainty before asking. A
    proposal changes nothing: no qualification, experience or personal detail goes into the Datengrundlage or `profil.md` from here. If the user
    wants a change of their profile, hand over to `job-application-cv-maintain`, which asks for evidence.
-5. A refusal without a stated reason is "Grund unbekannt". Never conclude a weakness of the person or of the documents from it, and never say a
+5. **Funnel, rates, times (EA-17 to EA-20).** `statistik` also gives `aktivitaet` (begun, finished, approved, dispatched, replies, interviews held, offers), `konversionen` and `zeiten`. Read a rate with its `n`, its `konfidenz95` and the `reif` part (the same rate among applications at least `--reife-tage`
+   old; the younger ones are named apart). Say that a finished application is not dispatched, an invitation is not a held interview, no reply is not a refusal, and that `n: null` means "nicht erfasst". `erklaere <kennzahl>` names the Vorgänge behind a figure; filters: `--kanal --quelle --titel --ergebnis --bewertung --dokumentversion`.
+   Seniority, branch, location and working model are not recorded: say so and do not guess them.
+6. **Retrospective in four parts (EA-21).** `retrospektive` runs the proposal rules and writes A (summary), B (process; each line is a process finding or a data gap), C (reactions) and D (proposals with observation, affected Vorgänge, possible explanation, uncertainty, recommendation, check of effect, and the missing data).
+   Show the data basis and the data gaps first. Keep the three origins of a stated reason apart: the employer's wording, the user's assessment, the system's pattern. State no cause and no promise.
+7. **Check of effect (EA-22).** For an accepted proposal `vorschlag pruefe <id>` compares the named measure with its value then. Pass on its wording: too few new cases, within the uncertainty, or a difference in the recorded data that is no proof of a cause. Never run `vorschlag entscheiden` on your own and never act on a proposal for the user.
+8. A refusal without a stated reason is "Grund unbekannt". Never conclude a weakness of the person or of the documents from it, and never say a
    document "caused" an outcome. A theme named in several refusals is "named in N Vorgängen".
 
 ## Language of the output

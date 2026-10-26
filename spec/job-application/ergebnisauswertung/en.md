@@ -179,7 +179,12 @@ the approval bound to the exact file (WF-7).
 | Small data | Few applications: figures are snapshots | stated in every output |
 | Document versions | The last quality check is not proof of what was sent; a stored hash of the sent files at the dispatch would close this | open |
 | Free-text feedback | The category is found by fixed patterns; understanding the sentence is for the user | by design |
-| Connector | No mailbox connector ships; the messages arrive as a JSON list (MV-19) | open, see MV-27 |
+| Connector | No mailbox connector ships; the messages arrive as a JSON list (MV-19) or from saved `.eml` files (MV-33) | open, see MV-27 |
+| Search records | The postings of the interactive search (`suche/*.md`) are not counted as researched; only the Warteschlange is | open |
+| Approvals | `freigegeben` reads the workflow store; an approval that was voided by a changed document is no longer there | open |
+| Seniority, branch, location, working model | No field in `vorgang.md`; shown as not recorded | open |
+| Maturity | `--reife-tage` (28) is a convention of the report, not a statistical result | by design |
+| Real data | R-03 was tested with invented data only; no real series of applications was evaluated | open |
 | Scheduler | No schedule: runs start when the user asks | by design |
 | Language | German wording only for the mail types and categories | open |
 
@@ -196,6 +201,86 @@ the approval bound to the exact file (WF-7).
 | EA-G | A refused proposal | stays refused; the rule makes no second one |
 | EA-H | A message proposal not yet confirmed | not in any figure |
 | EA-I | Quality report `BLOCKIERT` vs `BEREIT` on the same Vorgang | the same result figures |
+
+## EA-17 The funnel and the conversions (R-03)
+
+`lernen.py statistik` adds `aktivitaet` and `konversionen`. They count every **begun** Vorgang of the period (the day of the dispatch, else `erfasst`), not only the dispatched ones; `zaehler` and `uebergaenge` (EA-5) stay the dispatched ones. Nothing is stored twice:
+every number is derived from `vorgang.md`, the confirmed events of R-01 (`nachverfolgung.json`), `passung.md`, `qualitaet.json`, and, read only, `suche/warteschlange.json` and `workflow/aufgaben.json`.
+
+1. **Activity (`aktivitaet`)** with the source of each number: postings researched, relevant (not refused, no veto of the pre-filter) and taken over (Warteschlange only; the records of an interactive search are not counted); the verdicts of the fit check; begun; documents finished (`erstellt`, `geprüft` or dispatched);
+   explicitly approved (the approval of `versand_freigabe` in the workflow store, a read of the file); dispatched (`versendet_am`); receipt confirmed; employer replies (not a bare receipt); refusals; invitations; interviews held; offers; offers accepted and declined; withdrawn; closed without reply; open without reply.
+   A source that does not exist gives `n: null` and the note "nicht erfasst", never 0.
+2. **Stages are not equated.** A finished application is not a dispatched one; an invitation is not a held interview (only the events `gespraech`, `technisches_gespraech`, `assessment` count as held); a missing reply is not a refusal; an accepted offer is not a hire.
+3. **Conversions (`konversionen`)** each with `name`, `definition`, `zaehler`, `nenner`, `quote`, `konfidenz95` (Wilson interval), `eingeschraenkt`, `aussagekraft` and `reif`: `relevant_zu_begonnen`, `begonnen_zu_fertig`, `fertig_zu_eingereicht`, `eingereicht_zu_eingangsbestaetigung`,
+   `eingereicht_zu_rueckmeldung`, `eingereicht_zu_einladung`, `gespraech_zu_angebot`, `angebot_zu_angenommen`. The numerator is always counted inside the denominator. The denominator is the stage before, never "all".
+4. **Maturity (`reif`).** `--reife-tage N` (default 28, a reporting convention and no deadline of any employer) splits the denominator into applications whose clock (dispatch, finishing, interview or offer date) is at least N days old and younger ones.
+   `reif` holds the rate among the old enough, the number of younger ones and how many of those already have the event. A Vorgang without that date is `ohne_alter`, in neither group. Compare rates of unlike age only through `reif`.
+5. **Small samples.** A denominator below 5 sets `eingeschraenkt: true` and `aussagekraft: gering`; every rate carries its 95 % interval. The interval says how far a small count can be trusted; it is no statement about causes.
+
+## EA-18 Times (R-03)
+
+`zeiten.metriken` gives, from stored dates only, the days from discovery (Warteschlange `erstmals_gesehen`) to begin (`erfasst`), begin to finished documents (workflow task `unterlagen` or a `vorbereitet`/`geprueft` event), finished to dispatch, dispatch to first reply, to invitation and to a known result, invitation to interview, interview to the next reply.
+Each has `n`, median, minimum and maximum, `ende_beobachtet`, `ohne_startdatum` (end known, start not: counted, not replaced) and `ende_vor_start` (a contradiction: counted, not used). Below 5 values it is `eingeschraenkt`.
+Three times are kept apart: the date an event happened (`eingetreten_am`, the only one used for a duration), the day it was recorded (`erfasst`, shown as `erfassung_nach_ereignis`) and the newest record (`datenstand`).
+
+## EA-19 Filters and features that are not stored (R-03)
+
+1. `statistik`, `erklaere` and `retrospektive` filter by `--von`, `--bis`, `--status`, `--arbeitgeber`, `--stellenprofil`, `--ausrichtung`, `--kanal`, `--quelle`, `--titel` (part of the job title), `--bewertung` (verdict of the fit check), `--dokumentversion`, `--ergebnis`
+   (`offen` or a flag such as `einladung`). Every filter names what it excluded under `ausgeschlossen`. A Vorgang without the feature has the value `unbekannt`; it is neither dropped nor given a value.
+2. Seniority, branch, location and working model have **no field** in `vorgang.md`: they are listed under `nicht_erfasst`, cannot be filtered and are never inferred.
+3. `--nach` segments (EA-8) add `zusammensetzung` per group and `vergleichbarkeit` notes: groups of unlike direction, of unlike observation time (mean age differing by more than 30 days) or fewer than two groups of at least 5 are not comparable.
+4. **Document versions.** A comparison by version uses `dokumentversion` (EA-8 rule 3). A Vorgang whose quality report no longer matches its files is `nicht_eindeutig`: it is not assumed that this version was the one sent. There is no A/B test: the data of a single user is no experiment.
+
+## EA-20 Traceability and data quality (R-03)
+
+1. `lernen.py erklaere <kennzahl> [filters]` returns one conversion with the Vorgänge behind it: `belege.zaehler`, `belege.nenner`, `belege.noch_jung`, `belege.ohne_alter`, plus period, filter, source hash and the exclusions. `statistik --belege` does the same for all.
+2. `datenqualitaet` adds `widersprueche` (the findings of BE-10 for the evaluated Vorgänge: errors and warnings, as `bewerbung.py pruefen` gives them) and `ereignisse_ohne_datum`. Contradictory or incomplete records stay visible; none is repaired or turned into a result.
+3. A Vorgang whose `loeschen_ab` has passed leaves every figure (EA-4); `population.ausgeschlossen_begonnen` says so. Exports (the retrospective) carry `quellen_hash` and `reife_tage` and become stale when a source changes (`aktualitaet`).
+
+## EA-21 The retrospective in four parts (R-03)
+
+`lernen.py retrospektive` writes `lernen/retrospektive-<datum>.md` (the name carries a hash of the criteria, the maturity included, when they are not the defaults). It runs the proposal rules first (idempotent) and contains:
+
+- **A. Zusammenfassung:** begun and dispatched, replies and results with `n` and interval, open ones apart, completeness of the data, exclusions, the features not recorded.
+- **B. Prozessqualität:** begun → finished and finished → dispatched, applications not finished or not dispatched after the maturity, the times, checks of the quality gate that failed or blocked in at least two Vorgänge. Each line says **Prozess** (something stays undone) or **Datenlücke** (something is not recorded).
+- **C. Reaktionen des Arbeitsmarkts:** the rates with `n`, the maturity split and times; groups by source, direction and channel with their comparability notes; refusals with their stated reasons; themes named in at least two Vorgänge.
+- **D. Verbesserungsmöglichkeiten:** the open proposals by priority, each with observation, affected Vorgänge, possible explanation, uncertainty, recommendation, expected benefit and how to check the effect; then the **missing data** that limits advice. Without data the part says so and invents no advice.
+
+**Who says what.** A stated reason is shown with its origin: the employer's wording (a message), the user's own assessment (recorded or confirmed by the user), or the system's guess (a pattern in the wording, `sicherheit: niedrig`, never a confirmed finding). The three are never merged. The text names no cause.
+
+## EA-22 Proposals, decisions and the check of effect (R-03)
+
+1. **Rules** (fixed, over confirmed data, no model): reason named in two refusals, no provable document version, messages not yet checked, no reply after the user's `nachfass_tage` (EA-10), and, new, begun Vorgänge not finished after the maturity (`prozess:nicht_fertig`), finished ones not dispatched after the maturity
+   (`prozess:nicht_eingereicht`), two or more Vorgänge begun despite a veto of the fit check (`passung:veto_begonnen`), a check of the quality gate that failed in two or more Vorgänge (`qualitaet:<id>`), and results that stand only in the status (`daten:ergebnis_nur_status`). There is no rule for interview preparation: the data hold nothing to base one on.
+2. **Fields** of a proposal beyond EA-10: `erklaerung` (a possible explanation, not a finding), `empfehlung`, and `pruefung` (`kennzahl`, `ausgangswert` with `zaehler`, `nenner`, `am`, and `wie`).
+3. **Decision.** `vorlegen`, then `entscheiden --entscheidung angenommen|abgelehnt|zurueckgestellt|umgesetzt --grund … --ja` (EA-11): interactive only, with a reason, kept with time and `von: nutzer` in `entscheidungen`. A proposal whose source changed is `veraltet`. Accepting changes no file.
+4. **Check of effect.** `lernen.py vorschlag pruefe <id>` (read only; for accepted or implemented proposals) recomputes the named measure and compares it with the value at the time of the proposal. With fewer than 5 new cases it says the data do not suffice; with overlapping intervals it says the change lies within the uncertainty;
+   otherwise it states that a difference shows in the recorded data, and that this is an observation and no proof that the change caused it.
+
+## EA-23 What R-03 does not do
+
+- It sends no message, makes no approval, creates no task and writes only below `lernen/`. It reads the Warteschlange and the workflow store and writes neither. The approval before any message to an employer stays the user's, per message (WF-7, MV-32); no figure, no proposal and no earlier approval replaces it.
+- It changes no status, document, profile, qualification, search criterion or approved application.
+- It adds no store of results: R-01 (`nachverfolgung.json`, `vorgang.md`) remains the record, R-02 the source of the messages that become events.
+
+## EA-24 Acceptance scenarios (R-03)
+
+| ID | Scenario | Expected behaviour |
+|---|---|---|
+| EA-J | No data at all | zeros, rates `null` without interval, no error |
+| EA-K | A finished, a dispatched and an invited Vorgang | finished is not dispatched; an invitation is not an interview held |
+| EA-L | A young application without reply next to old ones | `reif` leaves it out and counts it as `noch_jung` |
+| EA-M | A rate on two applications | `eingeschraenkt`, `aussagekraft: gering`, a wide interval |
+| EA-N | An end date without a start date; an end before the start | counted apart, no duration |
+| EA-O | A filter by channel, source, title, result | only matching Vorgänge; the excluded ones are counted by reason |
+| EA-P | Seniority, branch, location | listed as not recorded; no filter |
+| EA-Q | `erklaere eingereicht_zu_rueckmeldung` | the Vorgänge behind numerator and denominator |
+| EA-R | A broken `nachverfolgung.json` | counted as defective; no result is made up |
+| EA-S | Two Vorgänge not finished for more than 28 days | one proposal naming both; the one begun two days ago is not named |
+| EA-T | A retrospective without queue, workflow store or enough dispatches | the missing data are named; no invented advice |
+| EA-U | An accepted proposal and four new cases | `pruefe`: the data do not suffice |
+| EA-V | A refusal quoted from a message, one noted by the user, one with a pattern | three origins, never merged |
+| EA-W | The whole evaluation run | no file outside `lernen/` changes or appears; nothing is sent; no task or approval is created |
 
 ## EA-16 Sources
 
