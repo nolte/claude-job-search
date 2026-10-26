@@ -110,7 +110,7 @@ Solange du so etwas nicht eingerichtet hast, läuft nichts von selbst. Zweimal `
 
 ## Prüfung
 
-`python3 -m unittest tests.test_workflow` (91 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
+`python3 -m unittest tests.test_workflow` (95 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
 Zyklen, Neustart und beschädigter Speicher, Idempotenz und konkurrierende Sitzungen, Freigaben und das Adaptertor, Fehler und
 Wiederholungen, Zeitplan und Grenzen, die Kette von der Anzeige bis zur versendeten Bewerbung und die Sicherheitsfälle. Nicht
 geprüft: ein echter Adapter (es gibt keinen) und ein langer Zeitplan auf einem echten Rechner.

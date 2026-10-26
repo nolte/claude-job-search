@@ -546,7 +546,7 @@ def exclusive(wurzel, bereich="suche", name=".stellensuche.lock"):
                 break
             except BlockingIOError:
                 if time.monotonic() > deadline:
-                    raise Refused("beschaeftigt", "Ein anderer Befehl ändert gerade die Suche; später wiederholen.")
+                    raise Refused("beschaeftigt", f"Ein anderer Befehl ändert gerade {'die Suche' if bereich == 'suche' else 'den Bereich ' + bereich}; später wiederholen.")
                 time.sleep(0.05)
         yield
     finally:

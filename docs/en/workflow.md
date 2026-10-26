@@ -100,7 +100,7 @@ Until you set something like this up, nothing runs by itself. Calling `laufen` t
 
 ## Verification
 
-`python3 -m unittest tests.test_workflow` (91 tests, no network, no model): statuses and transitions, dependencies and cycles,
+`python3 -m unittest tests.test_workflow` (95 tests, no network, no model): statuses and transitions, dependencies and cycles,
 restart and damaged stores, idempotence and racing sessions, approvals and the adapter gate, errors and retries, the schedule
 and the limits, the chain from a posting to a sent application, and the security cases. Not verified: a real adapter (none
 exists) and a long-running schedule on a real machine.

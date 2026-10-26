@@ -298,8 +298,8 @@ def pruefe_bezug(typ, bezug):
     gebraucht = "auftrag" if typ == "suche" else "vorgang"
     if not isinstance(bezug, dict) or not bezug.get(gebraucht) or (bezug.get("vorgang") and bezug.get("auftrag")):
         raise Refused("aufgabe_ungueltig", f"Eine Aufgabe vom Typ {typ} hat als bezug genau {'einen Suchauftrag' if gebraucht == 'auftrag' else 'einen Vorgang'}")
-    if not all(KUERZEL.fullmatch(str(bezug.get(k, "x"))) for k in ("vorgang", "auftrag")) or \
-            (bezug.get("datei") is not None and not DATEINAME.fullmatch(str(bezug["datei"]))):
+    if not all(isinstance(bezug.get(k, "x"), str) and KUERZEL.fullmatch(bezug.get(k, "x")) for k in ("vorgang", "auftrag")) or \
+            (bezug.get("datei") is not None and not (isinstance(bezug["datei"], str) and DATEINAME.fullmatch(bezug["datei"]))):
         raise Refused("aufgabe_ungueltig", "bezug.vorgang und bezug.auftrag sind Kürzel aus a-z, 0-9 und -; datei ist ein Dateiname")
 
 
@@ -314,8 +314,9 @@ def neue_aufgabe(daten, typ, bezug, now, nach=(), ab="", faellig="", suffix=""):
         suffix = bezug["datei"]  # one message per file: the approval covers exactly that file
     task_id = f"{typ}:{bezug.get('vorgang') or bezug.get('auftrag')}" + (f":{suffix}" if suffix else "")
     if task_id in daten["aufgaben"]:
-        if daten["aufgaben"][task_id]["bezug"] != bezug:
-            raise Refused("aufgabe_existiert", f"{task_id} gibt es schon mit einem anderen bezug; sie wird nicht stillschweigend weiterverwendet")
+        vorhanden = daten["aufgaben"][task_id]
+        if vorhanden["bezug"] != bezug or (ab and ab != vorhanden["ab"]) or (faellig and faellig != vorhanden["faellig"]):
+            raise Refused("aufgabe_existiert", f"{task_id} gibt es schon mit anderen Angaben (bezug, ab, faellig); sie wird nicht stillschweigend weiterverwendet")
         return daten["aufgaben"][task_id], False
     if len(daten["aufgaben"]) >= daten["grenzen"]["aufgaben_max"]:
         raise Refused("budget_erschoepft", f"Es gibt schon {daten['grenzen']['aufgaben_max']} Aufgaben (aufgaben_max)")
@@ -559,6 +560,7 @@ def starte_vorgang(w, daten, slug, now):
     if len(daten["aufgaben"]) + fehlend > daten["grenzen"]["aufgaben_max"]:
         raise Refused("budget_erschoepft", f"Die Kette braucht {fehlend} Aufgaben, aufgaben_max ({daten['grenzen']['aufgaben_max']}) reicht nicht")
     neu, ids = [], {}
+    nach_vorher = {i: list(t["nach"]) for i, t in daten["aufgaben"].items()}
     for typ, nach in BEWERBUNG:
         if typ == "passung" and not mit_passung and f"passung:{slug}" not in daten["aufgaben"]:
             continue
@@ -569,6 +571,14 @@ def starte_vorgang(w, daten, slug, now):
         for dep in (ids[d] for d in nach if d in ids):  # repair: a step added later (the fit check) joins what follows
             if dep not in task["nach"] and task["status"] in (WARTEND, BEREIT, FREIGABE, EINGABE, BLOCKIERT):
                 task["nach"].append(dep)
+    try:
+        reihenfolge(daten)
+    except Refused:  # a repair that would close a cycle (a hand-edited store) is undone before anything is saved
+        for task_id in neu:
+            del daten["aufgaben"][task_id]
+        for task_id, nach in nach_vorher.items():
+            daten["aufgaben"][task_id]["nach"] = nach
+        raise
     return neu
 
 
@@ -599,7 +609,7 @@ def plane(w, daten, now):
             meta = ss.vorgang_meta(os.path.join(w, slug, "vorgang.md")) if KUERZEL.fullmatch(slug) else None
             if meta is None or meta.get("status") in ENDSTATUS or slug in mit_workflow:
                 continue
-            if budget < kettenlaenge(w):
+            if budget < min(kettenlaenge(w), daten["grenzen"]["neu_max_je_lauf"]):  # a chain longer than the whole budget still comes, first in its run
                 zurueck.append(f"workflow:{slug}")
                 continue
             try:
@@ -878,7 +888,7 @@ def wiederholen(w, daten, task_id, now):
     task = hole(daten, task_id)
     if task["status"] != FEHLGESCHLAGEN:
         raise Refused("nicht_fehlgeschlagen", f"{task_id} ist {task['status']}; wiederholt wird nur eine fehlgeschlagene Aufgabe")
-    task["versuche_ab"], task["letzter_fehler"] = len(task["versuche"]), task["letzter_fehler"]
+    task["versuche_ab"] = len(task["versuche"])
     verlauf(task, now, "Wiederholung durch den Nutzer")
     setze(task, BEREIT, now)
     bewerte(w, daten, task, now)
