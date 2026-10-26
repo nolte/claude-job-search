@@ -17,6 +17,7 @@ import unittest.mock
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
+import qualitaet as qa  # noqa: E402
 import stellensuche as ss  # noqa: E402
 import workflow as wf  # noqa: E402
 
@@ -109,6 +110,14 @@ class Base(unittest.TestCase):
         """A Vorgang that went through analysis, plan, documents and the quality gate (files as the skills write them)."""
         self.vorgang(slug, "geprüft", body="## Plan\nLebenslauf, Anschreiben\n## Verlauf\n", **{
             "analyse.md": "# Analyse", "lebenslauf.md": "Lebenslauf", "anschreiben.md": "Anschreiben", "pruefbericht.md": "ok"})
+        self.qualitaetsbericht(slug)
+
+    def qualitaetsbericht(self, slug=SLUG, gesamt="BEREIT"):
+        """The report of qualitaet.py for the documents as they are now (the content of the checks is tested in test_qualitaet.py)."""
+        ordner = os.path.join(self.w, slug)
+        bericht = {"schema": qa.SCHEMA, "dokumente": qa.dokument_hashes(ordner), "exporte": qa.export_hashes(ordner), "gesamt": gesamt, "grundlage_hash": None}
+        with open(os.path.join(ordner, qa.BERICHT), "w", encoding="utf-8") as handle:
+            json.dump(bericht, handle)
 
 
 class ModelTests(Base):  # A
@@ -411,10 +420,60 @@ class ApprovalTests(Base):  # D
 
     def test_no_approval_without_documents_and_none_for_steps_that_have_their_own(self):
         self.vorgang(status="geprüft", body="## Plan\n## Verlauf\n", **{"analyse.md": "x"})
+        self.qualitaetsbericht()
         self.start()
         self.assertEqual(self.stand(self.tid("versand_freigabe")), wf.EINGABE)  # nothing to approve
         self.assertEqual(self.refused(wf.freigeben, self.w, self.store(), self.tid("versand_freigabe"), T0), "nicht_wartend")
         self.assertEqual(self.refused(wf.freigeben, self.w, self.store(), self.tid("plan"), T0), "keine_freigabe")
+
+    def test_the_quality_gate_needs_a_current_report_that_may_be_approved(self):
+        for gesamt, geaendert in (("BLOCKIERT", False), ("MANUELL_ZU_PRUEFEN", False), ("UNVOLLSTAENDIG", False), ("BEREIT", True)):
+            with self.subTest(gesamt=gesamt, geaendert=geaendert):
+                self.setUp()
+                self.alles_bis_pruefung()
+                self.qualitaetsbericht(gesamt=gesamt)
+                if geaendert:
+                    self.datei(SLUG, "anschreiben.md", "Anschreiben, später geändert")
+                daten = self.start()
+                self.assertNotEqual(daten["aufgaben"][self.tid("pruefung")]["status"], wf.ERLEDIGT)
+                self.assertNotEqual(daten["aufgaben"][self.tid("versand_freigabe")]["status"], wf.FREIGABE)
+        self.setUp()
+        self.alles_bis_pruefung()
+        os.remove(os.path.join(self.w, SLUG, qa.BERICHT))
+        daten = self.start()
+        self.assertNotEqual(daten["aufgaben"][self.tid("pruefung")]["status"], wf.ERLEDIGT)
+
+    def test_a_changed_grundlage_makes_the_quality_report_stale(self):
+        grundlage = os.path.join(self.w, "grundlage.md")
+        with open(grundlage, "w", encoding="utf-8") as handle:
+            handle.write("---\nstand: 2026-10-01\n---\n# Grundlage\n")
+        with open(self.config, "w", encoding="utf-8") as handle:
+            handle.write(f"---\nwurzel: {self.w}\ngrundlage: {grundlage}\n---\n")
+        self.addCleanup(setattr, wf, "KONFIGURATION", None)
+        wf.KONFIGURATION = self.config
+        self.alles_bis_pruefung()
+        bericht = os.path.join(self.w, SLUG, qa.BERICHT)
+        with open(bericht, encoding="utf-8") as handle:
+            daten = json.load(handle)
+        daten["grundlage_hash"] = wf.grundlage_stand()
+        with open(bericht, "w", encoding="utf-8") as handle:
+            json.dump(daten, handle)
+        self.assertEqual(self.start()["aufgaben"][self.tid("versand_freigabe")]["status"], wf.FREIGABE)
+        with open(grundlage, "a", encoding="utf-8") as handle:
+            handle.write("- neue Station\n")
+        self.assertEqual(self.refused(wf.freigeben, self.w, self.store(), self.tid("versand_freigabe"), T0), "qualitaet_veraltet")
+
+    def test_the_send_approval_is_refused_without_a_current_quality_report(self):
+        self.alles_bis_pruefung()
+        self.start()
+        self.assertEqual(self.stand(self.tid("versand_freigabe")), wf.FREIGABE)
+        os.remove(os.path.join(self.w, SLUG, qa.BERICHT))  # the state of the task has not been reconciled yet
+        self.assertEqual(self.refused(wf.freigeben, self.w, self.store(), self.tid("versand_freigabe"), T0), "qualitaet_fehlt")
+        self.qualitaetsbericht(gesamt="BLOCKIERT")
+        self.assertEqual(self.refused(wf.freigeben, self.w, self.store(), self.tid("versand_freigabe"), T0), "qualitaet_nicht_freigabefaehig")
+        self.qualitaetsbericht()
+        self.datei(SLUG, "analyse.md", "# Analyse, später geändert")  # context of the checks, not part of the send package
+        self.assertEqual(self.refused(wf.freigeben, self.w, self.store(), self.tid("versand_freigabe"), T0), "qualitaet_veraltet")
 
     def test_an_unattended_session_cannot_approve_cancel_or_change_anything(self):
         self.alles_bis_pruefung()
@@ -686,6 +745,7 @@ class IntegrationTests(Base):  # F
         # S5 quality gate
         self.cli("uebernehmen", self.tid("pruefung"), now=later(minutes=10))
         self.status(SLUG, "geprüft", body="## Plan\nx\n## Verlauf\n")
+        self.qualitaetsbericht()
         self.assertTrue(self.cli("fertig", self.tid("pruefung"), "--versuch", "1", now=later(minutes=11))[1]["ok"])
         # the approval is the user's, then the user sends and enters S7
         self.assertEqual(self.stand(self.tid("versand_freigabe")), wf.FREIGABE)

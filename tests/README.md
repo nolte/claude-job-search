@@ -13,10 +13,11 @@
 - `test_posting_url.py`: URL cleaning and refused targets of the posting intake (spec UE-2, scenarios UE-A and UE-F). Synthetic data only.
 - `test_stellensuche.py`: Suchauftrag, runs, limits, de-duplication across runs, Veto pre-filter, Warteschlange, hand-off, security and the launcher `stellensuche_geplant.sh` with a stub for `claude` (spec ST-13 to ST-20, scenarios SR-A to SR-S). Synthetic data only; the JobSpy server is not involved, so the search through the real server is not tested.
 - `test_workflow.py`: the workflow orchestration (spec WF-1 to WF-14, scenarios WA-A to WA-Z): the matrix of task statuses, dependencies and cycles, the store after a restart and when damaged, idempotence and racing sessions, approvals bound to content, the adapter gate for external actions, error classes and retries, the schedule and the limits, the whole chain from a posting to a sent application, and security cases. Synthetic data only; no network, model or mail.
+- `test_qualitaet.py`: the quality report `scripts/qualitaet.py` (spec QS-1 to QS-12): result model and overall states, the cross-document rules QS-01 to QS-05 with planted defects on the fixtures, the verification of the semantic verdicts (literal quote and evidence, version, confidence, injected text), the report bound to document hashes and its staleness, the user-only confirmation, the privacy of the report and history, the export read-back (HTML and DOCX through pandoc; the PDF with a hand-made PDF, needs `pdftotext` and `pdfinfo` from poppler-utils and skips without them) and the proof that the module imports nothing that could send. The gate in `workflow.py` is tested in `test_workflow.py`. What a model decides is not tested here: the verdicts are hand-made.
 - `test_skill_structure.py`: frontmatter names, description, and existence of referenced spec, requirement, and script files,
   and of cross-referenced skills and agents.
 
-In the CI the job installs pandoc, python-docx and PyYAML (`tests/requirements.txt`); `ToolchainTests` in `test_export.py` fails there if one is missing.
+In the CI the job installs pandoc, poppler-utils, python-docx and PyYAML (`tests/requirements.txt`); `ToolchainTests` in `test_export.py` fails there if one is missing.
 What the CI covers and what only the model evals check: `docs/en/evals.md`, "What the CI covers".
 
 Scenarios that depend on the generating skill (CG-14 A, C, D, E) are verified by review, not by these tests.

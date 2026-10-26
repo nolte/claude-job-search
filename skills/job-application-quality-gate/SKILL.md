@@ -60,6 +60,30 @@ are `Blocker`, `Warnung`, `Hinweis` (CG-13.1); the verdict is `Ergebnis: BLOCKIE
 German form of `BLOCKED | READY-WITH-WARNINGS | READY` (CG-13.1). The reviewer agent (`job-application-reviewer`) uses the same
 severities and verdict terms, so its findings carry over one to one.
 
+## Quality report (spec qualitaetssicherung QS-1 to QS-12)
+
+`scripts/qualitaet.py` is the toolchain behind this gate. It runs the rules below, the cross-document rules (QS-01 to
+QS-05), the export rules (EX-01 to EX-04) and the process rules (PR-01, PR-02), reads the semantic verdicts, and writes
+`<wurzel>/<slug>/qualitaet.json`, the report that the workflow reads before the send approval. Run it first:
+
+```bash
+python3 <plugin-root>/scripts/qualitaet.py pruefen <wurzel>/<slug> --konfiguration job-application/konfiguration.md
+```
+
+Exit 0: the package may be offered for approval; 1: a `FAIL` exists; 2: not ready (`BLOCKED`, `NEEDS_REVIEW`, not checked).
+
+- **The semantic checks `SEM-01` to `SEM-05` are your verdicts.** Judge the documents against the Grundlage and write
+  `<wurzel>/<slug>/qualitaet-urteile.json` (`{"schema": 1, "urteile": [...]}`), then run the command again. A verdict has
+  `check`, `dokument`, `dokument_hash` (from the first run's `qualitaet.json`: `dokumente.<datei>`; for `dokument: "*"` the field
+  `dokumente_stand`), `ergebnis`, `sicherheit`, `zitat` (a literal quote
+  of the document), `evidenz` (for SEM-01 a literal quote of the Grundlage), `begruendung`. `ergebnis` is `A` (stated), `B`
+  (plausible, not stated), `C` (contradicted), `D` (not checkable) for SEM-01 and `ok`, `pruefen`, `fehler` for the others.
+  Never mark `A` or `ok` without a literal quote; never round `B` or `D` up. When you cannot judge, write no verdict: the check
+  stays `NEEDS_REVIEW`, which is correct.
+- **Never present the report as a full automation.** Say which checks are `NEEDS_REVIEW` or `BLOCKED` and that the user
+  confirms them with `qualitaet.py entscheiden … --ja`. You do not run `entscheiden` yourself: it is the user's decision.
+- The toolchain sends nothing and approves nothing. The send approval stays with the user (workflow `versand_freigabe`).
+
 ## Automated checks
 
 Run the deterministic checks first. They produce the same output for the same input:
@@ -240,9 +264,11 @@ language) are judgement checks. This skill runs them from the passages it reads;
 ## Workflow
 
 1. Read `vorgang.md`, the analysis and the profile first, then each document.
-2. Run the automated checks, then the checks of the table above. Quote the exact passage for every finding.
+2. Run `qualitaet.py pruefen` and the automated checks, then the checks of the table above. Quote the exact passage for every finding.
 3. Write `## Prüfung`. Show the user the Ergebnis and the Blocker in chat as well.
-4. **Status** (LS-6, S5). In a Vorgang folder set `status: geprüft` when zero Blocker remain, otherwise `in Arbeit`, only
+4. **Status** (LS-6, S5). In a Vorgang folder set `status: geprüft` when zero Blocker remain **and** the report
+   `qualitaet.json` is current and approvable (`gesamt` is `BEREIT`, `BEREIT_MIT_WARNUNGEN` or `BEREIT_NACH_MANUELLER_PRUEFUNG`;
+   the workflow task `pruefung` is not done otherwise), otherwise `in Arbeit`, only
    while the current status is `erstellt`, `geprüft` or `in Arbeit`. From `versendet` or later (S7, S8 are the user's)
    write the report only. Append `- JJJJ-MM-TT: <alter Status> → <neuer Status>, job-application-quality-gate` to
    `## Verlauf` only when the status actually changes. Set `grundlage_hash` in `vorgang.md` only when it is missing and
@@ -272,5 +298,6 @@ listed here.
 3. **Traceability is strict.** A claim the report cannot find in the Grundlage, through `profil.md`, is a Blocker,
    even if it sounds plausible.
 4. **German report, German severities.** No English severity words or verdicts in `pruefbericht.md`.
-5. **Only the Wurzel is written** (LS-5.7): `pruefbericht.md` and `vorgang.md` of this Vorgang.
+5. **Only the Wurzel is written** (LS-5.7): `pruefbericht.md`, `vorgang.md` and the files of the toolchain (`qualitaet.json`,
+   `qualitaet-verlauf.jsonl`, `qualitaet-urteile.json`) of this Vorgang.
 6. **Word count never blocks.** Length Blocker come from the page count only.

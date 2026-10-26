@@ -79,6 +79,13 @@ tasks:
     cmds:
       - python3 scripts/workflow.py {{.CLI_ARGS}}
 
+  quality:
+    desc: |
+      Quality report of one Vorgang (spec qualitaetssicherung QS-1 to QS-12): deterministic checks, export checks and the semantic verdicts.
+      Usage: task quality -- <pruefen|status|entscheiden|katalog> <vorgang-ordner> ...   (writes qualitaet.json; sends and approves nothing)
+    cmds:
+      - python3 scripts/qualitaet.py {{.CLI_ARGS}}
+
   search:
     desc: |
       Deterministic helper of the recurring job search (spec stellensuche ST-13 to ST-20).
