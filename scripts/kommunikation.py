@@ -41,7 +41,7 @@ NACHRICHTEN_MAX = 500  # references kept in eingang.json; handled ones are dropp
 
 # the status values of LS-6 rule 2 in the order of a course after the dispatch (MV-7.4), and the final ones
 VERLAUF_REIHE = ("versendet", "rückmeldung", "gespräch", "angebot", "verhandlung")
-ENDSTATUS = ("zusage", "absage", "abgelehnt", "zurückgezogen", "ohne Antwort")
+ENDSTATUS = ("zusage", "absage", "abgelehnt", "zurückgezogen", "ohne Antwort", "abgeschlossen")
 
 # Mail types of MV-3.2 plus the two the requirements ask for. rule: (strong patterns, weak patterns)
 MAILTYPEN = {
@@ -62,13 +62,20 @@ MAILTYPEN = {
     "gespraechsfeedback": ("Gesprächsfeedback", None, "gespraechsfeedback", (
         r"feedback zum gespräch|nach unserem gespräch|vielen dank für das (gestrige |heutige )?gespräch", r"feedback")),
 }
-ARTEN = tuple(v[2] for v in MAILTYPEN.values()) + (
-    "kontaktaufnahme", "gespraech", "technisches_gespraech", "assessment", "weitere_phase", "absage_nach_unterlagen",
-    "absage_nach_gespraech", "absage_nach_assessment", "zurueckgezogen")
+# What the employer did or said (a reply). Only these count as a reply of the employer in the evaluation (lernen.INHALTLICH).
+ARTEN_ARBEITGEBER = tuple(v[2] for v in MAILTYPEN.values()) + (
+    "kontaktaufnahme", "im_auswahlprozess", "gespraech_vereinbart", "gespraech_verschoben", "gespraech_abgesagt", "gespraech", "technisches_gespraech",
+    "assessment", "weiterer_termin", "weitere_phase", "absage_nach_unterlagen", "absage_nach_gespraech", "absage_nach_assessment")
+# What the applicant or the toolchain did or decided (R-01 3): own steps, never a reply and never an outcome by themselves.
+ARTEN_EIGEN = ("vorbereitet", "geprueft", "freigabe_angefordert", "freigabe_erteilt", "freigabe_verweigert", "versendet", "versand_fehlgeschlagen",
+               "angebot_angenommen", "angebot_abgelehnt", "zurueckgezogen", "abgeschlossen", "statuswechsel")
+ARTEN = ARTEN_ARBEITGEBER + ARTEN_EIGEN
 POSITIV = ("eingangsbestaetigung", "kontaktaufnahme", "gespraechseinladung", "gespraech", "technisches_gespraech", "assessment",
            "weitere_phase", "angebot", "einstellung")
 NEGATIV = ("absage", "absage_nach_unterlagen", "absage_nach_gespraech", "absage_nach_assessment", "zurueckgezogen")
-ANLAESSE = ("erwartete_rueckmeldung", "nachfassen", "gespraechsvorbereitung", "gespraechsnachbereitung", "offene_rueckfrage", "angebot_pruefen")
+ANLAESSE = ("erwartete_rueckmeldung", "rueckmeldefrist", "nachfassen", "gespraechsvorbereitung", "gespraechstermin", "gespraechsnachbereitung",
+            "offene_rueckfrage", "angebot_pruefen", "fehlende_information")
+VERBINDLICHKEIT = ("eigene_planung", "arbeitgeber_frist")  # a date the employer named is a deadline of the employer; every other date is the user's own planning
 FOLGE_ANLASS = {"eingangsbestaetigung": "erwartete_rueckmeldung", "einladung": "gespraechsvorbereitung", "rueckfrage": "offene_rueckfrage",
                 "angebot": "angebot_pruefen", "gespraechsfeedback": "gespraechsnachbereitung"}
 GEWISSHEIT = ("eindeutig", "wahrscheinlich", "unklar", "nicht_zuordenbar")
@@ -450,6 +457,53 @@ def zuweisen(w, daten, nachricht_id, vorgang, typ):
     return n
 
 
+def schluessel_von(slug, art, eingetreten, referenz, typ):
+    """The key that makes recording the same fact twice a no-op (R-01 3): same Vorgang, kind, day, source and reference."""
+    return digest(slug, art, eingetreten or "-", referenz or "-", typ or "-")
+
+
+def ereignis_bauen(nv, slug, art, eingetreten, quelle, original, interpretation, status, jetzt, methode, bestaetigung, **zusatz):
+    """-> (event, new). One place that builds an event, so every writer fills the same fields. A fact already recorded gives back the first.
+
+    `eingetreten_am` is when it happened (empty when unknown, never estimated), `erfasst` when the toolchain learned of it. `datum`
+    stays as the older name of `eingetreten_am` for the files written before R-01."""
+    referenz = quelle.get("nachricht_id") or quelle.get("referenz") or zusatz.get("beschreibung", "")[:40]
+    schluessel = schluessel_von(slug, art, eingetreten, referenz, quelle.get("typ"))
+    for e in nv["ereignisse"]:
+        if e.get("schluessel") == schluessel and e.get("status") != "verworfen":
+            return e, False
+    ereignis = {"id": neues_id(nv["ereignisse"], "e"), "art": art, "datum": eingetreten or "", "eingetreten_am": eingetreten or "", "erfasst": stamp(jetzt),
+                "quelle": quelle, "methode": methode, "bestaetigung": bestaetigung, "original": original, "interpretation": interpretation, "status": status,
+                "bestaetigt_am": stamp(jetzt) if status in ("bestaetigt", "korrigiert") else "", "schluessel": schluessel}
+    ereignis.update({k: v for k, v in zusatz.items() if v not in (None, "")})
+    nv["ereignisse"].append(ereignis)
+    return ereignis, True
+
+
+def setze_meta(w, slug, schluessel, wert):
+    """Set one key of the frontmatter of vorgang.md (the key line is replaced, a missing one is added); the body stays as it is."""
+    pfad = vorgang_pfad(w, slug)
+    with open(pfad, encoding="utf-8", newline="") as handle:
+        text = handle.read()
+    nl = "\r\n" if "\r\n" in text else "\n"
+    kopf = re.match(r"^---\r?\n(.*?)\r?\n---(?:\r?\n|$)", text, re.S)
+    if not kopf:
+        raise Refused("vorgang_ungueltig", "vorgang.md hat kein Frontmatter")
+    zeile = f"{schluessel}: {wert}"
+    if re.search(rf"^{re.escape(schluessel)}:.*$", kopf.group(1), re.M):
+        neu = re.sub(rf"^{re.escape(schluessel)}:.*$", lambda _: zeile, kopf.group(1), count=1, flags=re.M)
+    else:
+        neu = kopf.group(1) + nl + zeile
+    text = text[:kopf.start(1)] + neu + text[kopf.end(1):]
+    temp = os.path.join(os.path.dirname(pfad), ".vorgang.md.tmp")
+    try:
+        with open(temp, "w", encoding="utf-8", newline="") as handle:
+            handle.write(text)
+        os.replace(temp, pfad)
+    except OSError as error:
+        raise Refused("speichern_fehlgeschlagen", f"vorgang.md nicht geschrieben: {redact(error)}")
+
+
 def neues_id(liste, praefix):
     zahlen = [int(m.group(1)) for e in liste for m in [re.fullmatch(rf"{praefix}-(\d+)", str(e.get("id", "")))] if m]
     return f"{praefix}-{max(zahlen, default=0) + 1:03d}"
@@ -510,10 +564,11 @@ def bestaetigen(w, daten, nachricht_id, hash_wert, optionen, jetzt):
     zeilen = [z for z in jetzt_vorschlag["zeilen"] if neu_status or "→" not in z]
     nv = lade_nachverfolgung(w, slug)
     korrigiert = bool(n.get("manuell")) or bool(optionen.get("kategorie") or optionen.get("thema") or optionen.get("aussage"))
-    ereignis = {"id": neues_id(nv["ereignisse"], "e"), "art": jetzt_vorschlag["art"], "datum": n["datum"],
-                "quelle": {"typ": "nachricht", "nachricht_id": n["id"], "thread_id": n["thread_id"]}, "original": n["original"],
-                "interpretation": n["interpretation"], "status": "korrigiert" if korrigiert else "bestaetigt", "erfasst": stamp(jetzt),
-                "bestaetigt_am": stamp(jetzt), "gewissheit": n["gewissheit"], "mailtyp": n["mailtyp"]}
+    ereignis, neues_ereignis = ereignis_bauen(nv, slug, jetzt_vorschlag["art"], n["datum"], {"typ": "nachricht", "nachricht_id": n["id"], "thread_id": n["thread_id"]}, n["original"],
+                                    n["interpretation"], "korrigiert" if korrigiert else "bestaetigt", jetzt, "nachricht", "bestaetigt",
+                                    gewissheit=n["gewissheit"], mailtyp=n["mailtyp"], status_vorher=jetzt_vorschlag["status_alt"], status_nachher=neu_status or "")
+    if not neues_ereignis:
+        raise Refused("bereits_erfasst", f"Dieselbe Tatsache ist schon als Ereignis {ereignis['id']} erfasst: verwerfen oder dort korrigieren, nicht doppelt übernehmen")
     if optionen.get("kategorie") and not KATEGORIE_FORM.fullmatch(optionen["kategorie"]):
         raise Refused("kategorie_ungueltig", "--kategorie besteht aus a-z, 0-9 und _")
     if optionen.get("kategorie") or optionen.get("thema") or optionen.get("aussage"):
@@ -531,7 +586,6 @@ def bestaetigen(w, daten, nachricht_id, hash_wert, optionen, jetzt):
                                      "status": "offen", "angelegt": stamp(jetzt)})
     elif faellig:
         raise Refused("keine_folgeaufgabe", "Zu diesem Mailtyp gibt es keine Folgeaufgabe; --faellig weglassen oder `wiedervorlage anlegen` benutzen")
-    nv["ereignisse"].append(ereignis)
     schreibe_verlauf(w, slug, zeilen, neu_status)
     speichere_nachverfolgung(w, slug, nv)
     n["status"] = "korrigiert" if korrigiert else "bestaetigt"
@@ -553,17 +607,19 @@ def verwerfen(daten, nachricht_id, grund, jetzt):
 
 # ---------------------------------------------------------------- Wiedervorlagen (7.3) and follow-up (8)
 
-def wiedervorlage_anlegen(w, slug, anlass, faellig, beschreibung, jetzt):
+def wiedervorlage_anlegen(w, slug, anlass, faellig, beschreibung, jetzt, verbindlichkeit="eigene_planung"):
     vorgang_meta(w, slug)
     if anlass not in ANLAESSE:
         raise Refused("anlass_unbekannt", f"Anlass {redact(anlass, 40)} ist nicht bekannt ({', '.join(ANLAESSE)})")
     if ss.valid_date(faellig) != faellig or not faellig:
         raise Refused("datum_ungueltig", "--faellig ist ein echtes Datum der Form JJJJ-MM-TT: eine Frist legt die Nutzerin oder der Nutzer fest")
+    if verbindlichkeit not in VERBINDLICHKEIT:
+        raise Refused("verbindlichkeit_unbekannt", f"Verbindlichkeit {redact(verbindlichkeit, 40)} ist nicht bekannt ({', '.join(VERBINDLICHKEIT)})")
     nv = lade_nachverfolgung(w, slug)
     if any(r["anlass"] == anlass and r["faellig"] == faellig and r["status"] == "offen" for r in nv["wiedervorlagen"]):
         raise Refused("wiedervorlage_existiert", "Diese Wiedervorlage gibt es schon (Anlass und Datum)")
     eintrag = {"id": neues_id(nv["wiedervorlagen"], "w"), "anlass": anlass, "faellig": faellig, "beschreibung": clean_text(beschreibung, 160),
-               "quelle": {"typ": "nutzer"}, "status": "offen", "angelegt": stamp(jetzt)}
+               "quelle": {"typ": "nutzer"}, "status": "offen", "angelegt": stamp(jetzt), "verbindlichkeit": verbindlichkeit}
     nv["wiedervorlagen"].append(eintrag)
     speichere_nachverfolgung(w, slug, nv)
     return {"ok": True, "wiedervorlage": eintrag, "hinweis": "Eine Wiedervorlage erzeugt eine Aufgabe und keine Nachricht."}
@@ -678,6 +734,7 @@ def build_parser():
     w.add_argument("--anlass")
     w.add_argument("--faellig", default="")
     w.add_argument("--text", default="")
+    w.add_argument("--arbeitgeber-frist", action="store_true", help="the date is a deadline the employer named")
     w.add_argument("--id")
     n = sub.add_parser("nachfass")
     n.add_argument("vorgang")
@@ -723,7 +780,8 @@ def run(args):
             return {"ok": True, **verarbeite(w, roh, now)}
         if befehl == "wiedervorlage":
             if args.aktion == "anlegen":
-                return wiedervorlage_anlegen(w, args.vorgang, args.anlass or "", args.faellig, args.text, now)
+                return wiedervorlage_anlegen(w, args.vorgang, args.anlass or "", args.faellig, args.text, now,
+                                             "arbeitgeber_frist" if args.arbeitgeber_frist else "eigene_planung")
             return wiedervorlage_abschliessen(w, args.vorgang, args.id or "", "erledigt" if args.aktion == "erledigen" else "verworfen", now)
         daten = lade_eingang(w)
         if befehl == "zuweisen":

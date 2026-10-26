@@ -171,7 +171,7 @@ values; from sending onwards you set them yourself:
 
 | Set by the skills | Set by you |
 |---|---|
-| `erfasst` (posting captured), `analysiert`, `geplant` (plan approved), `erstellt` (documents created), `geprüft` (quality gate passed) or `in Arbeit` (blockers open) | `versendet`, `rückmeldung`, `gespräch`, `angebot`, `verhandlung`, `zusage`, `absage`, `abgelehnt` (you declined), `zurückgezogen`, `ohne Antwort` |
+| `erfasst` (posting captured), `analysiert`, `geplant` (plan approved), `erstellt` (documents created), `geprüft` (quality gate passed) or `in Arbeit` (blockers open) | `versendet`, `rückmeldung`, `gespräch`, `angebot`, `verhandlung`, `zusage`, `absage`, `abgelehnt` (you declined), `zurückgezogen`, `ohne Antwort`, `abgeschlossen` |
 
 Every status change gets one line in the *Verlauf* section of `vorgang.md` with the date, so
 the history stays readable. When you send the application, record the date, the channel and
@@ -207,6 +207,7 @@ views:
         - 'status != "abgelehnt"'
         - 'status != "zurückgezogen"'
         - 'status != "ohne Antwort"'
+        - 'status != "abgeschlossen"'
     groupBy:
       property: status
       direction: ASC
@@ -226,6 +227,7 @@ views:
         - 'status == "abgelehnt"'
         - 'status == "zurückgezogen"'
         - 'status == "ohne Antwort"'
+        - 'status == "abgeschlossen"'
     order:
       - firma
       - stelle

@@ -86,3 +86,40 @@ checked, applications without a reply after your `nachfass_tage`). Each has sour
 - Mail types and reasons are found by fixed German patterns; unusual wording is `unbekannt` and needs your decision.
 - The document version of a Vorgang is unambiguous only with a current `qualitaet.json` and named attachments in `vorgang.md`.
 - Runs start when you ask; the plugin sets no timer.
+
+## The result of one application
+
+`scripts/bewerbung.py` (`task result -- …`, rules `spec/job-application/bewerbungsergebnis/en.md` BE-1 to BE-17) answers how an application stands, what happened when, and what is
+missing. It adds no second record: the application is the Vorgang folder, the status stays `status` in `vorgang.md`, and the events are the file `nachverfolgung.json` that the reply
+processing already writes.
+
+| Question | Command |
+|---|---|
+| Find an application, also a closed one | `bewerbung.py finde --firma Musterfirma` · `finde --abgeschlossen` · `finde --ergebnis ohne_entscheidung_abgeschlossen` |
+| How is it going? | `bewerbung.py status <vorgang>`: status, phase, outcome (known or not), dispatch, document versions, open tasks, unknown items |
+| What happened when? | `bewerbung.py historie <vorgang>`: by the day it happened, with the day it was recorded |
+| Record a fact | `bewerbung.py ereignis erfassen <vorgang> --art versendet --eingetreten-am 2026-10-02 --kanal email --status-aendern --ja` |
+| Change the status | `bewerbung.py statuswechsel <vorgang> --nach abgeschlossen --grund "…" --ja` |
+| Correct or drop an event | `bewerbung.py ereignis korrigieren <vorgang> --id e-002 --datum 2026-10-03 --grund "…" --ja` · `ereignis verwerfen …` |
+| What is next? | `bewerbung.py naechste [<vorgang>]`: reminders, messages to check, missing information |
+| Is the data consistent? | `bewerbung.py pruefen [<vorgang>]` (reads only) |
+| Bring older data in | `bewerbung.py migrieren` (trial run), then `migrieren --ja` |
+| An application made outside the plugin | `bewerbung.py anlegen --firma … --stelle … --ja` |
+
+**Status, phase, outcome.** The status is where the application stands in the lifecycle. The phase says the same in plain words (submitted, receipt confirmed, interview agreed, offer, …). The
+outcome is how it ended, and it is *known* only when your status or a confirmed event says so. A confirmation of receipt is not a reply, an invitation is not an offer, an accepted offer
+is not yet a hire, a withdrawn application is not a refusal, and a closed one (`abgeschlossen`, `ohne Antwort`) is neither a success nor a failure.
+
+**Allowed changes.** One table (BE-3): forward only after the dispatch; a refusal only after the dispatch; `zusage` and `abgelehnt` only from an offer; `zurückgezogen` and `abgeschlossen` from any open
+status; a final status is not left. `abgeschlossen` is new: you stop working on the application and state no decision of the employer.
+
+**Events.** They carry the day it happened (`eingetreten_am`, empty if unknown), the day it was recorded (`erfasst`), the source and a certainty (`bestaetigt`, `automatisch`, `unsicher`). The same fact
+recorded twice is stored once. A found-but-uncertain fact waits for `ereignis bestaetigen` and changes nothing before. A dispatch needs its day; it is never filled in.
+
+**Reminders.** A date is your own planning unless the employer named it (`--arbeitgeber-frist`). A reminder is a task for you and sends nothing. Nothing in this script sends or answers a message, and
+no approval for an earlier message covers a new one.
+
+**Older data.** `migrieren` adds the new fields to older events and derives only a `versendet` event and `statuswechsel` events from what `vorgang.md` states. It derives no refusal and no outcome,
+estimates no date and changes neither `vorgang.md` nor your notes. A second run finds nothing.
+
+Open: the hash of the files that were really sent is not stored at the dispatch, so the document version is only as exact as the last quality report (BE-15).

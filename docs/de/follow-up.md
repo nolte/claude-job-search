@@ -88,3 +88,40 @@ dir vorlegen (`vorlegen`) und entscheidest mit `--ja`. Die Annahme ändert **kei
 - Mailtypen und Gründe werden an festen deutschen Mustern erkannt; ungewöhnlicher Wortlaut ist `unbekannt` und braucht deine Entscheidung.
 - Die Dokumentversion eines Vorgangs ist nur mit aktuellem `qualitaet.json` und genannten Anhängen in `vorgang.md` eindeutig.
 - Läufe starten, wenn du es verlangst; das Plugin richtet keinen Timer ein.
+
+## Das Ergebnis einer Bewerbung
+
+`scripts/bewerbung.py` (`task result -- …`, Regeln `spec/job-application/bewerbungsergebnis/en.md` BE-1 bis BE-17) beantwortet, wie eine Bewerbung steht, was wann geschah und was fehlt. Es
+legt keine zweite Datenhaltung an: Die Bewerbung ist der Vorgangsordner, der Status bleibt `status` in `vorgang.md`, und die Ereignisse sind die Datei `nachverfolgung.json`, die auch die
+Rückmeldungsverarbeitung schreibt.
+
+| Frage | Befehl |
+|---|---|
+| Eine Bewerbung finden, auch eine abgeschlossene | `bewerbung.py finde --firma Musterfirma` · `finde --abgeschlossen` · `finde --ergebnis ohne_entscheidung_abgeschlossen` |
+| Wie steht sie? | `bewerbung.py status <vorgang>`: Status, Phase, Ergebnis (bekannt oder nicht), Versand, Dokumentversionen, offene Aufgaben, Unbekanntes |
+| Was geschah wann? | `bewerbung.py historie <vorgang>`: nach dem Tag des Ereignisses, mit dem Tag der Erfassung |
+| Eine Tatsache erfassen | `bewerbung.py ereignis erfassen <vorgang> --art versendet --eingetreten-am 2026-10-02 --kanal email --status-aendern --ja` |
+| Den Status ändern | `bewerbung.py statuswechsel <vorgang> --nach abgeschlossen --grund "…" --ja` |
+| Ein Ereignis korrigieren oder verwerfen | `bewerbung.py ereignis korrigieren <vorgang> --id e-002 --datum 2026-10-03 --grund "…" --ja` · `ereignis verwerfen …` |
+| Was steht an? | `bewerbung.py naechste [<vorgang>]`: Erinnerungen, zu prüfende Nachrichten, fehlende Angaben |
+| Sind die Daten stimmig? | `bewerbung.py pruefen [<vorgang>]` (liest nur) |
+| Ältere Daten übernehmen | `bewerbung.py migrieren` (Probelauf), dann `migrieren --ja` |
+| Eine Bewerbung, die außerhalb des Plugins entstand | `bewerbung.py anlegen --firma … --stelle … --ja` |
+
+**Status, Phase, Ergebnis.** Der Status sagt, wo die Bewerbung im Lebenszyklus steht. Die Phase sagt dasselbe in Klartext (eingereicht, Eingang bestätigt, Gespräch vereinbart, Angebot, …). Das Ergebnis
+ist, wie sie ausging, und es ist nur *bekannt*, wenn dein Status oder ein bestätigtes Ereignis es sagt. Eine Eingangsbestätigung ist keine Rückmeldung, eine Einladung kein Angebot, ein angenommenes
+Angebot noch keine Einstellung, eine zurückgezogene Bewerbung keine Absage, und eine abgeschlossene (`abgeschlossen`, `ohne Antwort`) weder Erfolg noch Misserfolg.
+
+**Zulässige Wechsel.** Eine Tabelle (BE-3): nach dem Versand nur vorwärts; eine Absage nur nach dem Versand; `zusage` und `abgelehnt` nur aus einem Angebot; `zurückgezogen` und `abgeschlossen` aus jedem
+offenen Status; ein Endstatus wird nicht verlassen. `abgeschlossen` ist neu: Du hörst auf, an der Bewerbung zu arbeiten, und nennst keine Entscheidung des Arbeitgebers.
+
+**Ereignisse.** Sie tragen den Tag des Geschehens (`eingetreten_am`, leer wenn unbekannt), den Tag der Erfassung (`erfasst`), die Quelle und eine Gewissheit (`bestaetigt`, `automatisch`, `unsicher`). Dieselbe
+Tatsache zweimal erfasst wird einmal gespeichert. Eine gefundene, aber unsichere Tatsache wartet auf `ereignis bestaetigen` und ändert vorher nichts. Ein Versand braucht seinen Tag; er wird nie eingesetzt.
+
+**Erinnerungen.** Ein Datum ist deine eigene Planung, außer der Arbeitgeber hat es genannt (`--arbeitgeber-frist`). Eine Erinnerung ist eine Aufgabe für dich und sendet nichts. Nichts in diesem Skript sendet oder
+beantwortet eine Nachricht, und keine Freigabe für eine frühere Nachricht gilt für eine neue.
+
+**Ältere Daten.** `migrieren` ergänzt die neuen Felder bei älteren Ereignissen und leitet nur ein `versendet`-Ereignis und `statuswechsel`-Ereignisse aus dem ab, was `vorgang.md` nennt. Es leitet keine Absage und
+kein Ergebnis ab, schätzt kein Datum und ändert weder `vorgang.md` noch deine Notizen. Ein zweiter Lauf findet nichts.
+
+Offen: Der Hash der tatsächlich versendeten Dateien wird beim Versand nicht gespeichert; die Dokumentversion ist daher nur so genau wie der letzte Qualitätsbericht (BE-15).

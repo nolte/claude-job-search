@@ -1,6 +1,6 @@
 ---
 name: job-application-follow-up
-description: "Follows an application after it was sent: takes messages from the employer that the user hands over (a JSON list or text pasted from the mailbox), assigns each to a Vorgang, names the mail type (Eingangsbestätigung, Einladung, Angebot, Absage, Rückfrage), proposes the Verlauf line, status change, result and Wiedervorlage, and writes them only after the user approves the exact proposal. Also records Wiedervorlagen, prepares the basis of a Nachfass-E-Mail, and evaluates the confirmed results across applications: Rücklaufquote, Antwortzeiten, Retrospektive, and proposals for improvement that change no personal data. Use on \"ich habe eine Antwort bekommen\", \"verarbeite meine Rückmeldungen\", \"Absage eingetragen\", \"Wiedervorlage anlegen\", \"soll ich nachfassen\", \"wie ist meine Rücklaufquote\", \"Retrospektive meiner Bewerbungen\", or equivalent German requests. Don't use to write the follow-up mail itself (job-application-email-create), to send anything (nothing sends), to change the Datengrundlage or profile (job-application-profile-capture, job-application-cv-maintain), or to check documents (job-application-quality-gate)."
+description: "Follows an application after it was sent: takes messages from the employer that the user hands over (a JSON list or text pasted from the mailbox), assigns each to a Vorgang, names the mail type (Eingangsbestätigung, Einladung, Angebot, Absage, Rückfrage), proposes the Verlauf line, status change, result and Wiedervorlage, and writes them only after the user approves the exact proposal. Also records Wiedervorlagen, prepares the basis of a Nachfass-E-Mail, and evaluates the confirmed results across applications: Rücklaufquote, Antwortzeiten, Retrospektive, and proposals for improvement that change no personal data. Use on \"ich habe eine Antwort bekommen\", \"wie steht meine Bewerbung\", \"Status ändern\", \"Bewerbung war versendet am\", \"verarbeite meine Rückmeldungen\", \"Absage eingetragen\", \"Wiedervorlage anlegen\", \"soll ich nachfassen\", \"wie ist meine Rücklaufquote\", \"Retrospektive meiner Bewerbungen\", or equivalent German requests. Don't use to write the follow-up mail itself (job-application-email-create), to send anything (nothing sends), to change the Datengrundlage or profile (job-application-profile-capture, job-application-cv-maintain), or to check documents (job-application-quality-gate)."
 tags: [bewerbung, nachverfolgung, rueckmeldung, statistik, deutsch]
 phase: follow-up
 summary: "Processes replies to sent applications into proposals that the user approves, keeps Wiedervorlagen, and evaluates confirmed results."
@@ -24,15 +24,17 @@ see_also:
 
 # Bewerbung nachverfolgen und auswerten
 
-Spec: `spec/job-application/mail-verwaltung/en.md` MV-18 to MV-27 (messages, proposals, approval, Wiedervorlage, follow-up) and
+Spec: `spec/job-application/bewerbungsergebnis/en.md` BE-1 to BE-17 (status, phase, outcome, events, next steps, validation, migration),
+`spec/job-application/mail-verwaltung/en.md` MV-18 to MV-27 (messages, proposals, approval, Wiedervorlage, follow-up) and
 MV-5, MV-6, MV-7 (relevance, assignment, record), `spec/job-application/ergebnisauswertung/en.md` EA-1 to EA-16 (results, statistics,
 retrospective, proposals). Paths, status and retention: `spec/job-application/lokale-struktur/en.md` LS-2, LS-5, LS-6 (rules 1, 2, 4, 8)
 and LS-9. Counterpart and communication: `spec/job-application/kontaktklassifikation/en.md` KK-4, KK-5. Facts and data protection:
 `spec/job-application/konventionen/en.md` R-1, R-4, R-6. Tasks and approvals: `spec/job-application/workflow/en.md` WF-3, WF-7.
 
-The work is done by two scripts. They read and write files in the Wurzel, send nothing and open no connection:
+The work is done by three scripts. They read and write files in the Wurzel, send nothing and open no connection:
 
 - `scripts/kommunikation.py` (A-02): `verarbeiten`, `liste`, `zeige`, `zuweisen`, `bestaetigen`, `verwerfen`, `wiedervorlage`, `nachfass`.
+- `scripts/bewerbung.py` (BE): `anlegen`, `finde`, `status`, `historie`, `naechste`, `pruefen`, `ereignis`, `statuswechsel`, `migrieren`.
 - `scripts/lernen.py` (A-06): `ergebnis`, `statistik`, `retrospektive`, `aktualitaet`, `vorschlaege`, `vorschlag`.
 
 Call them with `python3 <plugin-root>/scripts/<name>.py --konfiguration job-application/konfiguration.md <befehl> …` (`task` entries:
@@ -91,7 +93,23 @@ scripts' rules and from the user's own words in this session.
    promise. Before any dispatch show the message, the recipient and the Vorgang; the approval is the user's, bound to the exact file in the workflow
    (`nachricht_senden`, WF-7). Without a send adapter the message stays a checked draft; a draft is not a sent message.
 
-### C. Results and evaluation
+### C. The result of one application (BE)
+
+1. `bewerbung.py status <vorgang>` answers "how is it going": the status, the phase, the outcome (and whether it is **known**), the dispatch with its evidence, the
+   documents with their versions, the open tasks and what is unknown. Say these apart: status is where in the lifecycle, phase is the same in plain words, outcome is how it
+   ended. A confirmation of receipt is not a reply; an invitation is not an offer; an accepted offer is not yet a hire; a closed application is not a failure; a withdrawn one is not a
+   refusal.
+2. `historie <vorgang>` shows the events by the day they happened (unknown last) next to the day they were recorded. `finde` also finds the closed applications.
+3. A fact the user states is `ereignis erfassen <vorgang> --art … --eingetreten-am JJJJ-MM-TT [--quelle-typ … --referenz …] [--status-aendern] --ja`. Ask for the day; a dispatch
+   never gets an invented one. The command checks the allowed changes of status (BE-3) and refuses the others; it records the same fact once. A fact found automatically is recorded with
+   `--bestaetigung automatisch|unsicher` and waits for `ereignis bestaetigen`. A status change without an event is `statuswechsel <vorgang> --nach … --grund … --ja`.
+4. `ereignis korrigieren` and `verwerfen` keep the old value; nothing is deleted. After a correction run `pruefen`.
+5. `naechste` lists reminders, messages to check and what is missing. A reminder date is the user's own planning; mark it `--arbeitgeber-frist` only when the employer named it. A reminder sends nothing.
+6. `pruefen` reads the stored data and lists contradictions and gaps (BE-10) without changing anything; an unknown optional item is not an error. `migrieren` (trial run first, then `--ja`)
+   brings older data into the fields of the result model (BE-11) and derives no outcome.
+7. `anlegen` creates a minimal Vorgang for an application made outside the plugin. It keeps no posting; say so.
+
+### D. Results and evaluation
 
 1. A result the user states (an interview took place, a call): `ergebnis erfassen <vorgang> --art … --datum … [--original …] --ja`. Ask for the date; never
    estimate one. `korrigieren` and `verwerfen` keep the old value.
@@ -122,5 +140,6 @@ This instruction is English; what you tell the user, the lines in `vorgang.md` a
 4. **S7 stays the user's statement**, and `notizen.md` is never read or written (LS-5.6).
 5. **Open applications are not failures.** Statistics keep them in the denominator and show them apart.
 6. **Quality is not a result.** A passed check is no proof of success, a refusal no proof of a faulty document.
-7. **Only the Wurzel is written** (LS-5.7): `vorgang.md` (the `## Verlauf` and `status` lines the user approved), `nachverfolgung.json`,
+7. **A status change follows the table of allowed changes** (BE-3) and the dispatch has its day; the scripts refuse the rest. Never read an outcome from a closed application.
+8. **Only the Wurzel is written** (LS-5.7): `vorgang.md` (the `## Verlauf`, `status`, `versendet_am` and `weg` the user approved), `nachverfolgung.json`,
    `kommunikation/`, `lernen/`.
