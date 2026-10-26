@@ -60,7 +60,8 @@ python3 <plugin>/scripts/workflow.py laufen          # or: task workflow -- lauf
    `workflow.py wiederholen <aufgabe>` lets a failed task try again.
 6. **Cancel:** `workflow.py abbrechen musterfirma-backend` ends all open and failed tasks of that Vorgang. A cancelled or failed
    search task is not replaced by itself; `laufen` lists it under `nicht_ersetzt` (retry with `wiederholen`, or pause the Suchauftrag). A task whose send has an unclear outcome is not cancelled; decide with `ausgang`
-   first. `laufen` removes finished search tasks after 30 days (`aufgeraeumt`).
+   first. `laufen` removes finished search tasks after 30 days and the tasks of an ended Vorgang after 90 days (`aufgeraeumt`).
+   `wiederholen` on a rejected approval asks for it again.
 7. **Limits:** `workflow.py grenzen` shows them, `workflow.py grenzen laufende_max=1 neu_max_je_lauf=5` changes them within
    fixed bounds. Defaults: 2 tasks running at once, 10 new tasks per run, 200 tasks in total, a lease of 60 minutes, 3 attempts.
 
@@ -100,7 +101,7 @@ Until you set something like this up, nothing runs by itself. Calling `laufen` t
 
 ## Verification
 
-`python3 -m unittest tests.test_workflow` (95 tests, no network, no model): statuses and transitions, dependencies and cycles,
+`python3 -m unittest tests.test_workflow` (97 tests, no network, no model): statuses and transitions, dependencies and cycles,
 restart and damaged stores, idempotence and racing sessions, approvals and the adapter gate, errors and retries, the schedule
 and the limits, the chain from a posting to a sent application, and the security cases. Not verified: a real adapter (none
 exists) and a long-running schedule on a real machine.

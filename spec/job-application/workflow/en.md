@@ -152,7 +152,8 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    `wartet_auf_freigabe` again, and what follows is held again. A restart, a retry, a scheduler run, a status change, a passed
    check or a passed due date creates or renews no approval. If the workflow cannot tell whether an approval holds, the
    task stays blocked.
-3. **A rejection** (`ablehnen`) cancels the task and blocks its dependents.
+3. **A rejection** (`ablehnen`) cancels the task and blocks its dependents. `wiederholen` takes a rejection back (the one way
+   out of `abgebrochen`): the approval is asked for again, and the dependents wait instead of being blocked.
 4. **Who may approve.** Only an interactive command. In an interactive session the `--ja` is the user's word, not proof of it: an
    agent can type the flag. So do not put `freigeben` (or `weiter`, `ausgang`, `ausfuehren`) into the allowed Bash rules of Claude Code;
    then every one of them asks you first. The skills tell the agent never to run them for you. A session marked unattended (`WORKFLOW_UNBEAUFSICHTIGT`, or
@@ -323,6 +324,7 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | WA-AL | `freigeben` after a document was edited since the quality report; a refused command after a lease ran out; a damaged store; a result with ok=false; a reported-running task whose files look finished | refused with `pruefung_veraltet`; the expiry is still saved; `speicher_ungueltig` and `wurzel` still works; exit code 2; the task stays `laeuft` until `fertig` |
 | WA-AM | `weiter` after several holds; `abbrechen` by a name that is both a Vorgang and a Suchauftrag; `ausgang` confirms a send; the content changes right before the adapter call; `fehler` class `unklar` on an internal task | attempts start again after `weiter`; only the exact id, else the Vorgang, else the Suchauftrag; the unclear marker goes; a new approval is asked for, not a failure; a retry with backoff |
 | WA-AN | A chain longer than `neu_max_je_lauf`; a repair that would close a cycle; the same task id with another `ab`; a reference that is no string | the chain comes whole, first in its run; nothing is changed; refused with `aufgabe_existiert`; `speicher_ungueltig` |
+| WA-AO | An ended Vorgang older than 90 days with every task over; a rejected approval and `wiederholen` | its tasks are removed by `laufen`; a running Vorgang keeps its tasks; the approval is asked for again and the dependents wait |
 | WA-AF | The final reconciliation of a command fails | the command keeps its result and its saved state, with `warnung_abgleich` |
 | WA-AK | `wurzel`; a second message for one Vorgang; `abbrechen` of an unclear send; the content changes after the lease is saved; a step done by hand; a search finished 30 days ago | `wurzel` prints the Wurzel; each message is its own task; the unclear task stays; nothing is sent and the attempt ends as plain failure; the open approval is cancelled, none invented; `laufen` removes the old search task and lists it under `aufgeraeumt` |
 
@@ -338,5 +340,7 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | Code duplication | The start of an attempt and its lease is written in `uebernehmen` and `ausfuehren` (the adapter path saves between the two steps) | open, deliberate |
 | Quality report age | The check that the report is newer than the documents compares file times; a copy that resets times, or a missing report, is not caught | open, deliberate |
 | Follow-up draft time | `nachfassen` compares the draft's file time with the task's creation second; under `--jetzt` in the future it does not match | open, deliberate |
+| What the approval covers | The hash covers the Markdown and text sources of the package (`DOKUMENTE`), not exported PDF or DOCX files or other attachments; the user checks those before sending | open, deliberate |
+| Trust in `vorgang.md` | A step the Vorgang file shows as done counts as done (also ahead of its predecessors, with a hint); a wrong `status` there is not caught | decided (LS-6) |
 | Re-run of a finished check | A task that is `erledigt` cannot be taken again; after a document changed, the user runs the quality gate outside the workflow (its newer report lifts `pruefung_veraltet`), and the task keeps showing `veraltet` | open, deliberate |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

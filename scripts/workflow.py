@@ -35,7 +35,7 @@ LIMIT_BOUNDS = {"laufende_max": (1, 10), "neu_max_je_lauf": (1, 50), "aufgaben_m
                 "versuche_max": (1, 10)}
 BACKOFF_MINUTES = (5, 30, 180)
 KEEP_LOG = 50
-LOCK = ("workflow", ".workflow.lock")
+LOCK = ("workflow", ".workflow.lock", "den Workflow")
 
 # status values of a task (German, like the status values of a Vorgang)
 WARTEND, BEREIT, LAEUFT = "wartend", "bereit", "laeuft"
@@ -726,14 +726,22 @@ def laufende(daten, now):
     return sum(1 for t in daten["aufgaben"].values() if t["status"] == LAEUFT and t["lease"] and t["lease"]["bis"] > stamp(now))
 
 
-SUCHE_AUFBEWAHRUNG_TAGE = 30
+SUCHE_AUFBEWAHRUNG_TAGE, KETTE_AUFBEWAHRUNG_TAGE = 30, 90
 
 
-def raeume_auf(daten, now):
-    """Finished search tasks older than 30 days go; their ids carry a run counter and never come back (aufgaben_max stays usable)."""
+def raeume_auf(w, daten, now):
+    """Remove what is over and cannot come back, so that aufgaben_max stays usable: finished search tasks after 30 days (their ids
+    carry a run counter), and all tasks of a Vorgang that ended or whose folder is gone, once every one of them is over and 90 days old."""
     grenze = stamp(now - dt.timedelta(days=SUCHE_AUFBEWAHRUNG_TAGE))
+    alt = stamp(now - dt.timedelta(days=KETTE_AUFBEWAHRUNG_TAGE))
     genannt = {d for t in daten["aufgaben"].values() for d in t["nach"]}
     weg = [i for i, t in daten["aufgaben"].items() if t["typ"] == "suche" and t["status"] == ERLEDIGT and t["geaendert"] < grenze and i not in genannt]
+    for slug in sorted({t["bezug"]["vorgang"] for t in daten["aufgaben"].values() if t["bezug"].get("vorgang")}):
+        gruppe = [t for t in daten["aufgaben"].values() if t["bezug"].get("vorgang") == slug]
+        meta = ss.vorgang_meta(os.path.join(w, slug, "vorgang.md"))
+        vorbei = meta is None and not os.path.isdir(os.path.join(w, slug)) or (meta or {}).get("status") in ENDSTATUS
+        if vorbei and all(t["status"] in (ERLEDIGT, ABGEBROCHEN) and t["geaendert"] < alt for t in gruppe):
+            weg += [t["id"] for t in gruppe]
     for task_id in weg:
         del daten["aufgaben"][task_id]
     return weg
@@ -886,6 +894,12 @@ def ausgang(w, daten, task_id, gesendet, now):
 
 def wiederholen(w, daten, task_id, now):
     task = hole(daten, task_id)
+    if task["status"] == ABGEBROCHEN and braucht_freigabe(task) and (task["entscheidung"] or {}).get("art") == "abgelehnt":
+        # the one way out of `abgebrochen`: the user asks again for an approval he rejected (after the documents were fixed)
+        verlauf(task, now, "abgebrochen -> wartet_auf_freigabe: Ablehnung vom Nutzer zurückgenommen")
+        task["status"], task["geaendert"], task["entscheidung"] = FREIGABE, stamp(now), None
+        bewerte(w, daten, task, now)
+        return {"ok": True, "aufgabe": task_id, "status": task["status"]}
     if task["status"] != FEHLGESCHLAGEN:
         raise Refused("nicht_fehlgeschlagen", f"{task_id} ist {task['status']}; wiederholt wird nur eine fehlgeschlagene Aufgabe")
     task["versuche_ab"] = len(task["versuche"])
@@ -992,7 +1006,7 @@ def dispatch(args, w, daten, now):
     if cmd == "abgleichen":
         return {"ok": True, "geaendert": abgleichen(w, daten, now)}
     if cmd == "laufen":
-        aufgeraeumt = raeume_auf(daten, now)
+        aufgeraeumt = raeume_auf(w, daten, now)
         abgleichen(w, daten, now)
         neu, zurueck, uebersprungen, defekte = plane(w, daten, now)
         geaendert = abgleichen(w, daten, now)

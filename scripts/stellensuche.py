@@ -525,7 +525,7 @@ def release_lock(wurzel, auftrag_id, run_id=None):
 
 
 @contextlib.contextmanager
-def exclusive(wurzel, bereich="suche", name=".stellensuche.lock"):
+def exclusive(wurzel, bereich="suche", name=".stellensuche.lock", beschreibung="die Suche"):
     """One state-changing command at a time per Wurzel: queue and orders are read, changed and rewritten whole.
 
     `bereich` and `name` let the workflow keep its own lock next to its own files (`workflow.py`)."""
@@ -546,7 +546,7 @@ def exclusive(wurzel, bereich="suche", name=".stellensuche.lock"):
                 break
             except BlockingIOError:
                 if time.monotonic() > deadline:
-                    raise Refused("beschaeftigt", f"Ein anderer Befehl ändert gerade {'die Suche' if bereich == 'suche' else 'den Bereich ' + bereich}; später wiederholen.")
+                    raise Refused("beschaeftigt", f"Ein anderer Befehl ändert gerade {beschreibung}; später wiederholen.")
                 time.sleep(0.05)
         yield
     finally:

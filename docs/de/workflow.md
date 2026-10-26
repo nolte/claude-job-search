@@ -65,7 +65,8 @@ python3 <plugin>/scripts/workflow.py laufen          # oder: task workflow -- la
 6. **Abbrechen:** `workflow.py abbrechen musterfirma-backend` beendet alle offenen und fehlgeschlagenen Aufgaben dieses Vorgangs.
    Eine abgebrochene oder fehlgeschlagene Suchaufgabe wird nicht von selbst ersetzt; `laufen` nennt sie unter `nicht_ersetzt`
    (mit `wiederholen` neu versuchen oder den Suchauftrag pausieren). Eine Aufgabe mit unklarem Ausgang einer Sendung wird nicht
-   abgebrochen; erst mit `ausgang` entscheiden. `laufen` entfernt erledigte Suchaufgaben nach 30 Tagen (`aufgeraeumt`).
+   abgebrochen; erst mit `ausgang` entscheiden. `laufen` entfernt erledigte Suchaufgaben nach 30 Tagen und die Aufgaben eines beendeten Vorgangs nach 90 Tagen (`aufgeraeumt`).
+   `wiederholen` bei einer abgelehnten Freigabe fragt sie erneut an.
 7. **Grenzen:** `workflow.py grenzen` zeigt sie, `workflow.py grenzen laufende_max=1 neu_max_je_lauf=5` ändert sie in festen
    Schranken. Standard: 2 Aufgaben gleichzeitig, 10 neue Aufgaben je Lauf, 200 Aufgaben insgesamt, 60 Minuten Lease, 3 Versuche.
 
@@ -110,7 +111,7 @@ Solange du so etwas nicht eingerichtet hast, läuft nichts von selbst. Zweimal `
 
 ## Prüfung
 
-`python3 -m unittest tests.test_workflow` (95 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
+`python3 -m unittest tests.test_workflow` (97 Tests, ohne Netzwerk und ohne Modell): Status und Übergänge, Abhängigkeiten und
 Zyklen, Neustart und beschädigter Speicher, Idempotenz und konkurrierende Sitzungen, Freigaben und das Adaptertor, Fehler und
 Wiederholungen, Zeitplan und Grenzen, die Kette von der Anzeige bis zur versendeten Bewerbung und die Sicherheitsfälle. Nicht
 geprüft: ein echter Adapter (es gibt keinen) und ein langer Zeitplan auf einem echten Rechner.

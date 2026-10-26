@@ -1102,7 +1102,7 @@ class ReviewRoundThreeTests(Base):  # third review of the workflow (pull request
             task["status"] = wf.ERLEDIGT
         alt["geaendert"] = wf.stamp(later(days=-40))
         neu["geaendert"] = wf.stamp(later(days=-3))
-        self.assertEqual(wf.raeume_auf(daten, T0), [alt["id"]])
+        self.assertEqual(wf.raeume_auf(self.w, daten, T0), [alt["id"]])
         self.assertEqual(sorted(daten["aufgaben"]), sorted([neu["id"], offen["id"]]))
 
 
@@ -1280,6 +1280,41 @@ class ReviewRoundThreeTests(Base):  # third review of the workflow (pull request
             json.dump(daten, handle)
         code, ausgabe, _ = self.cli("abgleichen")
         self.assertEqual((code, ausgabe["code"]), (3, "speicher_ungueltig"))
+
+    def test_the_tasks_of_an_ended_vorgang_are_removed_after_90_days_and_only_when_all_are_over(self):
+        self.vorgang()
+        self.start()
+        self.status(SLUG, "absage")
+        self.tick(later(minutes=1))  # every open task ends with the Vorgang
+        daten = self.store()
+        self.assertEqual(wf.raeume_auf(self.w, daten, later(days=30)), [])  # too young
+        self.assertTrue(daten["aufgaben"])
+        weg = wf.raeume_auf(self.w, daten, later(days=91))
+        self.assertEqual(len(weg), 6)
+        self.assertEqual(daten["aufgaben"], {})
+        self.vorgang("beispiel-ag")  # a running Vorgang keeps its tasks however old they are
+        self.start("beispiel-ag")
+        daten = self.store()
+        weg = wf.raeume_auf(self.w, daten, later(days=400))
+        self.assertFalse([i for i in weg if i.endswith(":beispiel-ag")])
+        self.assertTrue([i for i in daten["aufgaben"] if i.endswith(":beispiel-ag")])
+
+    def test_a_rejected_approval_can_be_asked_for_again_with_wiederholen(self):
+        self.alles_bis_pruefung()
+        self.start()
+        self.tick(later(minutes=1))
+        fid = self.tid("versand_freigabe")
+        self.apply(wf.ablehnen, fid, "Tippfehler", now=later(minutes=2))
+        self.assertEqual(self.stand(fid), wf.ABGEBROCHEN)
+        self.tick(later(minutes=2))
+        self.assertEqual(self.stand(self.tid("versand")), wf.BLOCKIERT)
+        self.datei(SLUG, "anschreiben.md", "Anschreiben ohne Tippfehler")
+        self.apply(wf.wiederholen, fid, now=later(minutes=3))
+        self.assertEqual(self.stand(fid), wf.FREIGABE)
+        self.assertIsNone(self.store()["aufgaben"][fid]["entscheidung"])
+        self.tick(later(minutes=4))
+        self.assertEqual(self.stand(self.tid("versand")), wf.WARTEND)  # waits for the new approval, no longer blocked
+        self.assertEqual(self.refused(wf.wiederholen, self.w, self.store(), self.tid("analyse"), later(minutes=5)), "nicht_fehlgeschlagen")
 
 class SecurityTests(Base):  # G
     def test_instructions_in_a_posting_create_no_task_and_change_no_limit(self):
