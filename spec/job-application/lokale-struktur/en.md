@@ -99,6 +99,8 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
     ├── motivationsschreiben-portal.txt     plain text for a portal text field (MS-13); see the rule below the tree
     ├── pruefbericht.md                     Auswahl sections and Prüfung (LS-7.4)
     ├── nachverfolgung.json                 confirmed events and Wiedervorlagen after the dispatch (`ergebnisauswertung` EA-3, `mail-verwaltung` MV-23)
+    ├── antwort-NN.md                       draft of a reply to an employer's message, only on request (`mail-verwaltung` MV-31)
+    ├── antworten.json                      the drafts with versions and the result of a send (`mail-verwaltung` MV-31, MV-34)
     ├── versionen/                          frozen Versionen of this Vorgang's Lebenslauf (LV-3), optional
     └── export/                             PDF, DOCX, HTML, only on request (R-10)
 ```

@@ -37,6 +37,8 @@
 - [x] Learning from results (finding A-06): `scripts/lernen.py` counts confirmed results across Vorgänge (response rate with open applications in the denominator, transitions, response times from existing dates, segments), writes a derived retrospective with its basis, and proposes improvements with sources and uncertainty that change no personal data (`spec/job-application/ergebnisauswertung/en.md`); workflow task `lernvorschlag_pruefen`
 - [x] Bundesagentur für Arbeit as an interactive-only source (`spec/job-application/stellensuche/en.md` ST-21, `scripts/arbeitsagentur.py`, docs page *Arbeitsagentur*): query mapping, answer classes, cross-board merge; not run against the live service and never part of a Suchauftrag
 
+- [x] Employer communication (finding R-02): more mail types with a rule for specific over generic, facts read from messages with their quote and uncertainty, a local `.eml` import, reply drafts bound to confirmed messages, approval bound to the whole draft file, history events in the R-01 record, and a guarded send contract (`spec/job-application/mail-verwaltung/en.md` MV-28 to MV-36, `scripts/antwort.py`, `scripts/mail_import.py`); **no mailbox connector and no send adapter ship, and the send is tested only with a simulated provider**
+
 ## Next
 
 - Tracking of S7 (the dispatch itself: `versendet`, attachments, channel) and a Gmail connector with labels and calendar; replies are covered by `job-application-follow-up` for messages the user hands over
@@ -53,3 +55,4 @@
 - Zeugnis-Analyse (Arbeitszeugnis-Codes in German, read-only interpretation)
 - Scenario tests for the CV checks and the exporters beyond the current suite (`task test`, see `tests/README.md`), including LuaLaTeX-based PDF checks
 - Bundesagentur: ask the BA whether a user-started search through the jobsuche interface is permitted, or whether an authorised partner interface exists; until then interactive only (ST-21). Also run the jobsuche server against the live service once and record the real answer shape (ST-11)
+- Mailbox connector (Gmail, IMAP) with OAuth read-only scope for the import, and a reviewed send adapter built on `antwort.adapter`; attachments of a reply; a registry of the adapters that does not rely on a code change
