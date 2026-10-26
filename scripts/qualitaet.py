@@ -97,6 +97,7 @@ DIMENSION = {"CV": "evidenz", "BR-A": "formal", "BR-M": "formal", "BR-E": "forma
              "EX-04": "technisch", "ATS-01": "technisch", "ATS-02": "technisch", "ATS-03": "technisch", "ATS-04": "technisch",
              "ATS-05": "technisch", "KW-01": "schluesselbegriffe", "PR-01": "formal", "PR-02": "formal", "SEM-01": "evidenz",
              "SEM-02": "evidenz", "SEM-03": "passung", "SEM-04": "formal", "SEM-05": "evidenz"}
+assert set(DIMENSION) == set(KATALOG), "every check of the catalog needs a dimension"
 ATS_CHECKS = ("ATS-01", "ATS-02", "ATS-03", "ATS-04", "ATS-05")
 EXPORT_CHECKS = ("EX-01", "EX-02", "EX-03", "EX-04") + ATS_CHECKS
 SEM_DOKUMENTE = {"SEM-01": ("lebenslauf.md", "anschreiben.md"), "SEM-02": ("lebenslauf.md", "anschreiben.md"),
@@ -497,7 +498,7 @@ def pruefe_exporte(ctx):
             for kennung, grad, meldung in gefunden:
                 daten[kennung].append(befund(kennung, grad, rel, 0, meldung))
             for kennung, gruende in offen.items():
-                luecken[kennung] += [f"{datei}: {g}" for g in gruende]
+                luecken[kennung] += [f"{datei}: {g}" for g in gruende if f"{datei}: {g}" not in luecken[kennung]]
         if fmt == "pdf":
             seiten_ist = seitenzahl(pfad)
             leer = [i for i, s in enumerate(seiten_roh[:seiten_ist], 1) if not s.strip() or s.strip() == str(i)] if seiten_ist else []

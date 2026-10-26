@@ -43,11 +43,16 @@ FORMATS = ("pdf", "docx", "html")  # md and tex are copies of the source: they s
 
 def stumpf(value):
     """Without spaces, line breaks and hyphens, in lower case: a break inside a word does not matter."""
-    return re.sub(r"[\s\-‐‑–]", "", value).casefold()
+    return re.sub(r"[\s\-‐‑–*_\\\"„“”'’‚‘«»]", "", html.unescape(value)).casefold()
 
 
 def flat(value):
     return re.sub(r"\s+", " ", re.sub(r"[*_`#\[\]]", "", value)).strip().casefold()
+
+
+def no_fences(text):
+    """The Markdown without fenced code blocks: a `#` line inside one is no heading."""
+    return re.sub(r"^(```|~~~).*?^\1[^\n]*$", "", text, flags=re.S | re.M)
 
 
 def no_links(text):
@@ -104,18 +109,24 @@ def pdf_file(path):
         fonts = subprocess.run(["pdffonts", path], capture_output=True, timeout=30)
     except (OSError, subprocess.TimeoutExpired):
         return findings, gaps + ["pdffonts konnte nicht ausgeführt werden"]
+    return findings + font_notes(fonts.stdout.decode("utf-8", "replace")), gaps
+
+
+def font_notes(listing):
+    """Findings for the output of pdffonts: `name type encoding emb sub uni object ID`."""
     type3 = loose = 0
-    for line in fonts.stdout.decode("utf-8", "replace").splitlines()[2:]:
-        row = re.match(r"^(\S+)\s+(.+?)\s+(yes|no)\s+(yes|no)\s+(yes|no)\s+\d+\s+\d+\s*$", line)
+    for line in listing.splitlines()[2:]:
+        row = re.match(r"^(\S+)\s+(Type 1C?|Type 3|Type 0|TrueType|OpenType|CID TrueType|CID Type 0C?|CID OpenType)\s+\S+\s+(yes|no)\s+(yes|no)\s+(yes|no)\s+\d+\s+\d+\s*$", line)
         if not row:
             continue
         type3 += row.group(2) == "Type 3"
         loose += row.group(3) == "no" and not STANDARD_FONT.match(row.group(1))
+    findings = []
     if type3:
         findings.append(note("ATS-01", "Warnung", f"{type3} Schrift(en) vom Typ 3 (Bitmap oder Zeichnung): ihr Text lässt sich oft nicht zuverlässig auslesen"))
     if loose:
         findings.append(note("ATS-01", "Warnung", f"{loose} Schrift(en) nicht eingebettet: Darstellung und Textabbildung hängen vom Rechner des Empfängers ab"))
-    return findings, gaps
+    return findings
 
 
 def w_text(xml):
@@ -143,8 +154,11 @@ def docx_parts(path):
     hidden = len(re.findall(r'<w:vanish\s*/>|<w:vanish w:val="(?:1|true|on)"', xml))
     white = len(re.findall(r'<w:color w:val="FFFFFF"', xml, re.IGNORECASE))
     tiny = len([s for s in re.findall(r'<w:sz w:val="(\d+)"', xml) if int(s) <= 4])
-    if hidden or white or tiny:
+    shaded = re.search(r'<w:shd [^>]*w:fill="(?!auto|FFFFFF)', xml, re.IGNORECASE)  # white text on a dark band is visible
+    if hidden or tiny or (white and not shaded):
         findings.append(note("ATS-01", "Blocker", f"Versteckter Text ({hidden} ausgeblendet, {white} weiß, {tiny} winzig): ein ATS liest ihn, die Leserin nicht"))
+    elif white:
+        findings.append(note("ATS-01", "Warnung", f"{white} Stelle(n) mit weißem Text bei farbig hinterlegtem Absatz: prüfen, dass er auf dem Hintergrund lesbar ist"))
     return xml, header, findings
 
 
@@ -158,7 +172,7 @@ def text_quality(text, fmt):
         findings.append(note("EX-03", "Blocker", "Der extrahierte Text enthält Ersatzzeichen oder Glyphen-Nummern: die Schrift hat keine Textabbildung"))
     if any(char in text for char in LIGATURES):
         findings.append(note("EX-03", "Warnung", "Ligatur-Zeichen (zum Beispiel „ﬁ“) im extrahierten Text: eine Stichwortsuche nach dem Wort findet es nicht"))
-    if re.search(r"(?<!\S)(?:\w ){7,}\w(?!\S)", text):
+    if re.search(r"(?<!\S)(?:[a-zäöüß] ){6,}[a-zäöüß](?!\S)", text):
         findings.append(note("EX-03", "Warnung", "Wörter stehen als einzelne Buchstaben im Text (Sperrung): Stichwörter werden nicht erkannt"))
     return findings
 
@@ -168,7 +182,7 @@ def text_quality(text, fmt):
 def source_sections(body):
     """-> [(heading, set of the words of its content)] for the headings of level 1 and 2."""
     sections, current = [], None
-    for line in body.splitlines():
+    for line in no_fences(body).splitlines():
         match = HEADING.match(line)
         if match:
             current = (match.group(2), [])
@@ -205,8 +219,9 @@ def section_notes(body, text, fmt):
 
 
 def docx_heading_notes(xml, body):
-    expected = Counter(len(m.group(1)) for m in (HEADING.match(line) for line in body.splitlines()) if m)
+    expected = Counter(len(m.group(1)) for m in (HEADING.match(line) for line in no_fences(body).splitlines()) if m)
     found = Counter(int(level) for level in re.findall(r'<w:pStyle w:val="(?:Heading|berschrift|Überschrift)(\d)"', xml))
+    found[1] += len(re.findall(r'<w:pStyle w:val="Title"', xml))  # a title block is the level 1 heading of the document
     found = Counter({level: count for level, count in found.items() if level <= 2})
     if found == expected:
         return []
@@ -379,9 +394,16 @@ def analysis_rows(analysis):
 
 
 def term_in(term, text):
-    """All words of the term of four letters or more stand in the text, compared by their first five letters."""
-    words = [w for w in re.findall(r"[\wÄÖÜäöüß]+", term.casefold()) if len(w) >= 4]
-    return bool(words) and all(w[:5] in text for w in words)
+    """All words of the term stand in the text. A word of five letters or fewer must stand as a whole word (`Java` is not
+    `JavaScript`, `SQL` is found); a longer one by its first five letters at the start of a word (`Führung`, `Führungsrolle`)."""
+    words = re.findall(r"[\wÄÖÜäöüß]+", term.casefold())
+    if not words:
+        return False
+    for word in words:
+        pattern = rf"(?<!\w){re.escape(word)}(?!\w)" if len(word) <= 5 else rf"(?<!\w){re.escape(word[:5])}"
+        if not re.search(pattern, text):
+            return False
+    return True
 
 
 def key_terms(analysis, cv_source):
@@ -393,7 +415,7 @@ def key_terms(analysis, cv_source):
     findings, text = [], flat(no_links(cv_source))
     for row in analysis_rows(analysis):
         status = row.get("Status", "")
-        for term in re.split(r"\s*[/,;]\s*", row.get("Kompetenz", "")):
+        for term in re.split(r"\s*[,;]\s*|\s+/\s+", row.get("Kompetenz", "")):
             if not term or term in cv.EMPTY:
                 continue
             present = term_in(term, text)

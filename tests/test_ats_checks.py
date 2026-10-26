@@ -117,7 +117,8 @@ class TextTests(unittest.TestCase):
         for defekt in ("Betrieb � der Plattform " * 10, "Betrieb (cid:12) der Plattform " * 10):
             self.assertIn("Blocker", [g for _, g, _ in ats.text_quality(defekt, "docx")])
         self.assertIn("Warnung", [g for _, g, _ in ats.text_quality("Zertiﬁzierung Kubernetes " * 20, "pdf")])
-        self.assertIn("Warnung", [g for _, g, _ in ats.text_quality("Erfahrung K u b e r n e t e s Betrieb " * 10, "pdf")])
+        self.assertIn("Warnung", [g for _, g, _ in ats.text_quality("Erfahrung k u b e r n e t e s Betrieb " * 10, "pdf")])
+        self.assertEqual([m for _, _, m in ats.text_quality("Kenntnisse C R M S A P B I und 1 2 3 4 5 6 7 8 sowie Betrieb " * 10, "pdf") if "Sperrung" in m], [])
 
 
 class PeriodTests(unittest.TestCase):
@@ -140,6 +141,11 @@ class PeriodTests(unittest.TestCase):
         far = [t for t in lines if t not in ("Softwareentwicklerin", "Beispiel AG, Hamburg")] + ["a", "b", "c", "d", "e", "f", "Softwareentwicklerin", "Beispiel AG, Hamburg"]
         found = ats.station_notes(CV, "\n".join(far))
         self.assertTrue(any("09/2017" in m for _, _, m in found), found)
+
+    def test_markdown_marks_and_typographic_quotes_do_not_break_the_station_match(self):
+        body = '### 03/2022 – heute | Leitung „Plattform“ | **Beispiel** AG &amp; Söhne, Berlin\n'
+        text = "03/2022 – heute\nLeitung \"Plattform\"\nBeispiel AG & Söhne, Berlin"
+        self.assertEqual(ats.station_notes(body, text), [])
 
     def test_mixed_date_formats_are_a_warning(self):
         mixed = CV.replace("10/2009 – 09/2013", "2009 – 2013")
@@ -208,7 +214,32 @@ class SectionTests(unittest.TestCase):
         self.assertEqual(ats.section_notes(CV, text, "html"), [])
 
 
+class FontTests(unittest.TestCase):
+    LISTING = """name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+ABCDEF+LatoRegular                   CID TrueType      Identity-H       yes yes yes     12  0
+Bitmap                               Type 3            Custom           yes no  no      13  0
+Fantasie                             TrueType          WinAnsi          no  no  no      14  0
+Helvetica                            Type 1            WinAnsi          no  no  no      15  0
+"""
+
+    def test_type3_and_not_embedded_fonts_are_found_and_the_standard_fonts_are_not(self):
+        gefunden = ats.font_notes(self.LISTING)
+        self.assertEqual([(g, m[:1]) for _, g, m in gefunden], [("Warnung", "1"), ("Warnung", "1")])
+        self.assertIn("Typ 3", gefunden[0][2])
+        self.assertIn("nicht eingebettet", gefunden[1][2])
+        self.assertEqual(ats.font_notes("\n".join(self.LISTING.splitlines()[:3])), [])
+
+
 class KeyTermTests(unittest.TestCase):
+    def test_short_terms_are_found_and_a_prefix_of_another_word_is_not_a_hit(self):
+        self.assertTrue(ats.term_in("SQL", "erfahrung mit sql und python"))
+        self.assertTrue(ats.term_in("CI/CD", "ci/cd pipelines gebaut"))
+        self.assertFalse(ats.term_in("Java", "javascript und typescript"))
+        self.assertTrue(ats.term_in("Java", "java und kotlin"))
+        self.assertTrue(ats.term_in("Führung", "führungsrolle im team"))
+        self.assertFalse(ats.term_in("", "text"))
+
     ANALYSE = """# Analyse
 
 | Anforderung | Priorität | Kompetenz | Nachweis | Stärke | Status | Verwendung | Offen |
@@ -316,6 +347,20 @@ class DocxTests(unittest.TestCase):
         self.baue(verstecke)
         gefunden = self.pruefe()
         self.assertTrue(any(c == "ATS-01" and g == "Blocker" and "1 ausgeblendet, 1 weiß, 1 winzig" in m for c, g, m in gefunden), gefunden)
+
+    def test_white_text_on_a_dark_band_is_a_warning_not_a_blocker(self):
+        def band(dokument):
+            absatz = dokument.add_paragraph()
+            absatz.add_run("Kontakt").font.color.rgb = docx.shared.RGBColor(255, 255, 255)
+            absatz._p.get_or_add_pPr().append(docx.oxml.parse_xml('<w:shd xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:val="clear" w:fill="1F3864"/>'))
+        self.baue(band)
+        gefunden = [(g, m) for c, g, m in self.pruefe() if c == "ATS-01"]
+        self.assertEqual([g for g, _ in gefunden], ["Warnung"], gefunden)
+
+    def test_a_title_block_counts_as_the_level_one_heading(self):
+        xml = '<w:p><w:pStyle w:val="Title"/></w:p><w:p><w:pStyle w:val="Heading2"/></w:p>'
+        self.assertEqual(ats.docx_heading_notes(xml, "# Name\n\n## Berufserfahrung\n"), [])
+        self.assertEqual(ats.docx_heading_notes(xml, "# Name\n\n```\n# kein Titel\n```\n\n## Berufserfahrung\n"), [])
 
     def test_a_table_header_text_and_a_contact_that_only_stands_in_the_header_are_found(self):
         def aendere(dokument):
