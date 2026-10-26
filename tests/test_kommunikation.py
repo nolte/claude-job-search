@@ -200,6 +200,37 @@ class ClassificationTests(Base):
         self.assertIn("keine fachliche Schwäche", i["hinweis"])
 
 
+class ReviewFindingsTests(Base):
+    def test_the_weaker_certainty_wins_and_a_thank_you_does_not_hide_a_refusal(self):
+        self.verarbeite(mail("r1", "info@unbekannt.example", "Zu Ihrer Bewerbung", "Vielen Dank für Ihre Bewerbung bei der Beispiel AG als Systemadministrator."))
+        e = self.eintrag("r1")
+        self.assertEqual((e["mailtyp"], e["gewissheit"]), ("eingangsbestaetigung", "wahrscheinlich"))  # weak type, weak assignment
+        self.assertTrue(e["unsicherheit"])
+        self.verarbeite(mail("r2", "jobs@musterfirma.example", "Ihre Bewerbung 12345", "Vielen Dank für Ihre Bewerbung. Leider müssen wir Ihnen eine Absage erteilen."))
+        e = self.eintrag("r2")
+        self.assertEqual((e["mailtyp"], e["mailtyp_gewissheit"]), ("absage", "eindeutig"))
+
+    def test_an_id_that_is_the_start_of_another_is_no_duplicate(self):
+        self.verarbeite(mail("manuell-1", "jobs@musterfirma.example", "Eingang 12345", "Wir bestätigen den Eingang Ihrer Bewerbung.", datum="2026-10-03"),
+                        mail("manuell", "jobs@musterfirma.example", "Rückfrage 12345", "Bitte senden Sie noch Unterlagen.", datum="2026-10-04"))
+        self.assertEqual(self.bestaetige("manuell-1")[0], 0)
+        self.assertEqual(self.bestaetige("manuell")[0], 0)
+
+    def test_options_for_a_category_are_kept_or_refused_never_dropped(self):
+        self.verarbeite(EINLADUNG)
+        h = self.eintrag("m1")["vorschlag"]["hash"]
+        self.assertEqual(self.cli(km, "bestaetigen", "m1", "--hash", h, "--ja", "--kategorie", "Falsch!")[1]["code"], "kategorie_ungueltig")
+        self.assertEqual(self.cli(km, "bestaetigen", "m1", "--hash", h, "--ja", "--aussage", "Team vorgestellt")[0], 0)
+        e = json.loads(self.lies("musterfirma-backend", "nachverfolgung.json"))["ereignisse"][0]
+        self.assertEqual((e["status"], e["interpretation"]["aussage"]), ("korrigiert", "Team vorgestellt"))
+
+    def test_looking_at_a_proposal_saves_nothing(self):
+        self.verarbeite(EINLADUNG)
+        vorher = self.lies("kommunikation", "eingang.json")
+        self.eintrag("m1")
+        self.assertEqual(self.lies("kommunikation", "eingang.json"), vorher)
+
+
 class StatusRuleTests(Base):
     def vorschlag(self, status, text, betreff="Ihre Bewerbung 12345"):
         self.vorgang("musterfirma-backend", vorgang_text("Musterfirma GmbH", "Senior Backend-Entwickler", status=status, ref="12345"))
@@ -421,6 +452,13 @@ class WorkflowTests(Base):
         self.cli(km, "wiedervorlage", "erledigen", "musterfirma-backend", "--id", "w-001")
         self.cli(wf, "abgleichen")
         self.assertEqual(self.cli(wf, "zeige", "wiedervorlage:musterfirma-backend:w-001")[1]["aufgabe"]["status"], "erledigt")
+
+    def test_a_task_after_the_dispatch_does_not_stop_the_chain_of_the_vorgang_from_being_planned(self):
+        self.verarbeite(EINLADUNG)
+        self.assertIn("rueckmeldung_pruefen:musterfirma-backend:n1", self.lauf()["neu"])
+        self.lauf()  # the budget of a run may hold the second chain back; it comes in the next run
+        aufgaben = json.loads(self.lies("workflow", "aufgaben.json"))["aufgaben"]
+        self.assertIn("analyse:musterfirma-backend", aufgaben)  # a task after the dispatch is no chain
 
     def test_no_message_task_is_created_by_the_communication(self):
         self.verarbeite(EINLADUNG)

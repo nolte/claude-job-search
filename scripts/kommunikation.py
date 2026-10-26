@@ -46,8 +46,8 @@ ENDSTATUS = ("zusage", "absage", "abgelehnt", "zurückgezogen", "ohne Antwort")
 # Mail types of MV-3.2 plus the two the requirements ask for. rule: (strong patterns, weak patterns)
 MAILTYPEN = {
     "eingangsbestaetigung": ("Eingangsbestätigung", None, "eingangsbestaetigung", (
-        r"eingangsbest(ä|ae)tigung|best(ä|ae)tigen (wir |hiermit )?(den )?eingang|ihre bewerbung (ist )?(bei uns )?eingegangen|haben ihre bewerbung(sunterlagen)? erhalten|received your application|vielen dank für ihre bewerbung",
-        r"vielen dank für ihr interesse")),
+        r"eingangsbest(ä|ae)tigung|best(ä|ae)tigen (wir |hiermit )?(den )?eingang|ihre bewerbung (ist )?(bei uns )?eingegangen|haben ihre bewerbung(sunterlagen)? erhalten|received your application",
+        r"vielen dank für ihre bewerbung|vielen dank für ihr interesse")),
     "einladung": ("Einladung", "gespräch", "gespraechseinladung", (
         r"einladung|laden sie .{0,60} ein|zum (vorstellungs)?gespräch einladen|vorstellungsgespräch|invite you|interview",
         r"gespräch|termin")),
@@ -371,7 +371,7 @@ def verarbeite(w, roh_liste, jetzt):
             bericht["nicht_relevant"] += 1  # MV-5.3: left alone, not analysed further, not stored
             continue
         original = satz_mit(n["text"] or n["betreff"], next(iter(treffer.values()), ""))
-        gesamt = GEWISSHEIT[min(GEWISSHEIT.index(zuordnung), GEWISSHEIT.index("unklar" if typ_gew == "unklar" else typ_gew))] if slug else zuordnung
+        gesamt = GEWISSHEIT[max(GEWISSHEIT.index(zuordnung), GEWISSHEIT.index(typ_gew))] if slug else zuordnung  # the weaker of the two
         vorschlag = baue_vorschlag(w, n, slug, typ) if slug else {"zeilen": [], "status_alt": "", "status_neu": None, "status_grund": "kein Vorgang",
                                                                   "art": MAILTYPEN[typ][2] if typ in MAILTYPEN else "kontaktaufnahme", "folgeaufgabe": None,
                                                                   "hash": digest(n["id"], "-", typ)}
@@ -501,7 +501,7 @@ def bestaetigen(w, daten, nachricht_id, hash_wert, optionen, jetzt):
         raise Refused("vorschlag_geaendert", f"Die Freigabe gilt nicht für den Vorschlag, wie er jetzt ist (Hash {jetzt_vorschlag['hash'][:12]}): mit `zeige` ansehen und neu freigeben")
     with open(vorgang_pfad(w, slug), encoding="utf-8", errors="replace") as handle:
         verlauf_text = handle.read()
-    if re.search(rf"Gmail-ID {re.escape(n['id'])}\b", verlauf_text):
+    if re.search(rf"Gmail-ID {re.escape(n['id'])}(?![\w.:@-])", verlauf_text):
         raise Refused("bereits_erfasst", "Diese Nachricht steht schon in ## Verlauf (MV-7.7)")
     faellig = optionen.get("faellig") or ""
     if faellig and ss.valid_date(faellig) != faellig:
@@ -514,11 +514,12 @@ def bestaetigen(w, daten, nachricht_id, hash_wert, optionen, jetzt):
                 "quelle": {"typ": "nachricht", "nachricht_id": n["id"], "thread_id": n["thread_id"]}, "original": n["original"],
                 "interpretation": n["interpretation"], "status": "korrigiert" if korrigiert else "bestaetigt", "erfasst": stamp(jetzt),
                 "bestaetigt_am": stamp(jetzt), "gewissheit": n["gewissheit"], "mailtyp": n["mailtyp"]}
-    if ereignis["interpretation"] and (optionen.get("kategorie") or optionen.get("thema") or optionen.get("aussage")):
-        i = dict(ereignis["interpretation"])
+    if optionen.get("kategorie") and not KATEGORIE_FORM.fullmatch(optionen["kategorie"]):
+        raise Refused("kategorie_ungueltig", "--kategorie besteht aus a-z, 0-9 und _")
+    if optionen.get("kategorie") or optionen.get("thema") or optionen.get("aussage"):
+        i = dict(ereignis["interpretation"] or {"kategorie": "allgemein", "bezeichnung": "allgemein", "thema": "", "aussage": "", "grund_genannt": True})
+        i["grund_genannt"] = True
         if optionen.get("kategorie"):
-            if not KATEGORIE_FORM.fullmatch(optionen["kategorie"]):
-                raise Refused("kategorie_ungueltig", "--kategorie besteht aus a-z, 0-9 und _")
             i.update(kategorie=optionen["kategorie"], bezeichnung=optionen["kategorie"])
         i.update(thema=clean_text(optionen.get("thema") or i["thema"], 80), aussage=clean_text(optionen.get("aussage") or i["aussage"], 160), sicherheit="mittel",
                  hinweis="vom Nutzer bestätigt; eine Qualifikationslücke ist es erst, wenn der Nutzer sie in die Grundlage übernimmt")
@@ -700,12 +701,8 @@ def run(args):
         if befehl == "liste":
             return {"ok": True, "nachrichten": liste(daten, args.status, args.vorgang)}
         n = hole(daten, args.nachricht)
-        with ss.exclusive(w, *LOCK):
-            if n["status"] == "vorgeschlagen":
-                daten = lade_eingang(w)
-                n = hole(daten, args.nachricht)
-                erneuere(w, n)
-                speichere_eingang(w, daten)
+        if n["status"] == "vorgeschlagen":
+            erneuere(w, n)  # shown as it is now; nothing is saved by looking, `bestaetigen` computes it again
         return {"ok": True, "nachricht": ansicht(n)}
     if befehl == "nachfass":
         return nachfass(w, args.vorgang, now, args.nach_tage, args.konfiguration)

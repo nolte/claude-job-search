@@ -222,8 +222,9 @@ class RetrospectiveTests(Base):
     def test_the_retrospective_documents_its_basis_and_marks_itself_as_derived(self):
         self.sechs()
         code, antwort = self.cli(lr, "retrospektive", "--von", "2026-10-01")
-        self.assertEqual((code, antwort["datei"]), (0, "lernen/retrospektive-2026-10-26.md"))
-        text = self.lies("lernen", "retrospektive-2026-10-26.md")
+        self.assertEqual(code, 0)
+        self.assertRegex(antwort["datei"], r"^lernen/retrospektive-2026-10-26-[0-9a-f]{6}\.md$")  # criteria in the name: another filter, another file
+        text = self.lies(antwort["datei"])
         self.assertIn("abgeleitet: ja", text)
         for erwartet in ("## Datenbasis", "Zeitraum (nach Versanddatum): 2026-10-01 bis offen", "Ausgewertete Vorgänge: 6", "Offene Vorgänge: 3",
                          "## Vergleichbarkeit", "## Einschränkungen", "Offene Bewerbungen sind nicht erfolglos"):
@@ -266,6 +267,38 @@ class RetrospectiveTests(Base):
         nachher = {os.path.join(d, f) for d, _, fs in os.walk(self.w) for f in fs} - set(vorher)
         self.assertTrue(all(os.sep + "lernen" + os.sep in p for p in nachher if not p.endswith(".lock")), nachher)
         self.assertTrue(all(inhalt(p) == b for p, b in vorher.items()))
+
+
+class ReviewFindingsTests(Base):
+    def test_a_refusal_without_an_interpretation_is_listed_in_the_retrospective(self):
+        self.vorgang("a", "A", "absage", ereignisse=[ereignis("e-001", "absage", "2026-10-20")])
+        self.cli(lr, "retrospektive")
+        text = [t for t in os.listdir(os.path.join(self.w, "lernen")) if t.startswith("retrospektive")]
+        body = self.lies("lernen", text[0])
+        self.assertIn("kein Grund genannt: Grund unbekannt", body)
+        self.assertNotIn("Keine bestätigte Absage", body)
+
+    def test_two_retrospectives_with_other_criteria_on_one_day_do_not_replace_each_other(self):
+        self.sechs()
+        a = self.cli(lr, "retrospektive")[1]["datei"]
+        b = self.cli(lr, "retrospektive", "--von", "2026-10-02")[1]["datei"]
+        c = self.cli(lr, "retrospektive", "--arbeitgeber", "Firma A")[1]["datei"]
+        self.assertEqual(len({a, b, c}), 3)
+        self.assertEqual(self.cli(lr, "retrospektive")[1]["datei"], a)  # the same criteria replace their own earlier file
+
+    def test_a_stale_proposal_is_made_again_when_the_reason_still_holds_and_a_verlauf_edit_does_not_stale_it(self):
+        for slug in ("a", "b"):
+            self.vorgang(slug, slug.upper(), "absage", ereignisse=[ereignis("e-001", "absage", interpretation=grund("beruf_erfahrung", "Terraform"))])
+        erster = [i for i in self.cli(lr, "vorschlaege", "erzeugen")[1]["neu"]]
+        with open(os.path.join(self.w, "a", "vorgang.md"), "a", encoding="utf-8") as handle:
+            handle.write("- 2026-10-27: eine Zeile mehr\n")
+        antwort = self.cli(lr, "vorschlaege", "erzeugen")[1]
+        self.assertEqual((antwort["neu"], antwort["veraltet"]), ([], []))  # the proposals that rest on the existence of a Vorgang stay
+        self.vorgang("a", "A", "absage", ereignisse=[ereignis("e-001", "absage", interpretation=grund("beruf_erfahrung", "Terraform"), original="geändert")])
+        antwort = self.cli(lr, "vorschlaege", "erzeugen")[1]
+        self.assertTrue(antwort["veraltet"])
+        neu = [i for i in antwort["neu"] if i not in erster]
+        self.assertEqual(len(neu), 1)
 
 
 class ResultByStatementTests(Base):

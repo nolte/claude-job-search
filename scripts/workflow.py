@@ -646,7 +646,7 @@ def plane(w, daten, now):
     def anlegen(*args, **kwargs):
         nonlocal budget
         if budget <= 0:
-            zurueck.append(args[0] + ":" + str(args[1].get("vorgang") or args[1].get("auftrag")))
+            zurueck.append(args[0] + ":" + str(args[1].get("vorgang") or args[1].get("auftrag") or args[1].get("bereich")))
             return None
         task, angelegt = neue_aufgabe(daten, *args, **kwargs)
         if angelegt:
@@ -655,7 +655,8 @@ def plane(w, daten, now):
         return task
 
     try:
-        mit_workflow = {t["bezug"].get("vorgang") for t in daten["aufgaben"].values()}
+        kette = {typ for typ, _ in BEWERBUNG}
+        mit_workflow = {t["bezug"].get("vorgang") for t in daten["aufgaben"].values() if t["typ"] in kette}  # a task after the dispatch is no chain
         for slug in sorted(os.listdir(w)) if os.path.isdir(w) else []:
             meta = ss.vorgang_meta(os.path.join(w, slug, "vorgang.md")) if KUERZEL.fullmatch(slug) else None
             if meta is None or meta.get("status") in ENDSTATUS or slug in mit_workflow:

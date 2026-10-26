@@ -268,8 +268,8 @@ def quellen_hash(w, gruppe):
     return digest(*teile)
 
 
-def statistik(w, now, von=None, bis=None, nach=None, filter_=None):
-    gruppe, ausgeschlossen = waehle(w, now, von, bis, filter_)
+def statistik(w, now, von=None, bis=None, nach=None, filter_=None, gewaehlt=None):
+    gruppe, ausgeschlossen = gewaehlt or waehle(w, now, von, bis, filter_)
     ergebnis = {"ok": True, "erstellt": stamp(now), "zeitraum": {"von": von, "bis": bis}, "filter": {k: v for k, v in (filter_ or {}).items() if v},
                 "ausgewertet": len(gruppe), "quellen_hash": quellen_hash(w, gruppe), "abgeleitet": True,
                 **kennzahlen(gruppe), "datenqualitaet": datenqualitaet(w, gruppe, ausgeschlossen), "grenzen": list(GRENZEN)}
@@ -339,24 +339,23 @@ def ergebnis_aendern(w, slug, ereignis_id, aktion, felder, now):
 # ---------------------------------------------------------------- retrospective (EA-9)
 
 def retrospektive(w, now, von, bis, filter_):
-    stat = statistik(w, now, von, bis, None, filter_)
-    gruppe, _ = waehle(w, now, von, bis, filter_)
+    gewaehlt = waehle(w, now, von, bis, filter_)  # read once: the figures and the lists come from the same Vorgänge
+    stat = statistik(w, now, von, bis, None, filter_, gewaehlt)
+    gruppe = gewaehlt[0]
     absagen, themen = [], {}
     for d in gruppe:
         for e in d["ereignisse"]:
             i = e.get("interpretation")
-            if not i:
-                continue
             if e["art"].startswith("absage"):
                 absagen.append((d["slug"], e))
-            if i.get("grund_genannt"):
+            if i and i.get("grund_genannt"):
                 schluessel = i.get("thema") or i.get("kategorie")
                 themen.setdefault(schluessel, set()).add(d["slug"])
     wiederholt = {k: sorted(v) for k, v in themen.items() if len(v) >= 2}
     gruppen = Counter((d["ausrichtung"], d["stellenprofil"]) for d in gruppe)
     k, z = stat["zaehler"], stat
     zeilen = [
-        "---", f"abgeleitet: ja", f"erstellt: {stamp(now)}", f"zeitraum_von: {von or ''}", f"zeitraum_bis: {bis or ''}",
+        "---", "abgeleitet: ja", f"erstellt: {stamp(now)}", f"zeitraum_von: {von or ''}", f"zeitraum_bis: {bis or ''}",
         f"quellen_hash: {stat['quellen_hash']}", f"ausgewertet: {stat['ausgewertet']}", "---", "",
         "# Retrospektive der Bewerbungen", "",
         "Abgeleitete Auswertung: Quelle der Wahrheit bleiben `vorgang.md` und `nachverfolgung.json` der Vorgänge. Ändert sich eine Quelle, ist diese Datei veraltet (`lernen.py aktualitaet`).", "",
@@ -375,7 +374,7 @@ def retrospektive(w, now, von, bis, filter_):
         "## Absagen und genannte Gründe", ""]
     if absagen:
         for slug, e in sorted(absagen, key=lambda x: x[1].get("datum") or ""):
-            i = e["interpretation"]
+            i = e.get("interpretation") or {}
             zeilen.append(f"- {slug} ({e.get('datum') or 'Datum unbekannt'}): " + (f"Grund genannt, Kategorie {i['bezeichnung']} ({'vom Nutzer bestätigt' if e['status'] == 'korrigiert' else 'Muster im Wortlaut, nicht bestätigt'}); Wortlaut: „{e['original']}“"
                                                                                    if i.get("grund_genannt") else "kein Grund genannt: Grund unbekannt"))
     else:
@@ -388,11 +387,14 @@ def retrospektive(w, now, von, bis, filter_):
     zeilen += ["", "## Einschränkungen", ""] + [f"- {g}" for g in GRENZEN]
     zeilen += ["", "## Verbesserungsvorschläge", "", "Siehe `lernen.py vorschlaege liste`; jeder Vorschlag nennt Quellen, Begründung und Unsicherheit und wartet auf die Entscheidung der Nutzerin oder des Nutzers.", ""]
     ordner = os.path.join(w, "lernen")
-    name = f"retrospektive-{km.heute(now)}.md"
-    pfad = os.path.join(ordner, name)
+    kriterien = json.dumps([von, bis, sorted((k, v) for k, v in (filter_ or {}).items() if v)])
+    name = f"retrospektive-{km.heute(now)}" + (f"-{digest(kriterien)[:6]}" if von or bis or any((filter_ or {}).values()) else "") + ".md"
+    pfad = os.path.join(ordner, name)  # other criteria on the same day give another file; the same criteria replace the earlier one
     os.makedirs(ordner, exist_ok=True)
-    with open(pfad, "w", encoding="utf-8", newline="\n") as handle:
+    temp = pfad + ".tmp"
+    with open(temp, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("\n".join(zeilen))
+    os.replace(temp, pfad)
     return {"ok": True, "datei": f"lernen/{name}", "ausgewertet": stat["ausgewertet"], "quellen_hash": stat["quellen_hash"], "wiederholte_themen": sorted(wiederholt)}
 
 
@@ -437,7 +439,7 @@ def vorschlag_quellen_hash(w, quellen):
             ereignisse = {}
         e = ereignisse.get(q.get("ereignis"))
         teile.append(f"{q['vorgang']}/{q.get('ereignis', '-')}={digest(json.dumps(e, sort_keys=True)) if e and e.get('status') in BESTAETIGT else 'weg'}"
-                     if q.get("ereignis") else f"{q['vorgang']}={sha256_file(os.path.join(w, q['vorgang'], 'vorgang.md')) if os.path.isfile(os.path.join(w, q['vorgang'], 'vorgang.md')) else 'weg'}")
+                     if q.get("ereignis") else f"{q['vorgang']}={'da' if os.path.isfile(os.path.join(w, q['vorgang'], 'vorgang.md')) else 'weg'}")  # without an event only the existence counts
         _ = pfad
     return digest(*teile)
 
@@ -449,7 +451,7 @@ def erzeuge_vorschlaege(w, now, konfiguration):
     neu = []
 
     def ablegen(regel, titel, bereich, beobachtung, quellen, begruendung, nutzen, unsicherheit, risiken, prioritaet):
-        vid = "lv-" + digest(regel, json.dumps(sorted((q["vorgang"], q.get("ereignis", "") ) for q in quellen)))[:10]
+        vid = "lv-" + digest(regel, json.dumps(sorted((q["vorgang"], q.get("ereignis", "")) for q in quellen)), vorschlag_quellen_hash(w, quellen))[:10]  # a changed source gives a new proposal
         if vid in daten["vorschlaege"]:
             return
         daten["vorschlaege"][vid] = {"id": vid, "regel": regel, "titel": titel, "beschreibung": beobachtung, "bereich": bereich, "beobachtung": beobachtung,
