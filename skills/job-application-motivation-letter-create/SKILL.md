@@ -24,7 +24,9 @@ see_also:
 # Bewerbung Motivationsschreiben erstellen
 
 Spec: `spec/job-application/motivationsschreiben/en.md` (MS-1 to MS-15). Layout and shared rules:
-`spec/job-application/anschreiben/en.md` (AS-2 to AS-5, AS-8.1, AS-9, AS-10). Facts and Zeugnisse:
+`spec/job-application/anschreiben/en.md` (AS-2 to AS-5, AS-8.1, AS-9, AS-10). Wording:
+`spec/job-application/anschreiben-formulierung/en.md` (AF-5 to AF-8 and AF-11 apply unchanged, AF-3 and AF-4 where the
+letter states facts about the candidate, AF-1.4). Facts and Zeugnisse:
 `spec/job-application/konventionen/en.md` R-1, R-5. Counterpart data: `spec/job-application/kontaktklassifikation/en.md`
 KK-4, KK-7.1. Wunschprofil and fit check: `spec/job-application/traumjob-interview/en.md` WJ-3.3, WJ-7.
 Paths and status: `spec/job-application/lokale-struktur/en.md` LS-2 to LS-7. A Motivationsschreiben is a separate
@@ -139,8 +141,13 @@ missing. A re-run replaces only this section and leaves `## Auswahl Lebenslauf`,
    with a known person `Sehr geehrte Frau <Nachname>,` or `Sehr geehrter Herr <Nachname>,`, academic titles taken over;
    when the counterpart uses du `Hallo <Vorname>,` or `Guten Tag <Vorname Nachname>,`; when the gender is not clear
    `Guten Tag <Vorname Nachname>,`; `Sehr geehrte Damen und Herren,` only when no person is known after one question to
-   the user (the quality gate reports it as a Warnung). Use the tone and the forbidden phrases of MS-10 and AS-9. Keep the
-   paragraphs short (one idea, six lines at most).
+   the user (the quality gate reports it as a Warnung). Use the tone and the forbidden phrases of MS-10 and AS-9. Wording follows AF-5 to AF-8:
+   verbal style, no Konjunktiv in own statements (`würde`, `könnte`, `hätte`, `wäre`, `dürfte`), average sentence at
+   most 20 words and none over 30, "Ich" at most in one of three sentences, positive wording, no stock phrases or
+   empty attributes (AF-6), the exchange test (AF-7.1), a closing of at most two sentences in the Indikativ (AF-8). No
+   machine patterns or translationese (AF-11.2, AF-11.3). Keep the paragraphs short (one idea, six lines at most).
+   Show the letter as a draft and name the sentences least tied to the user's reasons and the Grundlage, so the user
+   can rewrite them in their own words (AF-11.1).
 8. **Check length** (MS-7). One page for `stelle`, `quereinstieg`, `berufseinstieg`; up to two pages for `studium`
    and `stipendium`, unless the counterpart prescribes another limit. About 300 to 600 words is the aid. Trim in this
    order: the weakest proof, then sentences of the Einstieg. Never cut a statement of motivation that the user

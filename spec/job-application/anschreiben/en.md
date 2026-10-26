@@ -13,6 +13,8 @@ Related specs:
 - `spec/job-application/unternehmensanalyse/en.md`: UA-4.5, UA-6 (company facts and addressee).
 - `spec/job-application/motivationsschreiben/en.md`: the separate document type for personal motivation.
 - `spec/job-application/lebenslauf/en.md`: the document the Anschreiben accompanies.
+- `spec/job-application/anschreiben-formulierung/en.md`: the wording level (proof sentence, opening, sentence
+  construction, stock phrases, closing, delicate cases, machine-drafted text); AS-9 is its short form.
 
 Rule IDs `AS-n` name the rules of this document. Each rule states whether it comes from a cited source or is
 a decision of this plugin. A decision of this plugin is a default that a posting's instruction overrides
@@ -186,6 +188,9 @@ variant of this document.
    content rules of `motivationsschreiben/en.md` (MS-2.3).
 
 ## AS-9 Wording and tone
+
+This section is the short form. The detailed rules, the term lists and the checks are in
+`spec/job-application/anschreiben-formulierung/en.md` (AF-1 to AF-16).
 
 1. **Address.** Sie, unless the posting clearly uses du (R-3). The tone follows the posting's tone recorded in
    the analysis.
