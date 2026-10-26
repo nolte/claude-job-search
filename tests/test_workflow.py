@@ -339,7 +339,7 @@ class IdempotenceTests(Base):  # C
     def test_error_classes_lead_to_different_states(self):
         for klasse, erwartet in (("eingabe", wf.EINGABE), ("freigabe", wf.FREIGABE), ("berechtigung", wf.BLOCKIERT),
                                  ("qualitaet", wf.BLOCKIERT), ("daten", wf.FEHLGESCHLAGEN), ("dauerhaft", wf.FEHLGESCHLAGEN),
-                                 ("zeitlimit", wf.WIEDERHOLUNG), ("unklar", wf.EINGABE)):
+                                 ("zeitlimit", wf.WIEDERHOLUNG), ("unklar", wf.WIEDERHOLUNG)):  # unclear is only for external actions
             with self.subTest(klasse=klasse):
                 self.setUp()
                 self.vorgang()
@@ -1184,6 +1184,59 @@ class ReviewRoundThreeTests(Base):  # third review of the workflow (pull request
         wf.fertig(self.w, daten, self.tid("analyse", "beispiel-ag"), later(minutes=2), 1)  # the session can still report
         wf.sichere(self.w, daten)
         self.assertEqual(self.stand(self.tid("analyse", "beispiel-ag")), wf.ERLEDIGT)
+
+
+    def test_waiting_for_the_user_does_not_use_up_the_attempts(self):
+        self.vorgang()
+        self.start()
+        for n in range(wf.DEFAULT_LIMITS["versuche_max"] + 1):
+            self.apply(wf.uebernehmen, self.tid("analyse"), now=later(minutes=n * 10))
+            self.apply(wf.fehler, self.tid("analyse"), "eingabe", "Angabe fehlt", now=later(minutes=n * 10 + 1))
+            self.apply(wf.weiter, self.tid("analyse"), now=later(minutes=n * 10 + 2))
+        self.assertEqual(self.stand(self.tid("analyse")), wf.BEREIT)
+        self.apply(wf.uebernehmen, self.tid("analyse"), now=later(minutes=100))  # not versuche_erschoepft
+
+    def test_abbrechen_by_name_never_hits_a_vorgang_and_a_suchauftrag_of_the_same_name(self):
+        self.vorgang("muster")
+        self.start("muster")
+        daten = self.store()
+        wf.neue_aufgabe(daten, "suche", {"auftrag": "muster"}, T0, suffix="n1")
+        wf.sichere(self.w, daten)
+        self.apply(wf.abbrechen, "muster")
+        stand = {i: t["status"] for i, t in self.store()["aufgaben"].items()}
+        self.assertNotEqual(stand["suche:muster:n1"], wf.ABGEBROCHEN)
+        self.assertEqual(stand["analyse:muster"], wf.ABGEBROCHEN)
+
+    def test_a_finished_external_task_no_longer_carries_the_unclear_marker(self):
+        self.vorgang(status="versendet", extra="versendet_am: 2026-11-01\n", **{"nachricht.md": "Guten Tag"})
+        daten = self.store()
+        task, _ = wf.neue_aufgabe(daten, "nachricht_senden", {"vorgang": SLUG, "datei": "nachricht.md"}, T0)
+        wf.abgleichen(self.w, daten, T0)
+        wf.sichere(self.w, daten)
+        self.apply(wf.freigeben, task["id"])
+        with unittest.mock.patch.dict(wf.ADAPTER, {"nachricht_senden": lambda t, f: None}):
+            self.apply(wf.ausfuehren, task["id"])
+        self.assertTrue(self.store()["aufgaben"][task["id"]]["extern_begonnen"])
+        self.apply(wf.ausgang, task["id"], True)
+        self.assertEqual(self.store()["aufgaben"][task["id"]]["extern_begonnen"], "")
+
+    def test_changed_content_before_the_adapter_call_asks_for_a_new_approval(self):
+        self.vorgang(status="versendet", extra="versendet_am: 2026-11-01\n", **{"nachricht.md": "Guten Tag"})
+        daten = self.store()
+        task, _ = wf.neue_aufgabe(daten, "nachricht_senden", {"vorgang": SLUG, "datei": "nachricht.md"}, T0)
+        wf.abgleichen(self.w, daten, T0)
+        wf.sichere(self.w, daten)
+        self.apply(wf.freigeben, task["id"])
+        echtes = wf.sichere
+
+        def mit_aenderung(w, d):
+            echtes(w, d)
+            self.datei(SLUG, "nachricht.md", "anders")
+        daten = self.store()
+        with unittest.mock.patch.dict(wf.ADAPTER, {"nachricht_senden": lambda t, f: {"gesendet": True}}), unittest.mock.patch.object(wf, "sichere", mit_aenderung):
+            wf.ausfuehren(self.w, daten, task["id"], T0)
+        self.assertEqual(daten["aufgaben"][task["id"]]["status"], wf.FREIGABE)  # not failed: a new approval is all that is missing
+        self.assertIsNone(daten["aufgaben"][task["id"]]["entscheidung"])
 
 
 class SecurityTests(Base):  # G

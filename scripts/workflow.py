@@ -128,8 +128,11 @@ def a_datei(name):
 def a_plan(w, t, now):
     meta, plan = meta_von(w, t), False
     if meta is not None:
-        with open(os.path.join(vorgang_dir(w, t), "vorgang.md"), encoding="utf-8-sig", errors="replace") as handle:
-            plan = re.search(r"^## Plan\s*$", handle.read(), re.M) is not None
+        try:
+            with open(os.path.join(vorgang_dir(w, t), "vorgang.md"), encoding="utf-8-sig", errors="replace") as handle:
+                plan = re.search(r"^## Plan\s*$", handle.read(), re.M) is not None
+        except OSError:  # the file vanished or is being rewritten: not recognised now, the next reconciliation looks again
+            plan = False
     return rang(meta) >= RANG["geplant"] and plan, "der Plan ist nicht freigegeben und gespeichert (Plan-Gate von job-application-solution)"
 
 
@@ -396,6 +399,7 @@ def erledige(w, task, now, text, ref=None, hash_wert=None):
         hash_wert = datei_hash(os.path.join(vorgang_dir(w, task), pfad)) if pfad and task["bezug"].get("vorgang") else ""
     task["ergebnis"] = {"ref": pfad or "", "hash": hash_wert, "am": stamp(now)}
     task["lease"], task["veraltet"], task["halt"], task["naechster_versuch"] = None, False, "", ""
+    task["extern_begonnen"] = ""  # the outcome is known now
     schliesse_versuch(task, now, "ok")
 
 
@@ -528,7 +532,7 @@ def versuch_endet(daten, task, now, klasse, grund):
         setze(task, BLOCKIERT, now, text, redact(grund, 200))
     elif klasse in ("daten", "dauerhaft"):
         setze(task, FEHLGESCHLAGEN, now, text, redact(grund, 200))
-    elif klasse == "unklar" or (extern and task["extern_begonnen"]):
+    elif extern and (klasse == "unklar" or task["extern_begonnen"]):
         setze(task, EINGABE, now, text, "Ausgang unklar: prüfe, ob die Aktion ausgeführt wurde, und entscheide mit `ausgang`")
     elif extern or anzahl >= daten["grenzen"]["versuche_max"]:
         setze(task, FEHLGESCHLAGEN, now, text, redact(grund, 200) + (" (keine automatische Wiederholung einer externen Aktion)" if extern else ""))
@@ -837,8 +841,9 @@ def ausfuehren(w, daten, task_id, now):
     sichere(w, daten)
     try:
         if not freigabe_gueltig(w, task):  # the content may have changed since the check above: nothing has left yet
-            task["extern_begonnen"] = ""
-            versuch_endet(daten, task, now, "vorlaeufig", "Inhalt seit der Freigabe geändert; nichts gesendet")
+            task["extern_begonnen"], task["entscheidung"], task["lease"] = "", None, None
+            schliesse_versuch(task, now, "fehler", "vorlaeufig", "Inhalt seit der Freigabe geändert; nichts gesendet")
+            setze(task, FREIGABE, now, "Inhalt seit der Freigabe geändert", "Die Unterlagen haben sich seit der Freigabe geändert; nichts gesendet")
             return {"ok": False, "aufgabe": task_id, "status": task["status"], "hinweis": task["hinweis"]}
         antwort = ADAPTER[task["typ"]](task, task["entscheidung"])
         if not isinstance(antwort, dict):
@@ -886,7 +891,7 @@ def weiter(w, daten, task_id, now):
     if not task["halt"]:
         raise Refused("kein_halt", f"{task_id} hat keinen Halt, den der Nutzer aufheben müsste (Status {task['status']})")
     verlauf(task, now, f"Halt ({task['halt']}) vom Nutzer aufgehoben")
-    task["halt"] = ""
+    task["halt"], task["versuche_ab"] = "", len(task["versuche"])  # waiting for the user does not use up the attempts
     if task["status"] != WARTEND:
         setze(task, WARTEND, now)
     bewerte(w, daten, task, now)
@@ -895,7 +900,9 @@ def weiter(w, daten, task_id, now):
 
 def abbrechen(daten, ziel, now):
     """Cancel one task, or every open task of a Vorgang (by its slug)."""
-    treffer = [t for t in daten["aufgaben"].values() if t["id"] == ziel or t["bezug"].get("vorgang") == ziel or t["bezug"].get("auftrag") == ziel]
+    alle = daten["aufgaben"].values()
+    treffer = [t for t in alle if t["id"] == ziel]  # an exact id first, then a Vorgang, then a Suchauftrag: never two groups at once
+    treffer = treffer or [t for t in alle if t["bezug"].get("vorgang") == ziel] or [t for t in alle if t["bezug"].get("auftrag") == ziel]
     if not treffer:
         raise Refused("aufgabe_unbekannt", f"Keine Aufgabe und kein Vorgang {redact(ziel, 80)}")
     unklar = [t["id"] for t in treffer if t["extern_begonnen"] and t["status"] in OFFEN]

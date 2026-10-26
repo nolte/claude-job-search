@@ -185,7 +185,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    | `freigabe` | `wartet_auf_freigabe` |
    | `berechtigung`, `qualitaet` | `blockiert` |
    | `daten`, `dauerhaft` | `fehlgeschlagen` |
-   | `unklar` | `wartet_auf_eingabe` (outcome unclear) |
+   | `unklar` | `wartet_auf_eingabe` (outcome unclear) for an external action; for an internal task a retry with backoff |
 
    A task that is an external action is never retried automatically, whatever the class.
 2. **Done without the result.** `fertig` checks the postcondition. When it does not hold, the attempt is a failure of class
@@ -195,7 +195,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    refused with `veraltete_sitzung` and changes nothing.
 4. **Orphans.** A running task whose lease ran out is an aborted attempt (class `abbruch`) and follows rule 1; an external one
    follows WF-7 rule 5. The attempt count includes it.
-5. **Repeat by the user.** `wiederholen` of a failed task starts the count again and releases it for the next reconciliation.
+5. **Repeat by the user.** `weiter` (after a hold) and `wiederholen` (of a failed task) start the count again; the latter releases it for the next reconciliation.
    `abbrechen` ends a failed task for good. It never cancels a task whose external action has an unclear outcome
    (`extern_begonnen`): `abbrechen` is refused as a whole (`ausgang_unklar`), also for a Vorgang slug, so that
    nothing is cancelled half; only `ausgang` resolves it, then it can be cancelled.
@@ -321,6 +321,7 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | WA-AI | A report without `--versuch`; a loaded store with a path in `bezug`, a half attempt or a bad limit | refused by the command line; `speicher_ungueltig` before any change |
 | WA-AJ | `ausfuehren` after the Vorgang was rejected; an unreadable Suchauftrag | refused after reconciling, nothing sent; planning goes on and lists the file |
 | WA-AL | `freigeben` after a document was edited since the quality report; a refused command after a lease ran out; a damaged store; a result with ok=false; a reported-running task whose files look finished | refused with `pruefung_veraltet`; the expiry is still saved; `speicher_ungueltig` and `wurzel` still works; exit code 2; the task stays `laeuft` until `fertig` |
+| WA-AM | `weiter` after several holds; `abbrechen` by a name that is both a Vorgang and a Suchauftrag; `ausgang` confirms a send; the content changes right before the adapter call; `fehler` class `unklar` on an internal task | attempts start again after `weiter`; only the exact id, else the Vorgang, else the Suchauftrag; the unclear marker goes; a new approval is asked for, not a failure; a retry with backoff |
 | WA-AF | The final reconciliation of a command fails | the command keeps its result and its saved state, with `warnung_abgleich` |
 | WA-AK | `wurzel`; a second message for one Vorgang; `abbrechen` of an unclear send; the content changes after the lease is saved; a step done by hand; a search finished 30 days ago | `wurzel` prints the Wurzel; each message is its own task; the unclear task stays; nothing is sent and the attempt ends as plain failure; the open approval is cancelled, none invented; `laufen` removes the old search task and lists it under `aufgeraeumt` |
 
@@ -336,4 +337,5 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | Code duplication | The start of an attempt and its lease is written in `uebernehmen` and `ausfuehren` (the adapter path saves between the two steps) | open, deliberate |
 | Quality report age | The check that the report is newer than the documents compares file times; a copy that resets times, or a missing report, is not caught | open, deliberate |
 | Follow-up draft time | `nachfassen` compares the draft's file time with the task's creation second; under `--jetzt` in the future it does not match | open, deliberate |
+| Lock message | The timeout message of the shared file lock names the search, also when the workflow lock is meant | open, deliberate |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |
