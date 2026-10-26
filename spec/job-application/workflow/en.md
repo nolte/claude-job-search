@@ -70,7 +70,9 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 1. **The chain of an application** is `analyse`, `passung` (optional), `plan`, `unterlagen`, `pruefung`, `versand_freigabe`,
    `versand`. A step may be skipped by the user doing it in the files; the reconciliation recognises it (WF-2 rule 2).
 2. **Task ids are stable.** `<type>:<slug>` for a Vorgang, `<type>:<id>:<n>` for a recurring task of a Suchauftrag,
-   `<type>:<slug>:<date>` for a follow-up. The same id is the same task; creating it again gives back the first (WF-6).
+   `<type>:<slug>:<date>` for a follow-up, `nachricht_senden:<slug>:<file>` for a message (one task per file). The same id is
+   the same task; creating it again gives back the first (WF-6). The same id with another `bezug` is refused
+   (`aufgabe_existiert`), never silently reused.
 3. **`passung` is advice, not a gate.** If the user cancels it, what follows is not blocked. If a confirmed Wunschprofil appears
    after the chain was made, `starten` adds `passung` and puts it before `plan` as long as `plan` has not started.
 4. **Not every application needs every step.** A step whose type is not in the chain is not created. Optional and
@@ -127,7 +129,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    optional field (an older or hand-written file) is loaded with the default of that field; no result is invented.
 3. **Reconciliation (`abgleichen`).** In dependency order, for each task: a missing Vorgang folder blocks it; a final status of
    the Vorgang cancels it; a met postcondition closes it (also for work done outside, with a hint when its dependencies were
-   not done); failed dependencies block it, open ones keep it `wartend`; an expired lease is handled (WF-8 rule 4); a due
+   not done; an approval task that is still open for that step is cancelled as no longer needed, never marked approved); failed dependencies block it, open ones keep it `wartend`; an expired lease is handled (WF-8 rule 4); a due
    retry becomes `bereit`; a date in `ab` holds it; a prerequisite or approval that fails puts it in the matching waiting
    status; otherwise it is `bereit`. A state left by a command is already reconciled.
 4. **A running task that reality stops** (its Vorgang folder is gone, or the Vorgang reached a final status) loses its lease, and
@@ -192,7 +194,9 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 4. **Orphans.** A running task whose lease ran out is an aborted attempt (class `abbruch`) and follows rule 1; an external one
    follows WF-7 rule 5. The attempt count includes it.
 5. **Repeat by the user.** `wiederholen` of a failed task starts the count again and releases it for the next reconciliation.
-   `abbrechen` ends a failed task for good.
+   `abbrechen` ends a failed task for good. It never cancels a task whose external action has an unclear outcome
+   (`extern_begonnen`): such a task is listed under `nicht_abgebrochen_ausgang_unklar`, and naming it directly is refused
+   (`ausgang_unklar`); only `ausgang` resolves it, then it can be cancelled.
 6. **What is stored about an error.** Class, a reason of at most 200 characters with credentials replaced by `[entfernt]`, and
    the time. No page content and no personal data beyond what the task already refers to.
 7. **After a restart** the store is read, finished results and waiting or blocked tasks stay as they are, due retries become
@@ -315,6 +319,7 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | WA-AI | A report without `--versuch`; a loaded store with a path in `bezug`, a half attempt or a bad limit | refused by the command line; `speicher_ungueltig` before any change |
 | WA-AJ | `ausfuehren` after the Vorgang was rejected; an unreadable Suchauftrag | refused after reconciling, nothing sent; planning goes on and lists the file |
 | WA-AF | The final reconciliation of a command fails | the command keeps its result and its saved state, with `warnung_abgleich` |
+| WA-AK | `wurzel`; a second message for one Vorgang; `abbrechen` of an unclear send; the content changes after the lease is saved; a step done by hand; a search finished 30 days ago | `wurzel` prints the Wurzel; each message is its own task; the unclear task stays; nothing is sent and the attempt ends as plain failure; the open approval is cancelled, none invented; `laufen` removes the old search task and lists it under `aufgeraeumt` |
 
 | Area | Point | Status |
 |---|---|---|
@@ -324,4 +329,6 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 | Stale results | Marked, not re-run; the user decides | decided |
 | Several machines | One store, one lock on one disk; no sync | decided |
 | Replies and appointments | Not observed: S8 stays the user's (LS-6 rule 4) | open, depends on A-02 |
+| Cost of a command | A state-changing command reconciles up to three times and re-reads files each time under the lock; fine for the budgeted store size (`aufgaben_max`), not optimised | open, deliberate |
+| Code duplication | The start of an attempt and its lease is written in `uebernehmen` and `ausfuehren` (the adapter path saves between the two steps) | open, deliberate |
 | German translation | This spec is English canonical; the German version follows via the `spec` skill | open |

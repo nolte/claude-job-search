@@ -306,8 +306,12 @@ def neue_aufgabe(daten, typ, bezug, now, nach=(), ab="", faellig="", suffix=""):
     pruefe_bezug(typ, bezug)
     if (ab and ss.valid_date(ab) != ab) or (faellig and ss.valid_date(faellig) != faellig):
         raise Refused("aufgabe_ungueltig", "ab und faellig sind echte Daten der Form JJJJ-MM-TT")
+    if not suffix and typ == "nachricht_senden" and bezug.get("datei"):
+        suffix = bezug["datei"]  # one message per file: the approval covers exactly that file
     task_id = f"{typ}:{bezug.get('vorgang') or bezug.get('auftrag')}" + (f":{suffix}" if suffix else "")
     if task_id in daten["aufgaben"]:
+        if daten["aufgaben"][task_id]["bezug"] != bezug:
+            raise Refused("aufgabe_existiert", f"{task_id} gibt es schon mit einem anderen bezug; sie wird nicht stillschweigend weiterverwendet")
         return daten["aufgaben"][task_id], False
     if len(daten["aufgaben"]) >= daten["grenzen"]["aufgaben_max"]:
         raise Refused("budget_erschoepft", f"Es gibt schon {daten['grenzen']['aufgaben_max']} Aufgaben (aufgaben_max)")
@@ -435,6 +439,9 @@ def bewerte(w, daten, task, now):
             erledige(w, task, now, "Zustand aus dem Vorgang übernommen")
             if ohne:
                 task["hinweis"] = "Voraussetzungen im Workflow waren nicht erledigt; der Vorgang zeigt den Stand schon"
+            for dep in ohne:  # an approval is never recognised from files; it is no longer needed once the step is done
+                if TYPEN[tasks[dep]["typ"]].get("nur_freigabe") and tasks[dep]["status"] in OFFEN:
+                    setze(tasks[dep], ABGEBROCHEN, now, "nicht mehr nötig", f"Nicht mehr nötig: {task['id']} ist schon erledigt")
             return True
     if task["status"] == FEHLGESCHLAGEN:
         return False
@@ -704,6 +711,19 @@ def laufende(daten, now):
     return sum(1 for t in daten["aufgaben"].values() if t["status"] == LAEUFT and t["lease"] and t["lease"]["bis"] > stamp(now))
 
 
+SUCHE_AUFBEWAHRUNG_TAGE = 30
+
+
+def raeume_auf(daten, now):
+    """Finished search tasks older than 30 days go; their ids carry a run counter and never come back (aufgaben_max stays usable)."""
+    grenze = stamp(now - dt.timedelta(days=SUCHE_AUFBEWAHRUNG_TAGE))
+    genannt = {d for t in daten["aufgaben"].values() for d in t["nach"]}
+    weg = [i for i, t in daten["aufgaben"].items() if t["typ"] == "suche" and t["status"] == ERLEDIGT and t["geaendert"] < grenze and i not in genannt]
+    for task_id in weg:
+        del daten["aufgaben"][task_id]
+    return weg
+
+
 def uebernehmen(w, daten, task_id, now):
     task = hole(daten, task_id)
     katalog = TYPEN[task["typ"]]
@@ -800,6 +820,10 @@ def ausfuehren(w, daten, task_id, now):
     setze(task, LAEUFT, now, "externe Aktion begonnen")
     sichere(w, daten)
     try:
+        if not freigabe_gueltig(w, task):  # the content may have changed since the check above: nothing has left yet
+            task["extern_begonnen"] = ""
+            versuch_endet(daten, task, now, "vorlaeufig", "Inhalt seit der Freigabe geändert; nichts gesendet")
+            return {"ok": False, "aufgabe": task_id, "status": task["status"], "hinweis": task["hinweis"]}
         antwort = ADAPTER[task["typ"]](task, task["entscheidung"])
         if not isinstance(antwort, dict):
             raise TypeError("Antwort des Adapters ist kein Objekt")
@@ -858,14 +882,19 @@ def abbrechen(daten, ziel, now):
     treffer = [t for t in daten["aufgaben"].values() if t["id"] == ziel or t["bezug"].get("vorgang") == ziel or t["bezug"].get("auftrag") == ziel]
     if not treffer:
         raise Refused("aufgabe_unbekannt", f"Keine Aufgabe und kein Vorgang {redact(ziel, 80)}")
-    beendet = []
+    beendet, unklar = [], []
     for task in treffer:
+        if task["extern_begonnen"] and task["status"] in OFFEN:
+            unklar.append(task["id"])  # the record that a send may have happened stays until the user decides with `ausgang`
+            continue
         if task["status"] in OFFEN or task["status"] == FEHLGESCHLAGEN:
             setze(task, ABGEBROCHEN, now, "vom Nutzer abgebrochen")
             task["lease"] = None
             schliesse_versuch(task, now, "fehler", "abbruch", "vom Nutzer abgebrochen")
             beendet.append(task["id"])
-    return {"ok": True, "abgebrochen": beendet}
+    if unklar and not beendet and ziel in unklar:
+        raise Refused("ausgang_unklar", f"{ziel}: Ob die externe Aktion lief, ist unklar; erst `ausgang` entscheiden, dann abbrechen")
+    return {"ok": True, "abgebrochen": beendet, "nicht_abgebrochen_ausgang_unklar": unklar}
 
 
 def grenzen(daten, werte):
@@ -927,16 +956,19 @@ def unbeaufsichtigt():
 
 def dispatch(args, w, daten, now):
     cmd = args.befehl
+    if cmd == "wurzel":
+        return {"ok": True, "wurzel": w}
     if cmd == "starten":
         return {"ok": True, "neu": starte_vorgang(w, daten, args.vorgang, now), "geaendert": abgleichen(w, daten, now)}
     if cmd == "abgleichen":
         return {"ok": True, "geaendert": abgleichen(w, daten, now)}
     if cmd == "laufen":
+        aufgeraeumt = raeume_auf(daten, now)
         abgleichen(w, daten, now)
         neu, zurueck, uebersprungen, defekte = plane(w, daten, now)
         geaendert = abgleichen(w, daten, now)
         bereit = [kurz(t) for t in sortiert([t for t in daten["aufgaben"].values() if t["status"] == BEREIT], now)]
-        return {"ok": True, "neu": neu, "zurueckgestellt": zurueck, "nicht_ersetzt": uebersprungen, "defekte_auftraege": defekte, "geaendert": geaendert, "bereit": bereit,
+        return {"ok": True, "neu": neu, "zurueckgestellt": zurueck, "nicht_ersetzt": uebersprungen, "defekte_auftraege": defekte, "aufgeraeumt": aufgeraeumt, "geaendert": geaendert, "bereit": bereit,
                 "hinweis": "Der Lauf plant und gleicht ab; er führt nichts aus und sendet nichts."}
     if cmd == "naechste":
         abgleichen(w, daten, now)
