@@ -60,10 +60,11 @@ are `Blocker`, `Warnung`, `Hinweis` (CG-13.1); the verdict is `Ergebnis: BLOCKIE
 German form of `BLOCKED | READY-WITH-WARNINGS | READY` (CG-13.1). The reviewer agent (`job-application-reviewer`) uses the same
 severities and verdict terms, so its findings carry over one to one.
 
-## Quality report (spec qualitaetssicherung QS-1 to QS-12)
+## Quality report (spec qualitaetssicherung QS-1 to QS-13)
 
 `scripts/qualitaet.py` is the toolchain behind this gate. It runs the rules below, the cross-document rules (QS-01 to
-QS-05), the export rules (EX-01 to EX-04) and the process rules (PR-01, PR-02), reads the semantic verdicts, and writes
+QS-05), the export rules (EX-01 to EX-04), the ATS checks of the exported file (ATS-01 to ATS-05, QS-13), the key terms of the
+analysis (KW-01) and the process rules (PR-01, PR-02), reads the semantic verdicts, and writes
 `<wurzel>/<slug>/qualitaet.json`, the report that the workflow reads before the send approval. Run it first:
 
 ```bash
@@ -82,6 +83,10 @@ Exit 0: the package may be offered for approval; 1: a `FAIL` exists; 2: not read
   stays `NEEDS_REVIEW`, which is correct.
 - **Never present the report as a full automation.** Say which checks are `NEEDS_REVIEW` or `BLOCKED` and that the user
   confirms them with `qualitaet.py entscheiden … --ja`. You do not run `entscheiden` yourself: it is the user's decision.
+- **ATS checks are technical, not a verdict on the person.** `technisch_validiert` in the report's `ats` block means only that
+  the defined checks passed on the exported file; never tell the user the file is "ATS-compatible" or "ATS-optimised". Report
+  `ats.umfang` (`vollstaendig`, `teilweise`, `nicht_geprueft`) and what is `BLOCKED`. Fix a finding in the source and export again.
+  Never add a keyword to pass `KW-01`: a term is added only when the Grundlage proves it and the user agrees.
 - The toolchain sends nothing and approves nothing. The send approval stays with the user (workflow `versand_freigabe`).
 
 ## Automated checks

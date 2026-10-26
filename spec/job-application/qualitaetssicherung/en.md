@@ -68,8 +68,14 @@ The overall result `gesamt` follows the checks:
 | `QS-05` | deterministic | filler phrases from a closed list; sentences longer than 45 words |
 | `EX-01` | deterministic | export integrity (hash of the file equals the manifest), the source is unchanged since the export, every file in `export/` has a manifest |
 | `EX-02` | deterministic | content after export equals the source: word multiset, symbols of figures, order of the items and headings, no open placeholder |
-| `EX-03` | deterministic | text extraction and ATS readability (QS-6) |
+| `EX-03` | deterministic | text extraction: enough text, no replacement characters, no ligature characters, no letter-spaced words (QS-6, QS-13) |
 | `EX-04` | deterministic | page count equals the manifest, page limit, no empty page |
+| `ATS-01` | deterministic | the exported file is valid: PDF structure, encryption, fonts; DOCX archive and XML, no hidden text (QS-13) |
+| `ATS-02` | deterministic | headings stand on their own line and keep their content; DOCX heading styles equal the source (QS-13) |
+| `ATS-03` | deterministic | periods survive in order; position and employer stand next to the period of their station (QS-13) |
+| `ATS-04` | deterministic | e-mail addresses and phone numbers of the source can be read in the text (QS-13) |
+| `ATS-05` | deterministic | layout risks: columns, tables, images, text boxes, header and footer text, text off the page, ratings as symbols (QS-13) |
+| `KW-01` | deterministic | key terms of the analysis against the Lebenslauf: coverage and unevidenced terms, nothing inserted (QS-13) |
 | `PR-01` | deterministic | Lebenslauf and Anschreiben exist and are readable |
 | `PR-02` | deterministic | `vorgang.md` (with `firma`, `stelle`), `stellenanzeige.md` and `analyse.md` exist |
 | `SEM-01` | semantic | evidence of the statements against the Datengrundlage (QS-4) |
@@ -117,17 +123,16 @@ Deterministic rules (CV-xx, BR-xx) decide the cases they can (figures, periods, 
 1. The export checks run on every file in `export/` that has a manifest `<datei>.manifest.json` (see the export skill).
 2. The text of the export is read back: PDF with `pdftotext`, DOCX from `word/document.xml`, HTML without markup. The
    comparison with the source is the one of the exporter (word multiset, symbols of figures, order).
-3. ATS criteria: the text is extractable (at least 30 words); every e-mail address of the source stands in the text; a
-   table or an image in DOCX or HTML is a `WARNING`; the PDF has no empty page and not more pages than the limit.
-4. Without `pdftotext` or `pdfinfo` the PDF checks are `BLOCKED` (CI installs poppler-utils).
-5. **Limit.** ATS readability is judged on the extracted text. How a particular tracking system reads the file is not
-   tested and not promised. Fonts, colours, margins and the visual layout are not judged.
+3. The PDF has no empty page and not more pages than the limit (`EX-04`). The properties a parser depends on are QS-13.
+4. Without `pdftotext`, `pdfinfo`, `pdffonts` or `pdfimages` the PDF checks are `BLOCKED` (CI installs poppler-utils).
+5. **Limit.** ATS readability is judged on the exported file and its extracted text. How a particular tracking system reads
+   the file is not tested and not promised. Colours, margins and the visual impression are not judged.
 
 ## QS-7 The report
 
 1. `qualitaet.json` holds: `schema`, `regelwerk`, `erstellt`, `vorgang`, `stand`, `dokumente` (SHA-256 of each document and
    context file), `exporte` (SHA-256 of each file in `export/`), `grundlage_hash`, `gesamt`, `freigabefaehig`,
-   `zusammenfassung` (counts per status), `semantisch_geprueft`, `checks`, `manuell` and `grenzen`.
+   `zusammenfassung` (counts per status), `ats` and `dimensionen` (QS-13), `semantisch_geprueft`, `checks` (each with its `dimension`), `manuell` and `grenzen`.
 2. A report is current only for exactly these files. A changed, added or removed document, context file or export, or a
    changed Grundlage (when its hash is given), makes it stale. A report of an older version never becomes valid again.
    The status of the Vorgang is no input.
@@ -160,7 +165,7 @@ Deterministic rules (CV-xx, BR-xx) decide the cases they can (figures, periods, 
 ## QS-10 Safety and data integrity
 
 1. `qualitaet.py` sends nothing and opens no network connection. It imports no mail, HTTP or socket module and runs only
-   `pdftotext` and `pdfinfo`. A test enforces this.
+   `pdftotext`, `pdfinfo`, `pdffonts` and `pdfimages`. A test enforces this.
 2. A passed run triggers no external communication and approves nothing. The approval of A-02 (`versand_freigabe`) and the
    sending itself stay with the user.
 3. The run changes no document and no status. It writes `qualitaet.json`, `qualitaet-verlauf.jsonl` and, on the user's
@@ -187,3 +192,46 @@ Deterministic rules (CV-xx, BR-xx) decide the cases they can (figures, periods, 
 - `entscheiden` is protected by `--ja` and the unattended-session guard, not by a channel only the user has. The skill forbids the model to run it.
 - `--grundlage <path>` looks at files and binds no Grundlage hash; only a run through the Anker (`--konfiguration`) does.
 - The report is stale as soon as a file changes; the user runs the check again before approving.
+
+## QS-13 ATS technical validation
+
+`scripts/ats_checks.py` is a library of `qualitaet.py`. It adds properties of the exported file to the one report; it has no
+status model, no score and no workflow of its own.
+
+1. **Definition.** A document is *technically ATS-validated* when the checks `EX-01` to `EX-04` and `ATS-01` to `ATS-05` ran
+   for its export and ended in `PASS` or `WARNING`. This is no guarantee for any external tracking system and no statement
+   about the fit of the person. Report and skills say so.
+2. **Scope.** The checks run on exports in the formats a parser reads (`pdf`, `docx`, `html`). `md` and `tex` are copies of
+   the source: without an export in one of the three formats the `ATS-xx` checks are `NOT_APPLICABLE`, not `PASS`.
+3. **File (`ATS-01`).** PDF: header and end of file, readable by `pdfinfo`, no ban on copying text (Blocker); fonts of type 3
+   or fonts that are not embedded (not the standard 14) are a `WARNING`. DOCX: intact archive, `document.xml` and content
+   types present and well-formed (Blocker); hidden text (`vanish`), white text or text of 2 pt or less is a Blocker.
+4. **Text (`EX-03`).** At least 30 words in PDF and DOCX, no replacement character or `(cid:`, both Blocker; ligature
+   characters and letter-spaced words are a `WARNING`.
+5. **Sections (`ATS-02`).** For PDF and DOCX each heading of level 1 and 2 stands as its own line in the extracted text
+   (`WARNING` otherwise), and at least 80 % of the words of its section stand between it and the next heading. DOCX heading
+   styles per level equal those of the source. The headings are taken from the source; no wording is fixed.
+6. **Stations and periods (`ATS-03`).** The periods of the source (`MM/JJJJ – MM/JJJJ`, `JJJJ – JJJJ`, `heute`) appear in the
+   extracted text in the same order; a lost, changed or reordered period is a Blocker. For each station header the position
+   and the employer stand within three lines of its period (`WARNING`). Mixed date formats in the source are a `WARNING`.
+   Missing periods are not invented; whether a period is right is `CV-xx` and the Grundlage, not this check.
+7. **Contact (`ATS-04`).** Every e-mail address and phone number of the source can be read in the extracted text (Blocker if
+   lost, with the hint when it stands only in the header or footer of a DOCX). A Lebenslauf without an e-mail address is a
+   `WARNING`; an absent optional item is no finding. Findings never contain the address or the number.
+8. **Layout (`ATS-05`).** Tables, images (also in a PDF, `pdfimages`), text boxes, columns (DOCX sections; PDF by the position
+   of the words), text in header and footer, words outside the page: `WARNING`. A rating shown only as a row of symbols
+   (stars, dots, bars) is `NEEDS_REVIEW`: the level must be a word, and the toolchain does not add it. A column heuristic is
+   a heuristic: the reading order itself is `EX-02`.
+9. **Key terms (`KW-01`).** The competences of `analyse.md` against the Lebenslauf. An evidenced competence that the Lebenslauf
+   does not name is a `WARNING`. A competence that the analysis shows as `nicht belegt` or `unklar` but that stands in the
+   Lebenslauf is `NEEDS_REVIEW`: a word of the posting is no qualification. Nothing is inserted, nothing is counted into a
+   score, repetition stays a finding of `QS-04`.
+10. **Dimensions.** Every check has a `dimension` (`technisch`, `evidenz`, `formal`, `schluesselbegriffe`, `passung`) and the
+    report counts per dimension. `ats.umfang` is `vollstaendig`, `teilweise` or `nicht_geprueft`; `ats.technisch_validiert` is
+    true only for a complete run without a `FAIL`, `BLOCKED` or open review. There is no total score: one critical finding is
+    never averaged away.
+11. **Versions.** The checks belong to the hashes of the report (QS-7). A changed export is checked again; the line of the old
+    run stays in `qualitaet-verlauf.jsonl`.
+12. **No model.** All checks of QS-13 are deterministic. The semantic part (relevance, evidence) stays with `SEM-xx`.
+13. **Not covered.** Overlapping elements, clipped text inside the page, ugly page breaks, exact colours and the behaviour of
+    a given tracking system. Layout is looked at by a person.
