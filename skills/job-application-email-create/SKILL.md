@@ -146,7 +146,9 @@ user sets `wiedervorlage`). Written only when the user asks for it.
 - Three to five sentences: the date of the sending (`versendet_am`) and the role, one question about the state of the
   process, the continued interest in one sentence, the closing sentence. No pressure, no deadline for the counterpart,
   no new facts, no repeated attachments (KK-5.5).
-- Not before the follow-up period has passed; if `versendet_am` is empty, stop and ask the user for the date.
+- Not before the follow-up period has passed; if `versendet_am` is empty, stop and ask the user for the date. The basis
+  (dispatch date, replies so far, whether the user's deadline has passed) comes from `scripts/kommunikation.py nachfass <vorgang>`
+  (`mail-verwaltung` MV-24); without a deadline of the user, ask for one and use no default.
 - Once per deadline (KK-5.5): if `## Verlauf` already holds a `Nachfass-E-Mail geschrieben` line dated on or after
   the current `wiedervorlage`, stop and ask whether the user has set a new `wiedervorlage`.
 - Writes no status. Appends `- JJJJ-MM-TT: Nachfass-E-Mail geschrieben, job-application-email-create` to `## Verlauf`.

@@ -66,12 +66,15 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 | `versand` | user | the user sends; no adapter ships | `versand_freigabe` | `status` is at least `versendet` and `versendet_am` is set (S7, written by the user) |
 | `nachfassen` | agent | `job-application-email-create`, variant `nachfassen` | `status` is `versendet`; the date `wiedervorlage` has come | `email-nachfassen.md` was written after the task was created |
 | `suche` | agent | `job-application-job-search`, Suchauftrag | the Suchauftrag is approved and active (`stellensuche` ST-14) | a run of the Suchauftrag ended `ok`, `ok_ohne_treffer` or `teilweise` after the task was created |
+| `rueckmeldung_pruefen` | user | `job-application-follow-up` (`kommunikation.py zeige`, `bestaetigen`, `verwerfen`) | at least one message assigned to the Vorgang waits for the check; after `versand` when that task exists | no message of the Vorgang is in the state `vorgeschlagen` |
+| `wiedervorlage` | user | `job-application-follow-up` (`kommunikation.py wiedervorlage`) | a Wiedervorlage of the Vorgang is `offen` and due | that Wiedervorlage is `erledigt` or `verworfen` |
+| `lernvorschlag_pruefen` | user | `job-application-follow-up` (`lernen.py vorschlag`) | a proposal of the evaluation is `erstellt` or `zur_pruefung` (scope `lernen`, not a Vorgang) | no proposal is `erstellt` or `zur_pruefung` |
 | `nachricht_senden` | adapter | an adapter of A-02; none ships | an approval for the exact message file | the adapter reports sent, or the user confirms the outcome (WF-7) |
 
 1. **The chain of an application** is `analyse`, `passung` (optional), `plan`, `unterlagen`, `pruefung`, `versand_freigabe`,
    `versand`. A step may be skipped by the user doing it in the files; the reconciliation recognises it (WF-2 rule 2).
 2. **Task ids are stable.** `<type>:<slug>` for a Vorgang, `<type>:<id>:<n>` for a recurring task of a Suchauftrag,
-   `<type>:<slug>:<date>` for a follow-up, `nachricht_senden:<slug>:<file>` for a message (one task per file). The same id is
+   `<type>:<slug>:<date>` for a follow-up, `rueckmeldung_pruefen:<slug>:n<k>`, `wiedervorlage:<slug>:<w-id>`, `lernvorschlag_pruefen:lernen:n<k>`, `nachricht_senden:<slug>:<file>` for a message (one task per file). The same id is
    the same task; creating it again gives back the first (WF-6). The same id with another `bezug` is refused
    (`aufgabe_existiert`), never silently reused.
 3. **`passung` is advice, not a gate.** If the user cancels it, what follows is not blocked. If a confirmed Wunschprofil appears
@@ -220,7 +223,11 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
    - a `suche` task for each approved, active Suchauftrag that is due (`stellensuche` ST-16) and has no open `suche` task. A
      `suche` task of the same round that was cancelled or has failed is not replaced by itself; `laufen` lists it under
      `nicht_ersetzt`. The user retries it with `wiederholen`, or pauses or ends the Suchauftrag to stop the search;
-   - a `nachfassen` task for each Vorgang with `status: versendet` whose `wiedervorlage` date has come.
+   - a `nachfassen` task for each Vorgang with `status: versendet` and a **set** `wiedervorlage` date that has come (no date, no task: the
+     deadline is the user's);
+   - after the dispatch (`ergebnisauswertung` EA-13): a `rueckmeldung_pruefen` task for each non-final Vorgang with a message waiting for the
+     check, a `wiedervorlage` task for each Wiedervorlage that is due, and one `lernvorschlag_pruefen` task while a proposal waits; each only
+     if no open task of that kind and scope exists, so a second run adds nothing. These tasks are for the user; none sends a message.
    One unreadable Suchauftrag file is listed under `defekte_auftraege` and does not stop the rest.
    The overview derives, without tasks: the Stellen of the Warteschlange waiting for a decision, tasks waiting for approval,
    failed and blocked tasks, and overdue ones.
@@ -336,10 +343,10 @@ Automated in `tests/test_workflow.py` with invented data; no model, network or m
 |---|---|---|
 | Execution of skills | The skills are not callable; an agent runs them. A headless session per ready task (like the search launcher) is not built | open, deliberate |
 | Scheduler | `workflow.py laufen` is the call; the user sets cron or a timer. A headless worker for ready agent tasks is not provided | open, deliberate |
-| Sending | No adapter ships; sending stays the user's (S7). A-02 (`mail-verwaltung`) is specified, not implemented | open, depends on A-02 |
+| Sending | No adapter ships; sending stays the user's (S7). The communication (`mail-verwaltung` MV-18 to MV-27) prepares and checks but sends nothing | open, needs an adapter |
 | Stale results | Marked, not re-run; the user decides | decided |
 | Several machines | One store, one lock on one disk; no sync | decided |
-| Replies and appointments | Not observed: S8 stays the user's (LS-6 rule 4) | open, depends on A-02 |
+| Replies and appointments | Not observed by the workflow. They arrive as proposals (`kommunikation.py`) that the user confirms; the tasks `rueckmeldung_pruefen` and `wiedervorlage` only point at them | decided |
 | Cost of a command | A state-changing command reconciles up to three times and re-reads files each time under the lock; fine for the budgeted store size (`aufgaben_max`), not optimised | open, deliberate |
 | Code duplication | The start of an attempt and its lease is written in `uebernehmen` and `ausfuehren` (the adapter path saves between the two steps) | open, deliberate |
 | Quality report age | The check that the report is newer than the documents compares file times; a copy that resets times, or a missing report, is not caught | open, deliberate |

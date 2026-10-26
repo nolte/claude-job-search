@@ -12,9 +12,9 @@ The rules are in `spec/job-application/workflow/en.md` (WF-1 to WF-14). This pag
 |---|---|---|
 | Plan the steps, check what is ready, order them by deadline and priority | the script | works; runs when **you** call it or schedule it |
 | Analysis, fit check, documents, quality gate, follow-up draft, search | an agent with the skill, prepared by the workflow | works as a hand-over: the agent takes the task and reports; the script checks the result in your files |
-| Plan approval (S3), sending (S7), entries about replies (S8) | you | the workflow only watches your files and holds what follows |
+| Plan approval (S3), sending (S7), entries about replies (S8) | you | the workflow only watches your files and holds what follows; replies arrive as proposals you confirm ([Follow-up and learning](follow-up.md)) |
 | Approval of the exact documents to send | you | works (`freigeben --ja`), bound to the content |
-| Sending by the program, mail, calendar | nobody yet | **not integrated**: no sending adapter ships (the mail functions of A-02 are only specified) |
+| Sending by the program, mail, calendar | nobody yet | **not integrated**: no sending adapter and no mail connector ship; replies are processed from messages you hand over ([Follow-up and learning](follow-up.md)) |
 | Running by itself on a timer | your cron or timer | **not set up by the plugin** (see below) |
 
 The application status stays in `vorgang.md`. The workflow never writes into a Vorgang and keeps no second status.
@@ -28,7 +28,7 @@ The application status stays in `vorgang.md`. The workflow never writes into a V
   `analysiert`). If you or a skill did the step outside the workflow, the next check notices and closes the task.
 - A failed step never releases the next one: the dependents are `blockiert` and say why.
 - A search task is created for each approved, active Suchauftrag that is due, and a follow-up task when `wiedervorlage` of a sent
-  application has come. Tasks are never created from posting text.
+  application is set and has come (no date, no task), plus tasks for you when a reply waits for the check, a Wiedervorlage is due or a proposal of the evaluation waits. Tasks are never created from posting text.
 
 ## Setup
 
@@ -93,8 +93,8 @@ Until you set something like this up, nothing runs by itself. Calling `laufen` t
 
 - The skills are instructions for an agent, not functions the script can call. The workflow decides and checks; it does not
   execute them.
-- No sending adapter, no mail or calendar integration (A-02 is only a specification).
-- Replies and interviews (S8) are not observed; you enter them.
+- No sending adapter, no mail or calendar integration; replies are not read from a mailbox, you hand them over.
+- The tasks `rueckmeldung_pruefen`, `wiedervorlage` and `lernvorschlag_pruefen` point at what waits for you; none sends a message.
 - One store on one disk; no synchronisation between machines.
 - A result whose input changed is marked `veraltet` and not redone by itself.
 - The behaviour of Claude Code permission rules mentioned in the spec was checked with `claude -p` on 2026-10-25 and may change.

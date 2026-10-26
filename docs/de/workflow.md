@@ -12,9 +12,9 @@ Die Regeln stehen in `spec/job-application/workflow/en.md` (WF-1 bis WF-14). Die
 |---|---|---|
 | Schritte planen, prüfen was bereit ist, nach Frist und Priorität ordnen | das Skript | funktioniert; läuft, wenn **du** es aufrufst oder planst |
 | Analyse, Passung, Unterlagen, Qualitätscheck, Nachfass-Entwurf, Suche | ein Agent mit dem Skill, vom Workflow vorbereitet | funktioniert als Übergabe: Der Agent übernimmt die Aufgabe und meldet zurück; das Skript prüft das Ergebnis in deinen Dateien |
-| Plan-Freigabe (S3), Versand (S7), Einträge zu Rückmeldungen (S8) | du | der Workflow beobachtet deine Dateien und hält, was folgt |
+| Plan-Freigabe (S3), Versand (S7), Einträge zu Rückmeldungen (S8) | du | der Workflow beobachtet deine Dateien und hält, was folgt; Rückmeldungen kommen als Vorschläge, die du bestätigst ([Nachverfolgung und Lernen](follow-up.md)) |
 | Freigabe der genauen Unterlagen zum Versand | du | funktioniert (`freigeben --ja`), an den Inhalt gebunden |
-| Versand durch das Programm, Mail, Kalender | noch niemand | **nicht integriert**: Es wird kein Versandadapter mitgeliefert (die Mail-Funktionen von A-02 sind nur spezifiziert) |
+| Versand durch das Programm, Mail, Kalender | noch niemand | **nicht integriert**: Es werden weder Versandadapter noch Mail-Connector mitgeliefert; Rückmeldungen werden aus Nachrichten verarbeitet, die du übergibst ([Nachverfolgung und Lernen](follow-up.md)) |
 | Von selbst nach Zeitplan laufen | dein Cron oder Timer | **vom Plugin nicht eingerichtet** (siehe unten) |
 
 Der Bewerbungsstatus bleibt in `vorgang.md`. Der Workflow schreibt nie in einen Vorgang und führt keinen zweiten Status.
@@ -102,8 +102,8 @@ Solange du so etwas nicht eingerichtet hast, läuft nichts von selbst. Zweimal `
 
 - Die Skills sind Anweisungen für einen Agenten, keine Funktionen, die das Skript aufrufen kann. Der Workflow entscheidet und
   prüft; er führt sie nicht aus.
-- Kein Versandadapter, keine Mail- oder Kalender-Anbindung (A-02 ist nur eine Spezifikation).
-- Rückmeldungen und Gespräche (S8) werden nicht beobachtet; du trägst sie ein.
+- Kein Versandadapter, keine Mail- oder Kalender-Anbindung; Rückmeldungen werden nicht aus einem Postfach gelesen, du übergibst sie.
+- Die Aufgaben `rueckmeldung_pruefen`, `wiedervorlage` und `lernvorschlag_pruefen` zeigen auf das, was auf dich wartet; keine sendet eine Nachricht.
 - Ein Speicher auf einer Platte; keine Synchronisation zwischen Rechnern.
 - Ein Ergebnis, dessen Eingabe sich geändert hat, wird als `veraltet` markiert und nicht von selbst wiederholt.
 - Das in der Spezifikation genannte Verhalten der Claude-Code-Berechtigungsregeln wurde am 2026-10-25 mit `claude -p` geprüft und

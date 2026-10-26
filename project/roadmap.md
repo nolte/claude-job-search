@@ -32,15 +32,16 @@
 - [x] Workflow orchestration (finding A-03): `scripts/workflow.py` keeps tasks with dependencies, attempts, leases, retries and approvals bound to content in `workflow/aufgaben.json`, reconciles them against `vorgang.md` (no second application status) and plans follow-ups and searches for a scheduler (`spec/job-application/workflow/en.md`). It executes no skill and sends nothing; no sending adapter ships (depends on A-02)
 - [x] Recurring job search (finding A-01): persistent Suchauftrag with approval bound to its content, run log with limits, identity and de-duplication across runs, Warteschlange, hand-off to `job-application-solution` (`spec/job-application/stellensuche/en.md` ST-13 to ST-20, `scripts/stellensuche.py`); scheduled runs through `scripts/stellensuche_geplant.sh`, whose scheduler the user sets up and which has not run against a real JobSpy server
 - [x] Technical ATS validation (finding A-05): `scripts/ats_checks.py` extends the quality report (`EX-03`, `ATS-01` to `ATS-05`, `KW-01`, spec `qualitaetssicherung` QS-13) with checks of the exported PDF, DOCX or HTML: valid file and fonts, hidden text, headings that keep their content, periods and stations, contact data, columns, tables, images, symbol ratings, key terms against the evidence. No score, no guarantee for any ATS; tested on synthetic exports, not yet on a real LuaLaTeX PDF of the template
+- [x] Communication after the dispatch (finding A-02): `scripts/kommunikation.py` and the skill `job-application-follow-up` process messages the user hands over: assignment to a Vorgang (several candidates are never decided), mail type with a stated certainty, proposals for the `## Verlauf` line, status, result and Wiedervorlage, written only after the user approves the exact proposal by hash (`spec/job-application/mail-verwaltung/en.md` MV-18 to MV-27); Wiedervorlagen, follow-up basis with a deadline only the user sets, workflow tasks `rueckmeldung_pruefen` and `wiedervorlage`. Not implemented: reading Gmail, labels and the calendar (no connector) and sending (no adapter)
+- [x] Learning from results (finding A-06): `scripts/lernen.py` counts confirmed results across Vorgänge (response rate with open applications in the denominator, transitions, response times from existing dates, segments), writes a derived retrospective with its basis, and proposes improvements with sources and uncertainty that change no personal data (`spec/job-application/ergebnisauswertung/en.md`); workflow task `lernvorschlag_pruefen`
 
 ## Next
 
-- Tracking skill for S7 and S8: sending (`versendet`, attachments, channel), replies, interviews, follow-up dates (`wiedervorlage`); until then the user maintains `vorgang.md` by hand or in Obsidian
+- Tracking of S7 (the dispatch itself: `versendet`, attachments, channel) and a Gmail connector with labels and calendar; replies are covered by `job-application-follow-up` for messages the user hands over
 - Follow-up e-mail variant (Nachfass-E-Mail) in `job-application-email-create`
 - Interview preparation (Vorstellungsgespräch): question catalogue, rounds, notes per round
 - Offer and negotiation: the status values `angebot` and `verhandlung` exist, the skill is open
 - Deletion routine for S10 (list Vorgänge whose `loeschen_ab` has passed, delete only after confirmation)
-- Statistics and retrospective across Vorgänge (response rate per channel, time to reply, reasons for rejection)
 - Network and contacts across Vorgänge (people met in several processes, referrers)
 - Versioning of Anschreiben and Motivationsschreiben like the Lebenslauf versions
 - English application documents (spec stub R-11 in `konventionen`)

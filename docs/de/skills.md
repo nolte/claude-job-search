@@ -16,6 +16,7 @@ Die Spalte *Stufe* nennt den Schritt des Bewerbungsprozesses (S0 bis S10, siehe
 | `job-application-cover-letter-create` | Erstellung (S4) | Einseitiges Anschreiben im DIN-Format, vier Varianten |
 | `job-application-motivation-letter-create` | Erstellung (S4) | Motivationsschreiben aus den von dir genannten Beweggründen und belegten Nachweisen, mit Herkunftsnachweis |
 | `job-application-email-create` | Erstellung (S4) | Begleit-E-Mail mit Betreff, Anhangsliste und Dateinamen, nur bei Bewerbung per E-Mail |
+| `job-application-follow-up` | Nachverfolgung (S8) | Verarbeitet Rückmeldungen, die du übergibst, zu Vorschlägen (Verlaufszeile, Status, Ergebnis, Wiedervorlage), die du einzeln freigibst; führt Wiedervorlagen, bereitet die Grundlage eines Nachfassens vor und wertet bestätigte Ergebnisse aus (Rücklaufquote, Antwortzeiten, Retrospektive, Vorschläge). Sendet nichts, liest kein Postfach, ändert keine persönlichen Daten. Siehe [Nachverfolgung und Lernen](follow-up.md) |
 | `job-application-quality-gate` | Prüfung (S5) | Qualitätsprüfung: Blocker, Warnungen, Hinweise. Setzt den Status auf `geprüft` (keine Blocker) oder `in Arbeit` |
 | `job-application-export` | Export (S6) | Exportiert ein fertiges Dokument als DOCX, HTML oder Markdown; PDF über LaTeX (braucht LuaLaTeX oder den Container) via `task export` |
 | `job-application-reviewer` (Agent) | Prüfung (S5) | Schreibgeschützte Gesamtprüfung aus Sicht einer Personalerin |

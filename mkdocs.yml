@@ -70,6 +70,7 @@ plugins:
             Counterparts: Gegenpartei
             Glossary: Glossar
             Workflow: Workflow
+            Follow-up and learning: Nachverfolgung und Lernen
             Quality assurance: Qualitätssicherung
             Export: Export
             Evaluating the plugin: Das Plugin evaluieren
@@ -111,6 +112,7 @@ nav:
   - Counterparts: en/counterparts.md
   - Glossary: en/glossary.md
   - Workflow: en/workflow.md
+  - Follow-up and learning: en/follow-up.md
   - Quality assurance: en/quality.md
   - Export: en/export.md
   - Evaluating the plugin: en/evals.md

@@ -11,7 +11,9 @@ privacy), `spec/job-application/kontaktklassifikation/en.md` (KK-3 signals, KK-4
 communication), `spec/job-application/recherche/en.md` (RC-2 level 0), and
 `spec/job-application/konventionen/en.md` (R-1 facts, R-4 E-Mail, R-6 data protection).
 
-**Status:** specification only. No skill implements it yet (MV-14).
+**Status:** MV-1 to MV-17 (Gmail labels, calendar, connector) are specification only: no connector ships (MV-14). MV-18 to MV-27 are
+implemented: `scripts/kommunikation.py` processes messages that are handed over as plain data and prepares proposals for the Wurzel, and
+the skill `job-application-follow-up` drives it. The same approvals as in MV-8 apply.
 
 ## MV-1 Terms
 
@@ -277,3 +279,108 @@ The scenarios are verified by reviewing a Lauf on invented mails, not by a scrip
 - `project/requirements/mail-verwaltung.md` (requirements R1 to R16 and their open risks)
 - `spec/job-application/lokale-struktur/en.md`, `kontaktklassifikation/en.md`, `recherche/en.md`,
   `konventionen/en.md`
+
+## MV-18 Local processing of handed-over messages (A-02)
+
+The part of this spec that needs no mailbox: the same assignment, classification and record rules, applied to messages that are
+handed to `scripts/kommunikation.py` as a JSON list. A connector (MV-2) later only has to write that list; nothing else changes.
+
+1. **On request.** A run (`kommunikation.py verarbeiten`) starts when the user asks. There is no schedule and no start with a session.
+2. **The script reads no mailbox.** It reads the file or stdin it is given. It sends nothing, creates no draft, opens no connection and
+   writes only inside the Wurzel. It imports no mail, HTTP or socket module (a test enforces this).
+3. **Untrusted content.** The text of a message is data. It is matched against fixed patterns and never executed, followed or taken as a
+   rule, a status or an approval (LS-9, WF-13). An instruction in a message changes nothing.
+
+## MV-19 Input
+
+Each message: `id` (a stable reference: letters, digits, `_ . : @ -`), `thread_id`, `von`, `betreff`, `datum` (`JJJJ-MM-TT`), `text` (the start
+of the body is enough), `anhaenge` (file names). A message without a valid `id` or `datum` is refused as a whole run; nothing is stored. The
+`datum` is never guessed.
+
+## MV-20 Relevance, assignment, classification
+
+1. **Relevance (MV-5).** A message that has a Vorgang feature, or a clear mail type, or a sender such as `jobs@` or `karriere@`, is relevant. A
+   newsletter or private mail is counted and neither stored nor analysed.
+2. **Assignment (MV-6).** The features are the reference number, the sender domain (the firm, its website in `firmen/`, or a sender already
+   confirmed for the Vorgang), the thread of a confirmed message, the firm name and the job title in the text. Reference number, sender
+   domain and thread are strong, the other two weak. The result is one of:
+
+   | `gewissheit` | When |
+   |---|---|
+   | `eindeutig` | exactly one Vorgang, with a strong feature or two features, and a clear mail type |
+   | `wahrscheinlich` | exactly one Vorgang with one weak feature, or a weakly recognised mail type |
+   | `unklar` | two or more Vorgänge come into question (listed with reasons), or the mail type is contradictory |
+   | `nicht_zuordenbar` | no Vorgang; the mail waits in the queue and no Vorgang is created (MV-6.4) |
+
+3. **Mail type.** `eingangsbestaetigung`, `einladung`, `angebot`, `absage`, `zusage`, `rueckfrage`, `gespraechsfeedback` or `unbekannt`, by
+   fixed patterns. Two types with strong wording are `unklar` (MV-A). An offer is an offer and never a hire (MV-L).
+4. **Duplicates.** A message with a known `id`, or with the same sender domain, subject, date and start of text under another `id`, is not
+   stored again.
+5. The record keeps: the reference (`id`, `thread_id`), the sender **domain** (not the address), the subject, the date, the attachment names,
+   the type, the certainty, the source of the classification, a short literal quote of the decisive sentence (at most 240 characters, amounts
+   removed) and the proposal. It keeps no full text.
+
+## MV-21 Proposal and status rule
+
+A proposal is the exact content that would be written (MV-7): the `## Verlauf` line (`- JJJJ-MM-TT: Mail <Typ> (Anhang vorhanden: …; Gmail-ID
+…, Thread …)`), if a status change is allowed the line `- JJJJ-MM-TT: <alt> → <neu>, job-application-follow-up (Mail …)`, the kind of result
+(EA-2), and a follow-up (a Wiedervorlage kind) where the type has one. The proposal carries a hash over these. The status follows MV-3.2 and
+MV-7.4: only forward, only after `versendet`, never after a final status; otherwise the line is proposed without a status change and the
+reason is shown (MV-M, MV-N).
+
+## MV-22 Review and approval
+
+1. `zeige` shows the proposal as it is **now** (the status of the Vorgang may have moved) with its hash.
+2. `bestaetigen <id> --hash <hash> --ja` writes it. It is refused without `--ja`, with a hash that is not the one of the proposal now
+   (`vorschlag_geaendert`), in an unattended session, and for a message that is already decided or whose Gmail ID is already in `## Verlauf`.
+3. An `unklar` or `nicht_zuordenbar` message, and a message with the type `unbekannt`, cannot be confirmed. The user first decides with
+   `zuweisen --vorgang … --typ …`; that makes a new proposal with a new hash, marked as assigned by hand (`korrigiert`), which is confirmed
+   in a second step. `wahrscheinlich` can be confirmed, because the user is shown it first.
+4. `--kein-status` takes the line without the status change. `--faellig JJJJ-MM-TT` also creates the Wiedervorlage of the type; the date is the
+   user's, no deadline is made up.
+5. `verwerfen --grund …` drops a proposal; it is not proposed again.
+6. A confirmation writes: the line(s) into `## Verlauf` of `vorgang.md` (the rest of the file and `notizen.md` stay unchanged), `status` if
+   approved, and the Ereignis into `nachverfolgung.json` (EA-3). Nothing else.
+
+## MV-23 Wiedervorlage
+
+A Wiedervorlage belongs to a Vorgang and has `anlass` (expected reply, follow-up, interview preparation, interview follow-up, open question, check an
+offer), `faellig` (a date the user sets), `beschreibung`, `quelle`, `status` (`offen`, `erledigt`, `verworfen`). `kommunikation.py wiedervorlage
+anlegen|erledigen|verwerfen|liste`. A Wiedervorlage creates a task (WF-3 `wiedervorlage`) when it is due and **never a message**.
+
+## MV-24 Follow-up (Nachfass)
+
+`kommunikation.py nachfass <vorgang> [--nach-tage N]` prepares the basis; it writes nothing.
+
+1. **Conditions.** The status is `versendet`, `versendet_am` is set, no message of the Vorgang waits for the check, and no substantive reply
+   exists (a bare confirmation of receipt does not count).
+2. **Deadline.** `--nach-tage`, else `nachfass_tage` in the Anker, else `wiedervorlage` in `vorgang.md`. Without one the command is refused
+   (`frist_fehlt`) and the user is asked. There is no fixed period.
+3. **Output.** Vorgang, dispatch date, replies so far, the reason, the proposed date and whether it is due, the draft file
+   (`email-nachfassen.md`, written by `job-application-email-create` from facts of the Vorgang, never invented talk), and the approval task
+   `nachricht_senden:<vorgang>:email-nachfassen.md`.
+4. **Sending.** Before any dispatch the message, recipient and Vorgang are shown and the user approves the exact file in the workflow (WF-7);
+   a changed file voids the approval. Without a send adapter the message stays a checked draft; a dispatch is recorded as successful only when
+   the adapter or the user reports it (`workflow.py ausgang`).
+
+## MV-25 Outgoing messages
+
+Every outgoing message needs the explicit approval of the user, bound to its exact content: application e-mails, questions, follow-ups,
+interview confirmations, thanks, replies to refusals, negotiation. An approval for an earlier message is never reused. The toolchain does not
+send; a prepared draft is not a sent application.
+
+## MV-26 Privacy and retention
+
+Data minimisation as in MV-13 and MV-20 rule 5. Messages and Ereignisse belong to the Vorgang folder or to `kommunikation/` in the Wurzel and
+are removed with it (LS-6 rule 8); `eingang.json` keeps at most 500 references, the handled ones going first. Notes of the user are never read
+or written.
+
+## MV-27 What is not implemented
+
+| Point | Status |
+|---|---|
+| Reading the Gmail account, labels and the calendar (MV-2, MV-3, MV-9) | open: no connector ships; the list of MV-19 is the interface |
+| Sending (MV-25) | open: no adapter ships (`workflow.py` type `nachricht_senden`) |
+| Mail types in other languages | only German wording and a few English phrases |
+| Regelwerk of the user (MV-4) | open |
+| Acceptance scenarios MV-A … MV-Q | checked for the local part by `tests/test_kommunikation.py`; the Gmail part only by review of a run |

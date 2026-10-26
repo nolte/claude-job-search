@@ -54,7 +54,7 @@ JSON). `evals/results/` ist git-ignoriert.
 
 | Gruppe | Cases | Was ein Bestehen bedeutet |
 |---|---|---|
-| `trigger-*` | einer je Skill (13) und einer für den Reviewer-Agenten | Eine natürliche deutsche Anfrage, ohne den Skill zu nennen, bringt das Modell dazu, genau diesen Skill aufzurufen. Geprüft mit `tool_used` |
+| `trigger-*` | einer je Skill (14) und einer für den Reviewer-Agenten | Eine natürliche deutsche Anfrage, ohne den Skill zu nennen, bringt das Modell dazu, genau diesen Skill aufzurufen. Geprüft mit `tool_used` |
 | `behavior-bash-works` | Vorbedingung 1 (Tag `precondition`, ein Lauf, wird von `evals/run.sh` zuerst ausgeführt): `uname -s` über Bash | Ein externer Befehl läuft in der Eval-Sandbox (ein Shell-Builtin wie `echo` bestünde auch ohne) |
 | `behavior-python-works` | Vorbedingung 2 (ebenso): `python3 --version` über Bash | `python3` läuft in der Sandbox (die Skills rufen python3-Skripte auf). Ist eine der Vorbedingungen rot, messen die Cases mit Skriptaufruf den Rechner und nicht das Plugin |
 | `behavior-gate-runs-script` | Quality Gate auf einem Vorgang, der nur einen Lebenslauf enthält | Das Gate ruft `cv_checks.py` auf, bevor es `pruefbericht.md` schreibt. Das Urteil wird nicht bewertet: Bei einem einzelnen Lebenslauf darf ein Gate wegen fehlender Dokumente blockieren |
