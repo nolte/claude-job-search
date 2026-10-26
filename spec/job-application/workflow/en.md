@@ -7,7 +7,8 @@ and the approvals; the facts stay where they live. It is implemented by `scripts
 Related rules: `spec/job-application/lokale-struktur/en.md` (LS-3 layout, LS-4 persistence, LS-5 invariants, LS-6 lifecycle
 S0 to S10), `spec/job-application/stellensuche/en.md` (ST-13 to ST-20 Suchauftrag, run and Warteschlange),
 `spec/job-application/konventionen/en.md` (R-1 facts, R-6 data protection), `spec/job-application/mail-verwaltung/en.md`
-(MV, the communication functions of A-02; specification only), `spec/job-application/kontaktklassifikation/en.md` (KK-5
+(MV, the communication functions of A-02; specification only), `spec/job-application/qualitaetssicherung/en.md` (QS, the
+report the quality gate reads), `spec/job-application/kontaktklassifikation/en.md` (KK-5
 follow-up) and `spec/job-application/recherche/en.md` (RC-5.0 rules for optional network channels).
 
 **Status:** implemented by `scripts/workflow.py` for the tasks of WF-3. It plans and reconciles; it runs no skill and sends
@@ -60,7 +61,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 | `passung` | agent | `job-application-fit-check` | (only created with a confirmed Wunschprofil) `analyse` | `passung.md` exists |
 | `plan` | user | plan gate of `job-application-solution` | `analyse` (and `passung`) | `status` is at least `geplant` and `vorgang.md` has a heading `## Plan` |
 | `unterlagen` | agent | `job-application-solution` steps 4 and 5 | `plan` | `status` is at least `erstellt`; `lebenslauf.md` and `anschreiben.md` exist |
-| `pruefung` | agent | `job-application-quality-gate` | `unterlagen` | `status` is `geprüft` |
+| `pruefung` | agent | `job-application-quality-gate` | `unterlagen` | `status` is `geprüft` and `qualitaet.json` is current and approvable (`qualitaetssicherung` QS-9) |
 | `versand_freigabe` | user | the user's decision | `pruefung` | an approval covers the hash of the documents (WF-7) |
 | `versand` | user | the user sends; no adapter ships | `versand_freigabe` | `status` is at least `versendet` and `versendet_am` is set (S7, written by the user) |
 | `nachfassen` | agent | `job-application-email-create`, variant `nachfassen` | `status` is `versendet`; the date `wiedervorlage` has come | `email-nachfassen.md` was written after the task was created |
@@ -144,7 +145,10 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 ## WF-7 Approvals and external actions
 
 0. **A send approval needs a checked package.** `freigeben` of `versand_freigabe` is refused (`pruefung_veraltet`) when a
-   document is newer than `pruefbericht.md`: the quality gate must have seen this content.
+   document is newer than `pruefbericht.md`: the quality gate must have seen this content. It is also refused
+   (`qualitaet_fehlt`, `qualitaet_veraltet`, `qualitaet_nicht_freigabefaehig`) when `qualitaet.json` is missing, stale or not
+   approvable (`spec/job-application/qualitaetssicherung/en.md` QS-9). The report is a precondition of the approval, never
+   its substitute: the approval stays the user's.
 1. **Approval is the user's, for one exact content.** `freigeben <aufgabe> --ja` stores the hash of the content as it is now
    (for `versand_freigabe` the hash over the existing documents of the Vorgang, for `nachricht_senden` the hash of the message
    file) with the time. The word `--ja` is the user's explicit yes; a command without it is refused.

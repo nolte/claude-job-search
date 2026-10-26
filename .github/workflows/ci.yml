@@ -56,7 +56,8 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       # Without these the export and frontmatter tests skip silently (43 of 280 before F-02);
       # tests/test_export.py fails in CI if one is missing. LuaLaTeX is not installed: the PDF tests run locally.
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pandoc
+      # poppler-utils (pdftotext, pdfinfo) is for the PDF read-back of tests/test_qualitaet.py; without it these tests skip.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pandoc poppler-utils
       - run: pip install -r tests/requirements.txt
       - run: task --yes test
 

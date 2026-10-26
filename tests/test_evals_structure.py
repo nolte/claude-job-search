@@ -36,7 +36,7 @@ class EvalSuiteTests(unittest.TestCase):
         self.assertIn("trigger-reviewer", names)
 
     def test_every_case_has_a_prompt_a_grader_and_the_plugin(self):
-        self.assertGreaterEqual(len(CASES), 22)
+        self.assertGreaterEqual(len(CASES), 23)
         for case in CASES:
             graders = glob.glob(os.path.join(case, "graders", "*.md"))
             self.assertTrue(graders, f"{case}: a case without a grader does not load")

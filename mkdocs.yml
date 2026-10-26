@@ -70,6 +70,7 @@ plugins:
             Counterparts: Gegenpartei
             Glossary: Glossar
             Workflow: Workflow
+            Quality assurance: Qualitätssicherung
             Export: Export
             Evaluating the plugin: Das Plugin evaluieren
             Optional MCP servers: Optionale MCP-Server
@@ -110,6 +111,7 @@ nav:
   - Counterparts: en/counterparts.md
   - Glossary: en/glossary.md
   - Workflow: en/workflow.md
+  - Quality assurance: en/quality.md
   - Export: en/export.md
   - Evaluating the plugin: en/evals.md
   - Optional MCP servers:

@@ -26,6 +26,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import grundlage_hash as gh  # noqa: E402
+import qualitaet as qa  # noqa: E402
 import stellensuche as ss  # noqa: E402
 from grundlage_hash import sha256_file  # noqa: E402
 from stellensuche import Blocker, Refused, atomic_write, clean_text, digest, load_json, parse_time, redact, stamp  # noqa: E402
@@ -65,8 +67,7 @@ KLASSEN = RETRY_KLASSEN | {"eingabe", "freigabe", "berechtigung", "qualitaet", "
 # status chain of a Vorgang (LS-6) as ranks; `in Arbeit` lies between erstellt and geprüft
 RANG = {"erfasst": 1, "analysiert": 2, "geplant": 3, "erstellt": 4, "in Arbeit": 4.5, "geprüft": 5, "versendet": 6}
 ENDSTATUS = {"zusage", "absage", "abgelehnt", "zurückgezogen", "ohne Antwort"}
-DOKUMENTE = ("lebenslauf.md", "anschreiben.md", "motivationsschreiben.md", "email.md", "anschreiben-portal.txt",
-             "motivationsschreiben-portal.txt")
+DOKUMENTE = qa.DOKUMENTE  # the send package; the quality report is bound to the same files
 KUERZEL = re.compile(r"[a-z0-9][a-z0-9-]*")
 DATEINAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\.(?:md|txt)")
 
@@ -141,8 +142,25 @@ def a_unterlagen(w, t, now):
     return ok, "Lebenslauf oder Anschreiben fehlt, oder vorgang.md steht noch vor `erstellt`"
 
 
+KONFIGURATION = None  # set by run(): the Anker, to bind the quality report to the current Datengrundlage
+
+
+def grundlage_stand():
+    """Hash of the Datengrundlage now; None when no Anker is known, a value that matches nothing when it cannot be computed."""
+    if KONFIGURATION is None:
+        return None
+    try:
+        return gh.compute(KONFIGURATION)["hash"]
+    except (gh.Blocker, OSError):
+        return "nicht-berechenbar"
+
+
 def a_pruefung(w, t, now):
-    return rang(meta_von(w, t)) >= RANG["geprüft"], "der Qualitätscheck steht nicht auf `geprüft` (offene Blocker)"
+    """Done when the status is `geprüft` and the report of qualitaet.py is current and may be approved (QS-9)."""
+    if rang(meta_von(w, t)) < RANG["geprüft"]:
+        return False, "der Qualitätscheck steht nicht auf `geprüft` (offene Blocker)"
+    problem = qa.aktualitaet(vorgang_dir(w, t), grundlage_stand())
+    return problem is None, problem[1] if problem else ""
 
 
 def a_versand(w, t, now):
@@ -814,6 +832,13 @@ def pruefbericht_veraltet(w, daten, task):
             raise Refused("pruefung_veraltet", f"{', '.join(neuer)} ist nach dem Prüfbericht geändert worden; erst den Qualitätscheck erneut ausführen")
 
 
+def qualitaet_aktuell(w, task):
+    """The send package is approved only on a current, approvable quality report; the approval itself stays with the user (QS-9)."""
+    problem = qa.aktualitaet(vorgang_dir(w, task), grundlage_stand())
+    if problem:
+        raise Refused(*problem)
+
+
 def freigeben(w, daten, task_id, now):
     task = hole(daten, task_id)
     if not braucht_freigabe(task):
@@ -821,6 +846,8 @@ def freigeben(w, daten, task_id, now):
     if task["status"] != FREIGABE:
         raise Refused("nicht_wartend", f"{task_id} ist {task['status']}, nicht {FREIGABE}: {task['hinweis']}")
     pruefbericht_veraltet(w, daten, task)
+    if task["typ"] == "versand_freigabe":
+        qualitaet_aktuell(w, task)
     aktuell = TYPEN[task["typ"]]["inhalt"](w, task)
     if not aktuell:
         raise Refused("nichts_zu_genehmigen", "Es gibt keinen Inhalt, den die Freigabe abdecken könnte")
@@ -1072,6 +1099,8 @@ def haltbar_abgleichen(w, now):
 
 
 def run(args):
+    global KONFIGURATION
+    KONFIGURATION = args.konfiguration
     w = ss.find_wurzel(args.konfiguration)
     now = parse_time(args.jetzt) if args.jetzt else dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     if unbeaufsichtigt() and args.befehl in USER_ONLY:
