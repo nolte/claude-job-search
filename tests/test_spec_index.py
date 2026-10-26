@@ -36,7 +36,7 @@ class SpecIndexTests(unittest.TestCase):
         self.assertEqual(broken, [])
 
     def test_document_type_specs_have_sources_and_open_points(self):
-        for topic in ("lebenslauf", "anschreiben", "motivationsschreiben"):
+        for topic in ("lebenslauf", "anschreiben", "anschreiben-formulierung", "motivationsschreiben"):
             text = read(os.path.join(ROOT, "spec", "job-application", topic, "en.md"))
             self.assertRegex(text, r"## [A-Z]{2}-\d+ Sources", topic)
             self.assertRegex(text, r"## [A-Z]{2}-\d+ Open points", topic)

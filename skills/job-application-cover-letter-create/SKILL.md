@@ -26,7 +26,8 @@ see_also:
 
 # Bewerbung Anschreiben erstellen
 
-Spec: `spec/job-application/anschreiben/en.md` (AS-1 to AS-15; AS-8.1 portal free text) and
+Spec: `spec/job-application/anschreiben/en.md` (AS-1 to AS-15; AS-8.1 portal free text), its wording level
+`spec/job-application/anschreiben-formulierung/en.md` (AF-1 to AF-16) and
 `spec/job-application/konventionen/en.md` R-1 (facts), R-3 (letter form, length, tone), R-4 (e-mail subject), R-5
 (Zeugnisse, Referenzen), R-7 (quality gate). A text that mainly explains personal reasons and goals is a
 Motivationsschreiben: use `job-application-motivation-letter-create` (AS-1.4). Addressee, disclosure and counterpart:
@@ -149,6 +150,10 @@ the user's request (AS-8.1.4). `anschreiben.md` stays the source.
 3. **Proof paragraphs** (AS-6.2, AS-6.3). Take the *Muss* rows with status `erfüllt` and strength `mittel` or `stark`,
    strongest first. Each paragraph pairs one requirement with one proof: the Grundlage entry named in the `Nachweis`
    cell, with its scope and, when the Grundlage states it, its result, and the reason why it matters for this job.
+   Word each paragraph as Anforderung, Kompetenz, Beleg, Mehrwert in two to four sentences (AF-3.1): it opens with the
+   requirement or the proof, never with a quality of the candidate. The Mehrwert states fit with the task of the job,
+   never a forecast of a result or a number the Grundlage lacks (AF-3.3). A figure appears only as in the Grundlage
+   (AF-3.6). The paragraph holds one posting element and one Grundlage element (AF-7.2).
    Two or three paragraphs. A paragraph adds why the fact matters; it does not repeat a Lebenslauf bullet in the same
    words (AS-6.4). Rows that are not chosen are not turned into paragraphs. If fewer than two rows qualify: one proof
    paragraph. If none qualifies: write no proof paragraph from weak evidence, report it, point to
@@ -156,10 +161,16 @@ the user's request (AS-8.1.4). `anschreiben.md` stays the source.
    AS-D). Never present a *Muss* gap as fulfilled.
    - **Gap sentence** (AS-6.7, CG-4.5): one optional sentence on a *Muss* with status `nicht belegt` or `teilweise`,
      naming the related evidence and the willingness to learn. Ask the user; write it only on a yes.
-4. **Einstieg and motivation** from the posting's own facts and the sourced facts of `## Unternehmen` (UA-4.5). If
+4. **Einstieg and motivation** from the posting's own facts and the sourced facts of `## Unternehmen` (UA-4.5). The
+   Einstieg is one of the four types of AF-4.2 (passender Beleg, besondere Qualifikation, Bezug zum Unternehmen,
+   früherer Kontakt only when the user states it), one or two sentences, the first of at most 25 words, not starting
+   with "Ich" and not only naming the channel (AF-4.4, AF-4.5). No anecdote, no quotation (AF-4.6). If
    there are none, leave `[ERGÄNZEN: konkreter Bezug zum Unternehmen]` (AS-6.6). The letter states facts and evidence,
    no wishes from the Wunschprofil (AS-6.8, WJ-7.2).
-5. **Schluss** (AS-6.9, AS-10). A short, concrete wish for a conversation. An earliest start date or a notice period
+5. **Schluss** (AS-6.9, AS-10, AF-8). A short, concrete wish for a conversation: one sentence with content and one for
+   the conversation, in the Indikativ, at most two sentences and two lines, no rhetorical question, no demand
+   (AF-8.1 to AF-8.4). The salary and start-date sentence stands before them, in the Indikativ, never in a PS, never
+   with "ab sofort" as a date (AF-8.5). An earliest start date or a notice period
    only when the user states it (AS-10.2). **Gehaltsvorstellung** (AS-10.1) only when the posting asks for it:
    `<Betrag> € brutto pro Jahr` or a range, in one sentence of the Schluss, with the value the user states in the
    session; if the posting asks and the user gives no value, write `[ERGÄNZEN: Gehaltsvorstellung]`. A Vermittler gets
@@ -167,8 +178,17 @@ the user's request (AS-8.1.4). `anschreiben.md` stays the source.
    the persons of the Grundlage section *Referenzen*, which holds an entry only with the person's consent; if there is
    none, write `[ERGÄNZEN: Referenzen]` (Blocker, R-1.2). Never invent a name. No birth date, marital status or photo
    reference in the letter (AS-10.3).
-6. **Tone.** Sie or du as recorded in the analysis (AS-9.1). First person, active, plain verbs, not every sentence
-   starting with "Ich" (AS-9.2). No stock phrases (AS-9.3), no unsourced evaluation (AS-9.4).
+6. **Tone and sentences.** Sie or du as recorded in the analysis, one register throughout (AS-9.1, AF-10.1). First
+   person, active, verbal style (AF-5.1, AF-5.2). No Konjunktiv in statements of the candidate or in the closing
+   (`würde`, `könnte`, `hätte`, `wäre`, `dürfte`; AF-5.3). Average sentence at most 20 words, none over 30
+   (AF-5.4); at most one in three sentences starts with "Ich", never three in a row (AF-5.5). Positive wording: no
+   "leider noch keine ...", no criticism of an employer (AF-5.6). No filler words, no exclamation marks (AF-5.7). No
+   stock phrases or empty attributes (AS-9.3, AF-6): an attribute is replaced by the behaviour the Grundlage shows,
+   or dropped (AF-6.2). No unsourced evaluation (AS-9.4). Exchange test: a sentence that fits any employer is
+   rewritten with a posting term or a sourced company fact, or cut (AF-7.1). No humour, anecdote or quotation unless
+   the user supplies it (AF-10.2, AF-10.3). No machine patterns: adjective triads, stacked superlatives, abstract
+   openers, translationese (AF-11.2, AF-11.3). No reason for leaving, no explanation of an employment gap unless the
+   user asks, never health data (AF-9.1 to AF-9.3).
 7. **Length.** One page (AS-7.1), about 250 to 400 words (AS-7.2), two to five paragraphs of at most six lines each
    (AS-7.3). When too long, cut in the order of AS-7.4: the optional gap sentence, the weakest proof paragraph, then
    sentences of the Einstieg. More than one page is a Blocker for the quality gate (AS-12).
@@ -187,17 +207,22 @@ the user's request (AS-8.1.4). `anschreiben.md` stays the source.
     `erstellt` or later (`geprüft`, `in Arbeit`, `versendet`, `rückmeldung` and so on) leave the status and the
     Verlauf unchanged; S7 and S8 are the user's statements. After `geprüft` or `in Arbeit`, tell the user to run the
     quality gate again.
-11. **Hand over.** Show the letter, the open markers and the Auswahl section. Name the next step:
+11. **Hand over.** Show the letter as a draft for the user's own edit: name the two or three sentences least tied to
+    the Grundlage and the posting and ask the user to adjust them in their own words (AF-11.1). Show the open markers
+    and the Auswahl section. If the posting forbids or restricts AI help, tell the user before drafting (AF-11.5,
+    AS-11). Name the next step:
     `job-application-quality-gate`.
 
 ## Variants (AS-8)
 
 - **initiativ:** no posting. The Betreff names the area. Name the target area and two or three proven strengths
   from the Grundlage. Say what the company gets, not only what the candidate wants.
-- **quereinstieg:** lead with transferable evidence that maps to the requirements. State the motivation for the change
+- **quereinstieg:** lead with transferable evidence that maps to the requirements (two or three competences, each with
+  one proof). Never write the word "Quereinsteiger" (AF-9.4). State the motivation for the change
   in one sentence, in the user's words, asked in the session; otherwise `[ERGÄNZEN: Grund des Wechsels]`. No apology,
   no disguised employment history (CG-3.2).
-- **berufseinstieg:** lead with the degree or training, relevant projects, and internships, all from the Grundlage.
+- **berufseinstieg:** lead with the degree or training, relevant projects, and internships, all from the Grundlage. No
+  "leider noch keine Berufserfahrung" (AF-9.5).
 - **vermittler:** a recruiter forwards the letter. The addressee and the content follow KK-4 and UA-6.2: the employer
   is named only after disclosure, no salary before the employer is known (KK-4.4), the exclusivity question is asked
   before the letter goes out (KK-4.6; step 0 asks it for every Vermittler class).
@@ -217,8 +242,8 @@ own words.
 
 ## Hard rules
 
-1. **Never use the phrase "hiermit bewerbe ich mich"** or other stock openings (AS-9.3).
-2. **Every claim maps to the Grundlage.** Anything not in the Grundlage, through the profile, is not in the letter.
+1. **Never use the phrase "hiermit bewerbe ich mich"** or other stock phrases of AF-6.1 (AS-9.3).
+2. **Every claim maps to the Grundlage; wording never supplies content (AF-1.2).** Anything not in the Grundlage, through the profile, is not in the letter.
    Dates, numbers, employers and titles equal the Lebenslauf (AS-6.5).
 3. **One page maximum.** Cut in the order of AS-7.4.
 4. **Gehaltsvorstellung only if requested** by the posting, with the user's value (AS-10.1).
