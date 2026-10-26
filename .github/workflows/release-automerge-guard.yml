@@ -1,0 +1,76 @@
+# Guard: the release fallback-path alignment PR (branch chore/release-*) MUST
+# be squash-merged by the maintainer with their own credential, never via the
+# automerge label — a GITHUB_TOKEN-authenticated merge suppresses the
+# release-drafter cascade (spec/project/release-automation/; 2026-Q3 audit
+# finding release-automation.fallback-path-automerge-label, where PR #344
+# carried the label and was merged by the bot).
+#
+# The guard strips the label the moment it lands on a release branch and
+# leaves an explanatory comment, so the automerge workflow (which fires on
+# label events) never sees a labeled release PR.
+name: release-automerge-guard
+
+on:
+  pull_request:
+    types:
+      - labeled
+      - reopened
+      - synchronize
+
+# spec/project/github-actions-best-practices/ §B: read-only at the workflow level,
+# with the `pull-requests: write` the label strip and comment need granted on the
+# job alone.
+permissions:
+  contents: read
+
+# spec/project/github-actions-best-practices/ §F: the conditional group MUST
+# applies. This workflow writes shared state — it removes a label from the pull
+# request and posts a comment — and its three trigger types fire in quick
+# succession on a single pull request. Two concurrent runs would both pass the
+# `if:` guard and both post the explanatory comment, while the loser of the
+# removeLabel race swallows a 404 that says nothing about which run acted.
+#
+# `cancel-in-progress` stays false. Cancelling a run between the label removal
+# and the comment leaves the pull request stripped but unexplained; cancelling it
+# before the removal leaves the `automerge` label in place, which is the precise
+# state this guard exists to prevent — automerge.yaml fires on label events and
+# would then act on a labeled release PR.
+#
+# Serialising closes the removeLabel race but not the comment race, and the
+# difference matters. The job's `if:` is evaluated against the webhook payload,
+# not against live state: a `labeled` event and a `synchronize` arriving right
+# after it both carry the label, so both runs pass the guard. Run two then
+# swallows its removeLabel 404 and posts a second identical comment — the
+# duplicate-comment mode described above. Closing that needs a live
+# `issues.listLabelsOnIssue` read in the script before it comments, which is
+# workflow logic rather than a §F concern.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  strip-automerge-label:
+    if: >-
+      startsWith(github.event.pull_request.head.ref, 'chore/release-') &&
+      contains(github.event.pull_request.labels.*.name, 'automerge')
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            await github.rest.issues.removeLabel({
+              owner, repo, issue_number, name: 'automerge',
+            }).catch((e) => { if (e.status !== 404) throw e; });
+            await github.rest.issues.createComment({
+              owner, repo, issue_number,
+              body: [
+                'Removed the `automerge` label: the `chore(release)` alignment PR',
+                'MUST be squash-merged by the maintainer with their own credential.',
+                'A `GITHUB_TOKEN`-authenticated merge suppresses the release-drafter',
+                'cascade (spec/project/release-automation/).',
+              ].join(' '),
+            });

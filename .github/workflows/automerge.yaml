@@ -1,0 +1,82 @@
+name: automerge
+
+on:
+  pull_request:
+    types:
+      - labeled
+      - unlabeled
+      - synchronize
+      - opened
+      - edited
+      - ready_for_review
+      - reopened
+      - unlocked
+  pull_request_review:
+    types:
+      - submitted
+  check_suite:
+    types:
+      - completed
+  status: {}
+
+# spec/project/github-actions-best-practices/ §B: an explicit block, read-only at
+# the workflow level, with the write scopes this workflow needs granted on the
+# job below. GitHub advises a read-only default token and OpenSSF Scorecard
+# checks exactly this shape.
+permissions:
+  contents: read
+
+# spec/project/github-actions-best-practices/ §F: the conditional group MUST
+# applies. This workflow is the merge actor, and its four trigger types
+# (`pull_request`, `pull_request_review`, `check_suite`, `status`) routinely fire
+# within seconds of one another for a single head commit, so concurrent runs act
+# on the same pull request.
+#
+# `cancel-in-progress` is false because §F's third rule forbids cancel-on-new-run
+# wherever a cancelled run can leave a partially-completed side effect.
+# Cancelling this one mid-merge is exactly that failure mode.
+#
+# The group keys on the head commit, and every arm of the expression resolves to
+# that same head commit. This is load-bearing: a group only serialises runs whose
+# key string is equal, so mixing identity domains silently defeats the group. Key
+# the first arm on `github.event.pull_request.number` instead and a `pull_request`
+# run lands in `automerge-<number>` while a `check_suite` run for the very same
+# pull request lands in `automerge-<sha>` — two different groups, and the two runs
+# this block exists to serialise never meet.
+#
+# One domain reaches all four triggers, and it is the commit, not the pull
+# request: `pull_request` and `pull_request_review` carry
+# `pull_request.head.sha`, `check_suite` carries `check_suite.head_sha`, and
+# `status` carries a top-level `sha`. The pull-request number is not reachable
+# from `status` at all, and reaching it from `check_suite` would mean indexing
+# into that payload's `pull_requests[]` array — a different shape from the other
+# arms, which is how the domain mix crept in the first time. The `github.run_id` tail guarantees the expression is never
+# empty, which keeps unrelated runs out of one collapsed lane — the cross-identity
+# interference §F's second rule forbids.
+#
+# Known residual edge: two open pull requests can carry the same head commit (one
+# head branch against two bases, or a reopened duplicate). They share a lane, so a
+# newly queued run can supersede the other's pending evaluation. Keying on the
+# pull-request number would trade this rare case for the domain mix above, which
+# breaks every run instead — so the edge is named and accepted, not traded away.
+#
+# No nested identical group: at the pinned digest the reusable called below
+# declares no `concurrency:` block of its own, so nothing downstream can
+# reproduce this group string. That check matters here because
+# `github.workflow` inside a reusable resolves to the *caller* name, so an
+# upstream block of the same shape would collide rather than nest harmlessly.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.event.check_suite.head_sha || github.event.sha || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  automerge:
+    uses: nolte/gh-plumbing/.github/workflows/reusable-automerge.yaml@80cb5ebb91a3b49126729de31b1037f11c34b5cd # v2.2.0
+    with:
+      app-id: ${{ vars.PORTFOLIO_APP_ID }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+      app-private-key: ${{ secrets.PORTFOLIO_APP_PRIVATE_KEY }}
+    permissions:
+      contents: write
+      pull-requests: write
