@@ -109,8 +109,8 @@ tasks:
 
   learn:
     desc: |
-      Evaluation of confirmed application results (spec ergebnisauswertung EA-1 to EA-16): statistics, retrospective, proposals.
-      Usage: task learn -- <statistik|retrospektive|aktualitaet|ergebnis|vorschlaege|vorschlag> ...   (changes no status, document or personal data)
+      Evaluation of confirmed application results (spec ergebnisauswertung EA-1 to EA-24): statistics with funnel, rates and times, retrospective A to D, proposals and the check of their effect.
+      Usage: task learn -- <statistik|erklaere|retrospektive|aktualitaet|ergebnis|vorschlaege|vorschlag> ...   (changes no status, document or personal data)
     cmds:
       - python3 scripts/lernen.py {{.CLI_ARGS}}
 

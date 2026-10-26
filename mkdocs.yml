@@ -66,6 +66,8 @@ plugins:
             Career change and job search: Berufswechsel und Stellensuche
             Initiative application and Motivationsschreiben: Initiativbewerbung und Motivationsschreiben
             Keep your data and CVs current: Daten und Lebensläufe aktuell halten
+            Application process: Bewerbungsprozess
+            Reference: Referenz
             Skills: Skills
             Counterparts: Gegenpartei
             Glossary: Glossar
@@ -109,14 +111,16 @@ nav:
       - Career change and job search: en/use-cases/career-change.md
       - Initiative application and Motivationsschreiben: en/use-cases/initiative-and-motivation.md
       - Keep your data and CVs current: en/use-cases/maintain-and-variants.md
-  - Skills: en/skills.md
-  - Counterparts: en/counterparts.md
-  - Glossary: en/glossary.md
-  - Workflow: en/workflow.md
-  - Follow-up and learning: en/follow-up.md
-  - Quality assurance: en/quality.md
-  - Export: en/export.md
-  - Evaluating the plugin: en/evals.md
+  - Application process:
+      - Skills: en/skills.md
+      - Workflow: en/workflow.md
+      - Quality assurance: en/quality.md
+      - Export: en/export.md
+      - Follow-up and learning: en/follow-up.md
+  - Reference:
+      - Glossary: en/glossary.md
+      - Counterparts: en/counterparts.md
+      - Evaluating the plugin: en/evals.md
   - Optional MCP servers:
       - Overview: en/mcp-servers.md
       - LinkedIn: en/linkedin.md

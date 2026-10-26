@@ -116,6 +116,28 @@ sender's domain unless you say `--abweichender-empfaenger`. The approval of the 
 **Sending.** Without an adapter, `workflow.py ausfuehren` answers `kein_adapter` and an approved draft stays an approved draft. `antwort.adapter(wurzel, anbieter)` is the guarded function an integration can register: it sends only the approved file, once, and reports success only
 on an id from the provider. It is tested with a simulated provider only; a real mail integration (OAuth with the narrowest scope, secrets outside the repository) is yours to build and review.
 
+### Funnel, rates, times and the retrospective (R-03)
+
+Spec: `spec/job-application/ergebnisauswertung/en.md` EA-17 to EA-24. The evaluation reads what R-01 and R-02 already store; it keeps no second record, changes no data, writes only below `lernen/` and **sends nothing**.
+
+```bash
+task learn -- statistik --reife-tage 28 --kanal portal            # funnel, conversions, times; filters: --kanal --quelle --titel --ergebnis --bewertung --dokumentversion ...
+task learn -- erklaere eingereicht_zu_rueckmeldung                 # the Vorgänge behind numerator and denominator
+task learn -- retrospektive                                        # A summary, B process, C reactions, D improvements
+task learn -- vorschlag pruefe <id>                                # after you accepted a proposal: has the measure moved?
+```
+
+- **Funnel:** postings researched and relevant (from the Warteschlange), begun, documents finished, approved (workflow), dispatched, receipt confirmed, replies, refusals, invitations, interviews held, offers, accepted, declined, withdrawn. Stages are kept apart: a finished application is not a dispatched one,
+  an invitation is not a held interview, no reply is not a refusal. A source that does not exist shows "nicht erfasst", not 0.
+- **Rates** carry numerator, denominator, a 95 % interval and a label for small samples (below 5). `reif` repeats each rate among applications at least `--reife-tage` (default 28) old and counts the younger ones apart, so a fresh application does not read as an unanswered one.
+- **Times** (discovery to begin, begin to finished, finished to dispatch, dispatch to first reply, invitation, result; invitation to interview; interview to reply) use only stored dates of the event. A missing start is counted apart and never filled in.
+- **Not recorded:** seniority, branch, location and working model have no field; they are shown as not recorded and cannot be filtered.
+- **Retrospective:** four parts, each line of part B marked as process or data gap, reasons for refusals with their origin (the employer's wording, your own assessment, or a pattern the system guessed), and part D with the proposals and the data that are still missing.
+- **Proposals** add rules for begun-not-finished, finished-not-dispatched, begun despite a veto, repeated findings of the quality check and results that stand only in the status. Each states observation, affected Vorgänge, possible explanation, uncertainty, recommendation and how to check the effect.
+  You decide with `--ja`; accepting changes no file. `vorschlag pruefe` compares the measure with its value then and says when the data do not suffice; it never claims that a change caused a difference.
+
+Limits: tested with invented data only; the records of an interactive search are not counted as researched; seniority and branch are not recorded; an approval voided by a changed document is no longer visible in the workflow store.
+
 ## Limits
 
 - No Gmail connector and no send adapter ship; the interfaces are the JSON list (and the local `.eml` import) and the approval task `nachricht_senden`. A send is tested only with a simulated provider.

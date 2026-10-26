@@ -39,6 +39,8 @@
 
 - [x] Employer communication (finding R-02): more mail types with a rule for specific over generic, facts read from messages with their quote and uncertainty, a local `.eml` import, reply drafts bound to confirmed messages, approval bound to the whole draft file, history events in the R-01 record, and a guarded send contract (`spec/job-application/mail-verwaltung/en.md` MV-28 to MV-36, `scripts/antwort.py`, `scripts/mail_import.py`); **no mailbox connector and no send adapter ship, and the send is tested only with a simulated provider**
 
+- [x] Statistical evaluation and controlled improvement (finding R-03): funnel from research to offer, conversions with 95 % intervals and a maturity split, times from stored dates, filters, traceability (`erklaere`), the retrospective in four parts, new proposal rules and `vorschlag pruefe` (`spec/job-application/ergebnisauswertung/en.md` EA-17 to EA-24, `scripts/lernen.py`); tested with invented data only
+
 ## Next
 
 - Tracking of S7 (the dispatch itself: `versendet`, attachments, channel) and a Gmail connector with labels and calendar; replies are covered by `job-application-follow-up` for messages the user hands over
@@ -56,3 +58,4 @@
 - Scenario tests for the CV checks and the exporters beyond the current suite (`task test`, see `tests/README.md`), including LuaLaTeX-based PDF checks
 - Bundesagentur: ask the BA whether a user-started search through the jobsuche interface is permitted, or whether an authorised partner interface exists; until then interactive only (ST-21). Also run the jobsuche server against the live service once and record the real answer shape (ST-11)
 - Mailbox connector (Gmail, IMAP) with OAuth read-only scope for the import, and a reviewed send adapter built on `antwort.adapter`; attachments of a reply; a registry of the adapters that does not rely on a code change
+- Evaluation: record seniority, branch, location and working model per Vorgang if wanted; count the records of the interactive search; keep a hash of the files sent at the dispatch so that document versions become provable; test with a real series of applications

@@ -118,6 +118,28 @@ des Absenders, außer du sagst `--abweichender-empfaenger`. Die Freigabe im Work
 **Senden.** Ohne Adapter antwortet `workflow.py ausfuehren` mit `kein_adapter`, und ein freigegebener Entwurf bleibt ein freigegebener Entwurf. `antwort.adapter(wurzel, anbieter)` ist die abgesicherte Funktion, die eine Anbindung registrieren kann: Sie sendet nur die freigegebene
 Datei, genau einmal, und meldet Erfolg nur mit einer Kennung des Anbieters. Getestet ist sie nur mit einem simulierten Anbieter; eine echte Mail-Anbindung (OAuth mit dem engsten Umfang, Geheimnisse außerhalb des Repositorys) baust und prüfst du selbst.
 
+### Trichter, Quoten, Zeiten und Retrospektive (R-03)
+
+Spec: `spec/job-application/ergebnisauswertung/en.md` EA-17 bis EA-24. Die Auswertung liest, was R-01 und R-02 schon speichern; sie führt keine zweite Datenhaltung, ändert keine Daten, schreibt nur unter `lernen/` und **sendet nichts**.
+
+```bash
+task learn -- statistik --reife-tage 28 --kanal portal            # Trichter, Konversionen, Zeiten; Filter: --kanal --quelle --titel --ergebnis --bewertung --dokumentversion ...
+task learn -- erklaere eingereicht_zu_rueckmeldung                 # die Vorgänge hinter Zähler und Nenner
+task learn -- retrospektive                                        # A Zusammenfassung, B Prozess, C Reaktionen, D Verbesserungen
+task learn -- vorschlag pruefe <id>                                # nach deiner Annahme: hat sich die Kennzahl bewegt?
+```
+
+- **Trichter:** recherchierte und relevante Stellen (aus der Warteschlange), begonnen, Unterlagen fertig, freigegeben (Workflow), eingereicht, Eingang bestätigt, Antworten, Absagen, Einladungen, geführte Gespräche, Angebote, angenommen, abgelehnt, zurückgezogen. Die Stufen bleiben getrennt: Eine fertige
+  Bewerbung ist nicht eingereicht, eine Einladung ist kein geführtes Gespräch, keine Antwort ist keine Absage. Eine Quelle, die es nicht gibt, steht als „nicht erfasst“, nicht als 0.
+- **Quoten** tragen Zähler, Nenner, ein 95-%-Intervall und eine Kennzeichnung für kleine Stichproben (unter 5). `reif` wiederholt jede Quote für Bewerbungen, die mindestens `--reife-tage` (Standard 28) alt sind, und zählt jüngere getrennt: Eine frische Bewerbung gilt so nicht als unbeantwortet.
+- **Zeiten** (Entdeckung bis Beginn, Beginn bis fertig, fertig bis Einreichung, Einreichung bis erste Antwort, Einladung, Ergebnis; Einladung bis Gespräch; Gespräch bis Antwort) nutzen nur gespeicherte Daten des Ereignisses. Ein fehlender Start wird getrennt gezählt und nie ergänzt.
+- **Nicht erfasst:** Seniorität, Branche, Standort und Arbeitsmodell haben kein Feld; sie stehen als nicht erfasst da und lassen sich nicht filtern.
+- **Retrospektive:** vier Teile, jede Zeile in Teil B als Prozess oder Datenlücke gekennzeichnet, Absagegründe mit Herkunft (Wortlaut des Arbeitgebers, deine eigene Einschätzung oder ein vom System vermutetes Muster) und Teil D mit den Vorschlägen und den noch fehlenden Daten.
+- **Vorschläge** haben zusätzliche Regeln für begonnen-nicht-fertig, fertig-nicht-eingereicht, begonnen trotz Veto, wiederkehrende Befunde der Qualitätsprüfung und Ergebnisse nur im Status. Jeder nennt Beobachtung, betroffene Vorgänge, mögliche Erklärung, Unsicherheit, Empfehlung und wie sich die Wirkung prüfen lässt.
+  Du entscheidest mit `--ja`; die Annahme ändert keine Datei. `vorschlag pruefe` vergleicht die Kennzahl mit ihrem damaligen Wert und sagt, wenn die Daten nicht reichen; er behauptet nie, eine Änderung habe einen Unterschied verursacht.
+
+Grenzen: nur mit erfundenen Daten getestet; die Aufzeichnungen der interaktiven Suche zählen nicht als recherchiert; Seniorität und Branche sind nicht erfasst; eine durch ein geändertes Dokument ungültig gewordene Freigabe ist im Workflow-Speicher nicht mehr sichtbar.
+
 ## Grenzen
 
 - Es werden weder ein Gmail-Connector noch ein Versandadapter mitgeliefert; die Schnittstelle ist die JSON-Liste und die Freigabeaufgabe `nachricht_senden`.
