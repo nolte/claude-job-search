@@ -15,6 +15,8 @@ dont_use_when:
     alternative: job-application-quality-gate
   - situation: "You want the profile captured first, without a posting"
     alternative: job-application-profile-capture
+  - situation: "The application is already sent and you want to record a reply, a Wiedervorlage or the result"
+    alternative: job-application-follow-up
 see_also:
   - job-application-profile-capture
   - job-application-posting-analysis
