@@ -25,6 +25,7 @@ see_also:
   - job-application-email-create
   - job-application-export
   - job-application-quality-gate
+  - job-application-follow-up
 ---
 
 # Bewerbung Solution
@@ -105,6 +106,9 @@ check.
    sending, the user enters `status: versendet`, `versendet_am`, `weg`, `anhaenge` and `wiedervorlage` in `vorgang.md`
    (KK-5), later the replies and the final status as Verlauf lines; at a final status the user sets `loeschen_ab` (S9)
    and later deletes the folder per S10 (LS-6 rules 4, 7, 8). This skill writes none of this.
+   Name `job-application-follow-up` as the next skill: after sending, it records the result of the application, takes the
+   replies of the employer as proposals the user approves, keeps the Wiedervorlagen and evaluates confirmed results
+   (BE, MV-18 to MV-36, EA). Offer it; do not start it, and send nothing to the employer.
 
 ## Third-party text
 
@@ -165,7 +169,7 @@ If `ziel_ordner` already exists, read `vorgang.md` first: its `status` names the
 | `erstellt` | Continue at the quality gate (step 6) |
 | `in Arbeit` | Show the open Blocker from `pruefbericht.md`, fix them with the owning skills, run the gate again |
 | `geprüft` | Go straight to the hand-off (step 7); regenerate nothing |
-| `versendet` and later | Generate nothing. Report that the application is sent, show the status and `## Verlauf`. S7 and S8 stay with the user (LS-6 rules 4, 7) |
+| `versendet` and later | Generate nothing. Report that the application is sent, show the status and `## Verlauf`. S7 and S8 stay with the user (LS-6 rules 4, 7). Point to `job-application-follow-up` for replies, Wiedervorlagen and the result (the status of the application is its work, not this skill's) |
 
 Then compare the `grundlage_hash` of every derivation that exists (`profil.md`, `lebenslauf.md`, `anschreiben.md`,
 `motivationsschreiben.md`, `email.md`, `vorgang.md`) with the current hash (LS-5.4); a stale derivation before
