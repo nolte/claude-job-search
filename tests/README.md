@@ -20,8 +20,12 @@
 - `test_lernen.py`: the evaluation `scripts/lernen.py` (spec EA-1 to EA-16): counts and denominators with open applications, small data, exclusions (period, deletion date), unconfirmed results, response times from existing dates, segments, document versions apart from quality, the derived retrospective and its staleness, results by the user's statement, proposals with their approval and the proof that no personal file changes.
 - `test_ats_checks.py`: the technical ATS checks `scripts/ats_checks.py` (spec QS-13) on synthetic exports: PDFs built byte by byte (needs poppler-utils; skips without), DOCX files built with python-docx and the real DOCX and HTML output of the exporter (needs pandoc), planted defects (lost or reordered periods, hidden text, header-only contact data, columns, images, tables, symbol ratings, unevidenced key terms), the report block `ats`, the dimensions and the proof that the library sends nothing. No test runs LuaLaTeX; the station and column checks have not been measured on a real template PDF.
 - `test_qualitaet.py`: the quality report `scripts/qualitaet.py` (spec QS-1 to QS-12): result model and overall states, the cross-document rules QS-01 to QS-05 with planted defects on the fixtures, the verification of the semantic verdicts (literal quote and evidence, version, confidence, injected text), the report bound to document hashes and its staleness, the user-only confirmation, the privacy of the report and history, the export read-back (HTML and DOCX through pandoc; the PDF with a hand-made PDF, needs `pdftotext` and `pdfinfo` from poppler-utils and skips without them) and the proof that the module imports nothing that could send. The gate in `workflow.py` is tested in `test_workflow.py`. What a model decides is not tested here: the verdicts are hand-made.
-- `test_skill_structure.py`: frontmatter names, description, and existence of referenced spec, requirement, and script files,
-  and of cross-referenced skills and agents.
+- `test_skill_structure.py`: frontmatter names and schema, description length and person, existence of referenced spec, requirement
+  and script files and of cross-referenced skills and agents, the size budget of every `SKILL.md` and the load trigger of every
+  `references/` file, the order of the sections (hard rules first, rationale present), `${CLAUDE_PLUGIN_ROOT}` for every script call,
+  and the shared statements of the repository boundary and of third-party text.
+- `test_boundary_hook.py`: the PreToolUse hook `scripts/boundary_hook.py` (hooks/hooks.json) that refuses a write into a Wurzel or
+  Grundlage inside the plugin repository, on a temporary plugin repository, never on this checkout.
 
 In the CI the job installs pandoc, poppler-utils, python-docx and PyYAML (`tests/requirements.txt`); `ToolchainTests` in `test_export.py` fails there if one is missing.
 What the CI covers and what only the model evals check: `docs/en/evals.md`, "What the CI covers".

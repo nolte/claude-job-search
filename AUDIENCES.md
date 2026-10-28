@@ -21,7 +21,7 @@ Each entry: label, relationship category, interaction surface, expectation, docu
 
 ### Direct consumers
 
-- **Job seekers using the plugin** — _category_: direct-consumer · _surface_: Claude Code slash commands (`/claude-job-search:<skill>`), the Datengrundlage in Markdown, `wunschprofil.md`, the `vorgang.md` of each application (status, history, follow-up), optionally Obsidian as the editor and overview (Bases) of the Wurzel · _expects_: a German Lebenslauf and Anschreiben that contain only facts they actually have, clear gap markers, a quality gate before sending, and one place per application where the state is recorded · _track_: `user-docs` · _status_: `assumed` · _criticality_: primary
+- **Job seekers using the plugin** — _category_: direct-consumer · _surface_: Claude Code slash commands (`/job-application:<skill>`), the Datengrundlage in Markdown, `wunschprofil.md`, the `vorgang.md` of each application (status, history, follow-up), optionally Obsidian as the editor and overview (Bases) of the Wurzel · _expects_: a German Lebenslauf and Anschreiben that contain only facts they actually have, clear gap markers, a quality gate before sending, and one place per application where the state is recorded · _track_: `user-docs` · _status_: `assumed` · _criticality_: primary
   - Open questions: which application situations matter most (Berufseinstieg, Quereinstieg, Standard)? Are ATS portals a priority?
 
 ### Operators

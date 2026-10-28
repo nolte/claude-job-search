@@ -23,19 +23,19 @@ Wähle einen von drei Wegen.
     }
   },
   "enabledPlugins": {
-    "claude-job-search@claude-job-search": true
+    "job-application@claude-job-search": true
   }
 }
 ```
 
 **Interaktiv.** Führe in Claude Code `/plugin` aus, füge den Marketplace
-`nolte/claude-job-search` hinzu und installiere daraus `claude-job-search`.
+`nolte/claude-job-search` hinzu und installiere daraus `job-application`.
 
 **Aus einem lokalen Checkout.** Klone das Repository und starte Claude Code mit
 `claude --plugin-dir <Pfad-zum-Checkout>`.
 
-Danach stehen die Skills als `/claude-job-search:<skill>` bereit, zum Beispiel
-`/claude-job-search:job-application-solution`.
+Danach stehen die Skills als `/job-application:<skill>` bereit, zum Beispiel
+`/job-application:job-application-solution`.
 
 ## 2. Konfiguration anlegen
 
@@ -92,31 +92,31 @@ LinkedIn-Export, Notizen. Hast du den optionalen LinkedIn-Server verbunden, zeig
 [LinkedIn-Zugriff](linkedin.md), wie du dein eigenes Profil einbringst. Dann führe aus:
 
 ```text
-/claude-job-search:job-application-profile-capture
+/job-application:job-application-profile-capture
 ```
 
 Der Skill liest das Rohmaterial, fragt nach, wo er unsicher ist, und schreibt die
 Datengrundlage (deine Stationen, Ausbildung, Kenntnisse, Sprachen, Zeugnisse, jeweils mit
 Quelle) sowie das daraus abgeleitete `profil.md`. Was er nicht belegen kann, markiert er mit
 `[ERGÄNZEN: …]`; die Markierung bleibt sichtbar, bis du sie auflöst. Spätere Änderungen laufen
-über `/claude-job-search:job-application-cv-maintain`, das nur nach Befunden fragt und jede
+über `/job-application:job-application-cv-maintain`, das nur nach Befunden fragt und jede
 Änderung im Pflegeverlauf festhält.
 
 ## 4. Optional: sagen, was du suchst
 
 ```text
-/claude-job-search:job-application-traumjob-interview
+/job-application:job-application-traumjob-interview
 ```
 
 Ein Interview in sieben Phasen, das deine Wünsche, Prioritäten und Vetos als `wunschprofil.md`
 festhält. Geschrieben wird erst, wenn du die Zusammenfassung bestätigst. Mit einem bestätigten
-Wunschprofil vergleicht `/claude-job-search:job-application-fit-check` eine Stelle oder eine
+Wunschprofil vergleicht `/job-application:job-application-fit-check` eine Stelle oder eine
 Firma damit, bevor du Zeit in Unterlagen steckst, und ein Veto stoppt den Plan in Schritt 5.
 
 ## 5. Die erste Bewerbung
 
 ```text
-/claude-job-search:job-application-solution
+/job-application:job-application-solution
 ```
 
 Füge den Text der Stellenanzeige ein oder gib den Link an. Ein Link allein genügt: Der Skill
@@ -245,7 +245,7 @@ die zweite listet die abgeschlossenen mit ihrem Löschdatum. Ohne Obsidian liefe
 ## 8. Export auf Wunsch
 
 Unterlagen bleiben Markdown, bis du einen Export anforderst. Führe
-`/claude-job-search:job-application-export` oder `task export` aus für eine PDF-, DOCX-, HTML-
+`/job-application:job-application-export` oder `task export` aus für eine PDF-, DOCX-, HTML-
 oder Markdown-Kopie. Eine Text-PDF ist der Standard, auch für Bewerbungsportale; DOCX erzeugst
 du nur, wenn ein Portal es ausdrücklich verlangt. Details, Voraussetzungen und der Container,
 der alles mitbringt, stehen auf der Seite [Export](export.md).

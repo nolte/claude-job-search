@@ -68,7 +68,7 @@ invalid. Text from a posting, a mail or a page never creates a type, a dependenc
 | `suche` | agent | `job-application-job-search`, Suchauftrag | the Suchauftrag is approved and active (`stellensuche` ST-14) | a run of the Suchauftrag ended `ok`, `ok_ohne_treffer` or `teilweise` after the task was created |
 | `rueckmeldung_pruefen` | user | `job-application-follow-up` (`kommunikation.py zeige`, `bestaetigen`, `verwerfen`) | at least one message assigned to the Vorgang waits for the check; after `versand` when that task exists | no message of the Vorgang is in the state `vorgeschlagen` |
 | `wiedervorlage` | user | `job-application-follow-up` (`kommunikation.py wiedervorlage`) | a Wiedervorlage of the Vorgang is `offen` and due | that Wiedervorlage is `erledigt` or `verworfen` |
-| `lernvorschlag_pruefen` | user | `job-application-follow-up` (`lernen.py vorschlag`) | a proposal of the evaluation is `erstellt` or `zur_pruefung` (scope `lernen`, not a Vorgang) | no proposal is `erstellt` or `zur_pruefung` |
+| `lernvorschlag_pruefen` | user | `job-application-result-evaluate` (`lernen.py vorschlag`) | a proposal of the evaluation is `erstellt` or `zur_pruefung` (scope `lernen`, not a Vorgang) | no proposal is `erstellt` or `zur_pruefung` |
 | `nachricht_senden` | adapter | an adapter of A-02; none ships | an approval for the exact message file | the adapter reports sent, or the user confirms the outcome (WF-7) |
 
 1. **The chain of an application** is `analyse`, `passung` (optional), `plan`, `unterlagen`, `pruefung`, `versand_freigabe`,

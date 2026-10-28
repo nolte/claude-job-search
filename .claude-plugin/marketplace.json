@@ -9,7 +9,7 @@
   },
   "plugins": [
     {
-      "name": "claude-job-search",
+      "name": "job-application",
       "source": ".",
       "description": "Claude Code skills and an agent for Bewerbungsunterlagen im deutschsprachigen Raum — Wunschprofil und Passung, Lebenslauf, Anschreiben, Motivationsschreiben, Bewerbungs-E-Mail, Stellenanzeigen-Abgleich, Qualitätsprüfung, Export (PDF, DOCX, HTML, Markdown) und Vorgangsverwaltung.",
       "version": "0.2.0"

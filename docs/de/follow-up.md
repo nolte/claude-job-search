@@ -1,9 +1,9 @@
 # Nachverfolgung und Lernen
 
 Nachdem du eine Bewerbung gesendet hast, führt `job-application-follow-up` den Verlauf weiter: Rückmeldungen gelangen als Vorschläge in den
-Vorgang, die du freigibst, Wiedervorlagen erinnern dich, und die bestätigten Ergebnisse vieler Bewerbungen werden zu Kennzahlen und einer
-Retrospektive. Zwei kleine Skripte erledigen das, `scripts/kommunikation.py` und `scripts/lernen.py`; beide lesen und schreiben nur Dateien in
-deiner Wurzel. Die Regeln stehen in `spec/job-application/mail-verwaltung/en.md` (MV-18 bis MV-27) und
+Vorgang, die du freigibst, und Wiedervorlagen erinnern dich. `job-application-result-evaluate` macht aus den bestätigten Ergebnissen vieler
+Bewerbungen Kennzahlen und eine Retrospektive. Zwei kleine Skripte erledigen das, `scripts/kommunikation.py` und `scripts/lernen.py`; beide
+lesen und schreiben nur Dateien in deiner Wurzel. Die Regeln stehen in `spec/job-application/mail-verwaltung/en.md` (MV-18 bis MV-27) und
 `spec/job-application/ergebnisauswertung/en.md` (EA-1 bis EA-16).
 
 ## Was es tut und was nicht
@@ -53,6 +53,8 @@ inhaltliche Rückmeldung, nichts wartet auf die Prüfung und **eine Frist, die d
 `job-application-email-create`; vor jedem Versand siehst du Nachricht, Empfänger und Vorgang und gibst die genaue Datei im Workflow frei.
 
 ## Ergebnisse und Auswertung
+
+Der Skill für diesen Teil ist `job-application-result-evaluate`; er liest, was die Nachverfolgung gespeichert hat, und schreibt nur unter `lernen/`.
 
 ```bash
 python3 <plugin>/scripts/lernen.py statistik --von 2026-10-01 --nach zeitraum      # oder: task learn -- statistik …

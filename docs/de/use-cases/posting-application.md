@@ -18,7 +18,7 @@ Du bewirbst dich per E-Mail.
 ### 1. Mit der Anzeige starten
 
 ```text
-/claude-job-search:job-application-solution
+/job-application:job-application-solution
 ```
 
 Füge auf Nachfrage den Anzeigentext (oder den Link) ein. Der Skill prüft, ob das Profil aktuell
@@ -79,7 +79,7 @@ nichts.
 ### 6. Exportieren und versenden
 
 ```text
-/claude-job-search:job-application-export
+/job-application:job-application-export
 ```
 
 Wähle PDF (der Standard, auch für Portale). Versende die Mail dann selbst und trage Datum, Kanal

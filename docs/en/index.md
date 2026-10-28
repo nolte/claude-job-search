@@ -22,11 +22,11 @@ application. See [Getting started](getting-started.md) for the walk-through and 
 
 - New here? Read [Getting started](getting-started.md): install, configure, capture your data, first application.
 - Want to see the plugin in a situation like yours? See the [use cases](use-cases/index.md): posting, recruiter, career change, initiative application, keeping your data current.
-- Run `/claude-job-search:job-application-profile-capture` first if you have no Datengrundlage yet.
-- Want to know what you are looking for before you apply? Run `/claude-job-search:job-application-traumjob-interview` once, then `/claude-job-search:job-application-fit-check` for each posting or company.
-- Do not have a posting yet? Run `/claude-job-search:job-application-job-search` to search job boards with a brief you approve first; it needs the optional [JobSpy](jobspy.md) server, with its own risks.
-- Run `/claude-job-search:job-application-solution` with the posting text for a complete application.
-- Run `/claude-job-search:job-application-quality-gate` on any existing application folder before sending.
+- Run `/job-application:job-application-profile-capture` first if you have no Datengrundlage yet.
+- Want to know what you are looking for before you apply? Run `/job-application:job-application-traumjob-interview` once, then `/job-application:job-application-fit-check` for each posting or company.
+- Do not have a posting yet? Run `/job-application:job-application-job-search` to search job boards with a brief you approve first; it needs the optional [JobSpy](jobspy.md) server, with its own risks.
+- Run `/job-application:job-application-solution` with the posting text for a complete application.
+- Run `/job-application:job-application-quality-gate` on any existing application folder before sending.
 - Several applications and searches at once? The [workflow](workflow.md) keeps the order of the steps, what waits for your approval and what failed, across sessions.
 - Applying through a recruiter or an agency? Read [Counterparts](counterparts.md) first.
 - Curious which optional MCP servers exist and which rules they share? See [Optional MCP servers](mcp-servers.md); none is required.

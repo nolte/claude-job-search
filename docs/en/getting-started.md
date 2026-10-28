@@ -23,19 +23,19 @@ Pick one of three ways.
     }
   },
   "enabledPlugins": {
-    "claude-job-search@claude-job-search": true
+    "job-application@claude-job-search": true
   }
 }
 ```
 
 **Interactively.** Inside Claude Code run `/plugin`, add the marketplace
-`nolte/claude-job-search`, and install `claude-job-search` from it.
+`nolte/claude-job-search`, and install `job-application` from it.
 
 **From a local checkout.** Clone the repository and start Claude Code with
 `claude --plugin-dir <path-to-the-checkout>`.
 
-Afterwards the skills are available as `/claude-job-search:<skill>`, for example
-`/claude-job-search:job-application-solution`.
+Afterwards the skills are available as `/job-application:<skill>`, for example
+`/job-application:job-application-solution`.
 
 ## 2. Create the configuration
 
@@ -91,30 +91,30 @@ If you have connected the optional LinkedIn server, [LinkedIn access](linkedin.m
 bring in your own profile. Then run
 
 ```text
-/claude-job-search:job-application-profile-capture
+/job-application:job-application-profile-capture
 ```
 
 The skill reads the raw material, asks where it is unsure, and writes the Datengrundlage (your
 stations, education, skills, languages, certificates, each with its source) and the derived
 `profil.md`. Anything it cannot verify is marked `[ERGÄNZEN: …]` and stays visible until you
-resolve it. Later changes go through `/claude-job-search:job-application-cv-maintain`, which asks
+resolve it. Later changes go through `/job-application:job-application-cv-maintain`, which asks
 only about findings and records every change in the maintenance history.
 
 ## 4. Optional: say what you are looking for
 
 ```text
-/claude-job-search:job-application-traumjob-interview
+/job-application:job-application-traumjob-interview
 ```
 
 A seven-phase interview that records your wishes, priorities and vetoes as `wunschprofil.md`.
 Nothing is written before you confirm the summary. With a confirmed Wunschprofil,
-`/claude-job-search:job-application-fit-check` compares a posting or a company with it before you
+`/job-application:job-application-fit-check` compares a posting or a company with it before you
 spend time on documents, and a veto stops the plan in step 5.
 
 ## 5. The first application
 
 ```text
-/claude-job-search:job-application-solution
+/job-application:job-application-solution
 ```
 
 Paste the posting text or give its link. A link alone is enough: the skill cleans it of tracking
@@ -243,7 +243,7 @@ in the data root gives the same list on the command line.
 ## 8. Export on request
 
 Documents stay Markdown until you ask for an export. Run
-`/claude-job-search:job-application-export` or `task export` for a PDF, DOCX, HTML or Markdown
+`/job-application:job-application-export` or `task export` for a PDF, DOCX, HTML or Markdown
 copy. A text PDF is the default, also for application portals; produce DOCX only when a portal
 explicitly asks for it. Details, requirements and the container that bundles everything are on
 the [Export](export.md) page.

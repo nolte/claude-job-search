@@ -12,7 +12,7 @@ named.
 ### 1. Hand the message to the front door
 
 ```text
-/claude-job-search:job-application-solution
+/job-application:job-application-solution
 ```
 
 Paste the message. The posting analysis reads the signals ("unser Kunde", a sender domain that

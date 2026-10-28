@@ -10,7 +10,7 @@ in dem dein Lebenslauf nicht geradlinig verläuft.
 ### 1. Festhalten, was du willst
 
 ```text
-/claude-job-search:job-application-traumjob-interview
+/job-application:job-application-traumjob-interview
 ```
 
 Ein Interview in sieben Phasen zu Wünschen, Prioritäten, Ausschlüssen und Hypothesen. Nichts
@@ -20,7 +20,7 @@ einschließlich deiner **Vetos** (zum Beispiel: kein Bereitschaftsdienst, keine 
 ### 2. Jobbörsen durchsuchen (optional)
 
 ```text
-/claude-job-search:job-application-job-search
+/job-application:job-application-job-search
 ```
 
 Der Skill leitet aus Wunschprofil und `profil.md` einen **Suchbrief** ab, zeigt ihn mit der Quelle
@@ -35,7 +35,7 @@ Ohne JobSpy überspringst du den Schritt und fügst eine selbst gefundene Anzeig
 ### 3. Die Passung prüfen, bevor du investierst
 
 ```text
-/claude-job-search:job-application-fit-check
+/job-application:job-application-fit-check
 ```
 
 Füge eine Anzeige ein oder nenne ein Unternehmen. Das Ergebnis in `passung.md` lautet *Veto*,

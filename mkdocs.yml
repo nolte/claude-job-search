@@ -1,6 +1,6 @@
 site_name: claude-job-search
 site_url: https://nolte.github.io/claude-job-search/
-site_description: Claude Code skills for German-speaking job applications (Bewerbungsunterlagen) — packaged as the claude-job-search plugin.
+site_description: Claude Code skills for German-speaking job applications (Bewerbungsunterlagen) — packaged as the job-application plugin.
 site_author: nolte
 
 repo_url: https://github.com/nolte/claude-job-search

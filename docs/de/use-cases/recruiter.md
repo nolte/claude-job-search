@@ -12,7 +12,7 @@ wird nicht genannt.
 ### 1. Die Nachricht an die Eingangstür geben
 
 ```text
-/claude-job-search:job-application-solution
+/job-application:job-application-solution
 ```
 
 Füge die Nachricht ein. Die Anzeigenanalyse liest die Signale („unser Kunde", eine Absender-

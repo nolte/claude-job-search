@@ -10,7 +10,7 @@ does not read as a straight line.
 ### 1. Record what you want
 
 ```text
-/claude-job-search:job-application-traumjob-interview
+/job-application:job-application-traumjob-interview
 ```
 
 A seven-phase interview about wishes, priorities, exclusions and hypotheses. Nothing is written
@@ -20,7 +20,7 @@ before you confirm the summary. The result is `wunschprofil.md`, including your 
 ### 2. Search job boards (optional)
 
 ```text
-/claude-job-search:job-application-job-search
+/job-application:job-application-job-search
 ```
 
 The skill derives a **Suchbrief** from the Wunschprofil and `profil.md`, shows it with the source
@@ -35,7 +35,7 @@ Without JobSpy, skip this step and paste a posting you found yourself.
 ### 3. Check the fit before you invest
 
 ```text
-/claude-job-search:job-application-fit-check
+/job-application:job-application-fit-check
 ```
 
 Paste a posting or name a company. The result in `passung.md` is one of *Veto*, *Klärungsbedarf*

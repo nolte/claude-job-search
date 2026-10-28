@@ -166,8 +166,13 @@ class EvalSuiteTests(unittest.TestCase):
             name = os.path.basename(case)
             if not name.startswith("trigger-"):
                 continue
-            target = "reviewer" if name == "trigger-reviewer" else name.replace("trigger-", "")
             text = "\n".join(read(g) for g in glob.glob(os.path.join(case, "graders", "*.md")))
+            if name.startswith("trigger-negative-"):
+                # a should-not-trigger case: the owning skill fires (positive grader) and the wrong one does not (max: 0)
+                self.assertRegex(text, r"(?m)^max: 0$", name)
+                self.assertTrue(any("max: 0" not in read(g) and "tool: Skill" in read(g) for g in glob.glob(os.path.join(case, "graders", "*.md"))), name)
+                continue
+            target = "reviewer" if name == "trigger-reviewer" else name.replace("trigger-", "")
             self.assertIn(f"job-application-{target}", text, name)
 
     def test_scaffold_scripts_are_executable_and_avoid_the_users_home(self):

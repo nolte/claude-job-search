@@ -9,7 +9,7 @@ und bewirbst dich nun sowohl auf Fach- als auch auf Führungsstellen.
 ## Die Datengrundlage pflegen
 
 ```text
-/claude-job-search:job-application-cv-maintain
+/job-application:job-application-cv-maintain
 ```
 
 Der Skill prüft die erforderlichen Kernpunkte und Unstimmigkeiten in deiner Datengrundlage

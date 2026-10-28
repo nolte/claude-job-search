@@ -1,0 +1,17 @@
+{
+  "description": "Refuses a write into a Wurzel or Datengrundlage that lies inside the plugin repository (lokale-struktur LS-2.4, konventionen R-9.9). Active only when job-application/konfiguration.md exists in the working directory.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/boundary_hook.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
