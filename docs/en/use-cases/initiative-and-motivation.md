@@ -8,7 +8,7 @@ goals.
 **Example:** You would like to work at Beispiel AG, which has no open role that fits.
 
 ```text
-/claude-job-search:job-application-cover-letter-create
+/job-application:job-application-cover-letter-create
 ```
 
 Choose the variant `initiativ`. Without a posting there is no requirement list and no reference
@@ -29,7 +29,7 @@ Vorgang first, so that the application is tracked like any other.
 **Example:** A Stipendium of the fictional Beispiel-Stiftung asks for a Motivationsschreiben.
 
 ```text
-/claude-job-search:job-application-motivation-letter-create
+/job-application:job-application-motivation-letter-create
 ```
 
 The variants are `stelle` (default), `studium`, `stipendium`, `quereinstieg` and

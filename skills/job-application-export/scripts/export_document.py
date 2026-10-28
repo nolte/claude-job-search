@@ -58,6 +58,9 @@ from collections import Counter
 from pathlib import Path
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
+# The repository boundary has one implementation, scripts/grundlage_hash.py at the plugin root (LS-2.4, R-9.9).
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+from grundlage_hash import inside_plugin_repo  # noqa: E402
 PAGE_LIMITS = {"cv": 2, "letter": 1, "motivation": 2, "email": None}
 OPEN_PLACEHOLDER = re.compile(r"\[(ERGÄNZEN|KLÄREN)")  # R-1 / R-7: not ready to send
 EXIT_CONTENT = 2
@@ -96,20 +99,6 @@ def ascii_name(name):
     name = unicodedata.normalize("NFKD", name.translate(TRANSLITERATION))
     name = "".join(ch for ch in name if not unicodedata.combining(ch))
     return re.sub(r"[^A-Za-z0-9._-]", "", name)
-
-
-def in_plugin_repository(path):
-    """True when `path` or a parent holds .claude-plugin/plugin.json of claude-job-search (LS-2.4, R-9.9)."""
-    path = Path(path).resolve()
-    for directory in (path, *path.parents):
-        manifest = directory / ".claude-plugin" / "plugin.json"
-        if manifest.is_file():
-            try:
-                if json.loads(manifest.read_text(encoding="utf-8")).get("name") == "claude-job-search":
-                    return True
-            except (OSError, ValueError):
-                pass
-    return False
 
 
 ONE_PAGE_VARIANTS = ("stelle", "quereinstieg", "berufseinstieg")
@@ -646,7 +635,7 @@ def main(argv=None):
         if not name:
             raise ExportError("Der Dateiname ist nach der ASCII-Umschrift leer. --name angeben (R-4).")
         out_dir = (args.out_dir or default_out_dir(args.input)).resolve()
-        if in_plugin_repository(out_dir):
+        if inside_plugin_repo(out_dir):
             raise ExportError(f"Ausgabeordner {out_dir} liegt im Plugin-Repository. Es wird nur in die Wurzel "
                               "geschrieben (LS-5.7); --out-dir auf einen Ordner der Wurzel setzen.")
         out_dir.mkdir(parents=True, exist_ok=True)

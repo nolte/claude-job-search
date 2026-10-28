@@ -9,7 +9,7 @@ specialist and for lead positions.
 ## Maintain the Datengrundlage
 
 ```text
-/claude-job-search:job-application-cv-maintain
+/job-application:job-application-cv-maintain
 ```
 
 The skill checks the required core points and inconsistencies in your Datengrundlage (gaps

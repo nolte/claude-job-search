@@ -23,11 +23,11 @@ Bewerbung. Den Ablauf zeigt dir [Erste Schritte](getting-started.md), die Begrif
 
 - Neu hier? Lies [Erste Schritte](getting-started.md): installieren, konfigurieren, Daten erfassen, erste Bewerbung.
 - Du willst das Plugin in einer Situation wie deiner sehen? Die [Anwendungsfälle](use-cases/index.md): Anzeige, Recruiter, Berufswechsel, Initiativbewerbung, Daten aktuell halten.
-- `/claude-job-search:job-application-profile-capture`, wenn noch keine Datengrundlage existiert.
-- Du willst erst wissen, was du suchst? Führe einmal `/claude-job-search:job-application-traumjob-interview` aus und danach `/claude-job-search:job-application-fit-check` für jede Stelle oder Firma.
-- Hast du noch keine Anzeige? Führe `/claude-job-search:job-application-job-search` aus, um Jobbörsen mit einem Brief zu durchsuchen, den du zuerst freigibst; dafür brauchst du den optionalen Server [JobSpy](jobspy.md), mit eigenen Risiken.
-- `/claude-job-search:job-application-solution` mit dem Text der Stellenanzeige für eine komplette Bewerbung.
-- `/claude-job-search:job-application-quality-gate` vor dem Versand eines vorhandenen Bewerbungsordners.
+- `/job-application:job-application-profile-capture`, wenn noch keine Datengrundlage existiert.
+- Du willst erst wissen, was du suchst? Führe einmal `/job-application:job-application-traumjob-interview` aus und danach `/job-application:job-application-fit-check` für jede Stelle oder Firma.
+- Hast du noch keine Anzeige? Führe `/job-application:job-application-job-search` aus, um Jobbörsen mit einem Brief zu durchsuchen, den du zuerst freigibst; dafür brauchst du den optionalen Server [JobSpy](jobspy.md), mit eigenen Risiken.
+- `/job-application:job-application-solution` mit dem Text der Stellenanzeige für eine komplette Bewerbung.
+- `/job-application:job-application-quality-gate` vor dem Versand eines vorhandenen Bewerbungsordners.
 - Mehrere Bewerbungen und Suchen gleichzeitig? Der [Workflow](workflow.md) behält über Sitzungen hinweg die Reihenfolge der Schritte, was auf deine Freigabe wartet und was fehlgeschlagen ist.
 - Bewirbst du dich über einen Personalvermittler oder Headhunter? Lies zuerst [Gegenpartei](counterparts.md).
 - Du willst wissen, welche optionalen MCP-Server es gibt und welche Regeln für alle gelten? Siehe [Optionale MCP-Server](mcp-servers.md); keiner ist nötig.

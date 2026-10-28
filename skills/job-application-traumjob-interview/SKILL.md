@@ -1,6 +1,6 @@
 ---
 name: job-application-traumjob-interview
-description: "Interviews the candidate in seven phases to identify the work they want (Wünsche, Prioritäten, Ausschlüsse, Hypothesen) and stores the confirmed result as wunschprofil.md in the Wurzel. Use on \"finde meinen Traumjob\", \"welche Arbeit will ich eigentlich\", \"Wunschprofil erstellen\", \"Präferenzen festhalten\", or equivalent German requests. Don't use for the Lebenslauf facts (job-application-profile-capture, job-application-cv-maintain), for checking a posting against the wishes (job-application-fit-check), or for the company analysis (posting-analysis)."
+description: "Interviews the candidate in seven phases to identify the work they want (Wünsche, Prioritäten, Ausschlüsse, Hypothesen) and stores the confirmed result as wunschprofil.md in the Wurzel. Use on \"finde meinen Traumjob\", \"welche Arbeit will ich eigentlich\", \"Wunschprofil erstellen\", \"Präferenzen festhalten\", or equivalent German requests. Don't use for the Lebenslauf facts (job-application-profile-capture, job-application-cv-maintain), for checking a posting against the wishes (job-application-fit-check), or for the company analysis (job-application-posting-analysis)."
 tags: [bewerbung, wunschprofil, interview, deutsch]
 phase: intake
 summary: "Seven-phase preference interview that stores a confirmed Wunschprofil with priorities, vetoes and hypotheses."
@@ -22,28 +22,39 @@ see_also:
 
 Spec: `spec/job-application/traumjob-interview/en.md` (WJ-1 terms, WJ-2 principles, WJ-3 phases, priorities and
 Hypothesen, WJ-4 dimensions, WJ-5 storage, WJ-7 use in the process, WJ-8 privacy, WJ-9 scenarios). Storage and privacy:
-`spec/job-application/lokale-struktur/en.md` LS-2, LS-4, LS-5 and `spec/job-application/konventionen/en.md` R-6.
-The Wunschprofil is a preference, not a fact: it is never written into the Grundlage (LS-5.2) and never into a document.
-The one exception is the Motivationsschreiben, which may state a wish the user confirmed for that letter, and never a wish
-marked `hypothese: ja` (WJ-7.2, `spec/job-application/motivationsschreiben/en.md` MS-3.3). That letter is written by
-`job-application-motivation-letter-create`, not by this skill.
+`spec/job-application/lokale-struktur/en.md` LS-2, LS-4, LS-5 and `spec/job-application/konventionen/en.md` R-6. The
+rule IDs cite the spec files under `${CLAUDE_PLUGIN_ROOT}/spec/job-application/`; read a spec file only when a cited rule
+is unclear. The Wunschprofil is a preference, not a fact: it is never written into the Grundlage (LS-5.2) and never into a
+document. The one exception is the Motivationsschreiben, which may state a wish the user confirmed for that letter, and
+never a wish marked `hypothese: ja` (WJ-7.2, `spec/job-application/motivationsschreiben/en.md` MS-3.3). That letter is
+written by `job-application-motivation-letter-create`, not by this skill.
+
+## Hard rules
+
+1. **Only the Wurzel.** Write nothing outside `<wurzel>/wunschprofil.md`. Never write into the Grundlage or into a
+   document, and never inside the plugin repository (Paths and boundary).
+2. **Consent first, delete on request.** Delete the files the candidate names, after showing them (WJ-8.3).
+3. **Nothing leaves the machine.** The interview sends nothing: no web search, no message and no external service
+   receives wishes or interview content. The only exception is a job search run by `job-application-job-search`, which
+   sends just the terms of the Suchbrief the user approved (WJ-8.2, ST-2); Ausschluss reasons, salary expectations,
+   personal circumstances and Datengrundlage text never leave.
+4. **Nothing is written before phase 7 is confirmed** (WJ-5).
 
 ## Paths and boundary
 
-1. **Anker (LS-2.3).** Read `job-application/konfiguration.md` first. Take `wurzel` (default `job-application/`) from its
-   frontmatter. If the file is missing, ask once for the path of the Wurzel and write it there. The only keys are `wurzel`,
-   `grundlage` and `grundlage_index` (LS-2.5). Relative paths resolve against the working directory that contains
-   `job-application/konfiguration.md` (LS-2.6).
-2. **Repository boundary (LS-2.4, R-9.9).** Before any read or write, resolve the absolute path of the Wurzel. Walk up from
-   it, including the directory itself. If a directory contains `.claude-plugin/plugin.json` with
-   `"name": "claude-job-search"`, **refuse**, write nothing and report:
-   > Der Pfad liegt im Plugin-Repository. Lege die Wurzel außerhalb ab und trage den Pfad in
-   > `job-application/konfiguration.md` unter `wurzel` ein.
+Read `job-application/konfiguration.md` first (the Anker, LS-2.3): key `wurzel` (default `job-application/`); relative
+paths resolve against the working directory that contains the Anker (LS-2.6). Without an Anker, ask once for the path of
+the Wurzel and write it there; only the keys `wurzel`, `grundlage` and `grundlage_index` are ever written (LS-2.5).
+
+**Repository boundary (LS-2.4, R-9.9).** The Wurzel must lie outside the plugin repository (a directory tree holding
+`.claude-plugin/plugin.json` with `"name": "job-application"`). Resolve it before any read or write; if it lies inside,
+refuse, write nothing and tell the user to point `wurzel` in `job-application/konfiguration.md` outside. The plugin hook
+and the scripts refuse such a path too.
 
 ## Inputs
 
 - The Wurzel as resolved above.
-- An existing `wunschprofil.md` in the Wurzel, if there is one (see Resume).
+- An existing `wunschprofil.md` in the Wurzel, if there is one (see Resume and changes).
 
 ## Workflow
 
@@ -152,9 +163,17 @@ Einwilligung am YYYY-MM-DD, Speicherort, Löschung auf Wunsch.
 - A Hypothese is confirmed or dropped only when the candidate has evidence, or when a fit check showed it was wrong
   (WJ-3.3, rule 3). Ask before changing it.
 
-## Hard rules
+## Gotchas
 
-1. **Only the Wurzel.** Write nothing outside `<wurzel>/wunschprofil.md`. Never write into the Grundlage or into a
-   document, and never inside the plugin repository (Paths and boundary).
-2. **Consent first, delete on request.** Delete the files the candidate names, after showing them (WJ-8.3).
-3. **Nothing leaves the machine.** The interview sends nothing: no web search, no message and no external service receives wishes or interview content. The only exception is a job search run by `job-application-job-search`, which sends just the terms of the Suchbrief the user approved (WJ-8.2, ST-2); Ausschluss reasons, salary expectations, personal circumstances and Datengrundlage text never leave.
+- An interrupted interview stores nothing; the interim result exists only in the chat. Say so before the candidate
+  leaves, and offer the paste for the next run.
+- An Ausschluss without an episode becomes Soll or Kann with `hypothese: ja`; do not keep it as an Ausschluss because the
+  candidate insists, the veto needs a confirmed reason (WJ-3.3).
+- The skill never reads the Grundlage for wishes; a role there is not a preference.
+
+## Why this is a skill, not an agent
+
+- The interview is a seven-phase conversation with confirmation after every phase; it cannot run fire-and-forget.
+- It writes one file in the Wurzel that the fit check and the job search read in later sessions; there is no report to
+  return.
+- Counter-dimension: none that is load-bearing; the choice was uncontested.

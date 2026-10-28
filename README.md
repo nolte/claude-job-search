@@ -45,8 +45,9 @@ them. The result is consistent, fits the posting, and never invents experience.
   `job-application-reviewer` reads it like a recruiter would. `job-application-export` produces
   PDF, Word, HTML or Markdown.
 - **Follow an application after sending.** `job-application-follow-up` turns the replies you hand over into proposals for the Vorgang
-  that you approve line by line, keeps Wiedervorlagen, prepares the basis of a follow-up mail, and evaluates your confirmed results
-  (response rate, response times, a retrospective). It sends nothing and changes no personal data (docs page *Follow-up and learning*).
+  that you approve line by line, keeps Wiedervorlagen and prepares the basis of a follow-up mail; `job-application-result-evaluate`
+  evaluates your confirmed results (response rate, response times, a retrospective, proposals you decide on). Both send nothing and
+  change no personal data (docs page *Follow-up and learning*).
 - **Look for postings** (optional). `job-application-job-search` searches job boards with a search
   brief that you approve first. An approved search (Suchauftrag) can be repeated and fills a queue of
   found postings that remembers your decisions; repeating it on a schedule needs a timer that you set up
@@ -61,8 +62,8 @@ or you let `job-application-follow-up` propose the entries from messages you han
 2. Create `job-application/konfiguration.md` and point it at your material (one file or a folder of
    notes).
 3. Put your old CVs and certificates into `rohdaten/` and run
-   `/claude-job-search:job-application-profile-capture`.
-4. Run `/claude-job-search:job-application-solution` and paste the text of a posting.
+   `/job-application:job-application-profile-capture`.
+4. Run `/job-application:job-application-solution` and paste the text of a posting.
 
 The step-by-step guide with examples is on the docs page *Getting started*:
 <https://nolte.github.io/claude-job-search/getting-started/> (German: *Erste Schritte*,
@@ -80,8 +81,8 @@ the risks are on the docs page *Optional MCP servers*:
 
 ## Usage
 
-Start a skill with `/claude-job-search:<skill>`, for example
-`/claude-job-search:job-application-solution`. Your data lives in the *Wurzel*, by default the
+Start a skill with `/job-application:<skill>`, for example
+`/job-application:job-application-solution`. Your data lives in the *Wurzel*, by default the
 `job-application/` folder of your working directory. It is local and ignored by git. If you want
 to track it, use a private repository.
 

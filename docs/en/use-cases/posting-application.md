@@ -18,7 +18,7 @@ apply by e-mail.
 ### 1. Start with the posting
 
 ```text
-/claude-job-search:job-application-solution
+/job-application:job-application-solution
 ```
 
 Paste the posting text (or the link) when asked. The skill checks that the profile is current,
@@ -79,7 +79,7 @@ recruiter in the first minute and returns READY or NEEDS-WORK; it changes nothin
 ### 6. Export and send
 
 ```text
-/claude-job-search:job-application-export
+/job-application:job-application-export
 ```
 
 Pick PDF (the default, also for portals). Then send the mail yourself and record date, channel

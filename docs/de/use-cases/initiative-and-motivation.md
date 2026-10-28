@@ -9,7 +9,7 @@ Gründe und Ziele.
 hat.
 
 ```text
-/claude-job-search:job-application-cover-letter-create
+/job-application:job-application-cover-letter-create
 ```
 
 Wähle die Variante `initiativ`. Ohne Anzeige gibt es weder eine Anforderungsliste noch eine
@@ -29,7 +29,7 @@ lege sonst zuerst den Vorgang an, damit die Bewerbung wie jede andere nachverfol
 **Beispiel:** Ein Stipendium der erfundenen Beispiel-Stiftung verlangt ein Motivationsschreiben.
 
 ```text
-/claude-job-search:job-application-motivation-letter-create
+/job-application:job-application-motivation-letter-create
 ```
 
 Die Varianten sind `stelle` (Standard), `studium`, `stipendium`, `quereinstieg` und

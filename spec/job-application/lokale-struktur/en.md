@@ -34,7 +34,7 @@ Requirement basis: `project/requirements/eigene-datengrundlage.md`,
    konfiguration (see LS-2.5). Without an Anker, a skill asks for the path once and writes it there.
 4. **Repository boundary.** The rule R-9.9 applies to the whole Wurzel, not only to the
    Grundlage. A Wurzel inside a directory tree containing `.claude-plugin/plugin.json` with
-   `"name": "claude-job-search"` is refused. A user who works inside this repository sets
+   `"name": "job-application"` is refused. A user who works inside this repository sets
    `wurzel` to a path outside it.
 5. **Konfiguration content.** Only these frontmatter keys are allowed:
 

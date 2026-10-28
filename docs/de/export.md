@@ -3,7 +3,7 @@
 !!! abstract "Für Fortgeschrittene (Operator-Inhalt)"
     Diese Seite richtet sich an die Person, die den Export ausführt: Sie nennt Pakete,
     Kommandozeilen und einen Container. Willst du nur eine PDF eines geprüften Dokuments, bitte
-    den Export-Skill darum (`/claude-job-search:job-application-export`) und komm hierher zurück,
+    den Export-Skill darum (`/job-application:job-application-export`) und komm hierher zurück,
     wenn er ein fehlendes Werkzeug meldet.
 
 Diese Seite beschreibt, was benötigt wird, um einen fertigen Lebenslauf mit dem LaTeX-Template
@@ -86,13 +86,16 @@ Exports. Für die Kopie an den Empfänger nutzt du `--name Vorname_Nachname_Lebe
 
 ## Befehle
 
-Führe sie im Hauptverzeichnis des Plugin-Repositorys aus, dort liegt die `Taskfile.yml`:
+Der Export-Skill ruft das mitgelieferte Skript auf; `<plugin>` ist das Plugin-Verzeichnis (Claude Code setzt für den
+Skill `${CLAUDE_PLUGIN_ROOT}` ein; für einen manuellen Aufruf ist es der Ordner mit `.claude-plugin/plugin.json`):
 
 ```bash
-task export -- job-application/<slug>/lebenslauf.md --format pdf --doc-type cv
-task export -- job-application/<slug>/lebenslauf.md --format pdf --doc-type cv --name Vorname_Nachname_Lebenslauf
-task export -- job-application/<slug>/lebenslauf.md --format tex --doc-type cv
+python3 <plugin>/skills/job-application-export/scripts/export_document.py job-application/<slug>/lebenslauf.md --format pdf --doc-type cv
+python3 <plugin>/skills/job-application-export/scripts/export_document.py job-application/<slug>/lebenslauf.md --format pdf --doc-type cv --name Vorname_Nachname_Lebenslauf
+python3 <plugin>/skills/job-application-export/scripts/export_document.py job-application/<slug>/lebenslauf.md --format tex --doc-type cv
 ```
+
+In einem Checkout des Plugin-Repositorys ist `task export -- <datei.md> …` derselbe Aufruf über die `Taskfile.yml`.
 
 | Option | Bedeutung |
 |---|---|

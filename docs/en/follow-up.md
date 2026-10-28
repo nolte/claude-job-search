@@ -1,8 +1,9 @@
 # Follow-up and learning
 
 After you send an application, `job-application-follow-up` keeps the course of it: replies enter the Vorgang as proposals that
-you approve, Wiedervorlagen remind you, and the confirmed results of many applications become figures and a retrospective. Two small
-scripts do the work, `scripts/kommunikation.py` and `scripts/lernen.py`; both read and write files in your Wurzel only. The rules are in
+you approve and Wiedervorlagen remind you. `job-application-result-evaluate` turns the confirmed results of many applications into
+figures and a retrospective. Two small scripts do the work, `scripts/kommunikation.py` and `scripts/lernen.py`; both read and write
+files in your Wurzel only. The rules are in
 `spec/job-application/mail-verwaltung/en.md` (MV-18 to MV-27) and `spec/job-application/ergebnisauswertung/en.md` (EA-1 to EA-16).
 
 ## What it does and what it does not
@@ -52,6 +53,8 @@ nothing waiting for the check, and **a deadline you set** (`--nach-tage`, `nachf
 sent you see message, recipient and Vorgang and approve the exact file in the workflow.
 
 ## Results and evaluation
+
+The skill for this part is `job-application-result-evaluate`; it reads what the follow-up stored and writes only below `lernen/`.
 
 ```bash
 python3 <plugin>/scripts/lernen.py statistik --von 2026-10-01 --nach zeitraum      # or: task learn -- statistik …

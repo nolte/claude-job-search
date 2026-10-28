@@ -19,7 +19,7 @@ import os
 import re
 import sys
 
-PLUGIN_NAME = "claude-job-search"
+PLUGIN_NAME = "job-application"
 DEFAULT_WURZEL = "job-application"
 DEFAULT_GRUNDLAGE = os.path.join("grundlage", "lebenslauf-chronologisch.md")
 
@@ -50,8 +50,13 @@ def sha256_file(path):
 
 
 def inside_plugin_repo(path):
-    """True when an ancestor directory is this plugin's repository (R-9.9)."""
-    directory = os.path.dirname(os.path.abspath(path))
+    """True when `path` or an ancestor directory is this plugin's repository (R-9.9, LS-2.4).
+
+    A directory is checked itself first (LS-2.4: "including the directory itself"); a file starts at its folder.
+    """
+    directory = os.path.abspath(path)
+    if not os.path.isdir(directory):
+        directory = os.path.dirname(directory)
     while True:
         manifest = os.path.join(directory, ".claude-plugin", "plugin.json")
         if os.path.isfile(manifest):

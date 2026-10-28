@@ -229,7 +229,8 @@ class Documentation(unittest.TestCase):
 
     def test_the_rules_are_documented_where_they_are_applied(self):
         spec = self.read("spec", "job-application", "cv-generierung", "en.md")
-        gate = self.read("skills", "job-application-quality-gate", "SKILL.md")
+        # the gate lists its rules in references/checks.md, which SKILL.md loads in step 2 of its workflow
+        gate = self.read("skills", "job-application-quality-gate", "SKILL.md") + self.read("skills", "job-application-quality-gate", "references", "checks.md")
         reviewer = self.read("agents", "job-application-reviewer.md")
         create = self.read("skills", "job-application-cv-create", "SKILL.md")
         for rule in ("CV-22", "CV-23"):

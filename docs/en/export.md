@@ -3,7 +3,7 @@
 !!! abstract "For advanced users (operator content)"
     This page is for the person who runs the export: it names packages, command lines and a
     container. If you only want a PDF of a checked document, ask the export skill
-    (`/claude-job-search:job-application-export`) and come back here when it reports a missing
+    (`/job-application:job-application-export`) and come back here when it reports a missing
     tool.
 
 This page lists what you need to turn a finished Lebenslauf into a PDF with the LaTeX template,
@@ -85,13 +85,16 @@ for the copy that goes to the recipient.
 
 ## Commands
 
-Run them from the root of the plugin repository, where `Taskfile.yml` is:
+The export skill runs the bundled script; `<plugin>` is the plugin directory (Claude Code fills in `${CLAUDE_PLUGIN_ROOT}`
+for the skill; for a manual call it is the folder that holds `.claude-plugin/plugin.json`):
 
 ```bash
-task export -- job-application/<slug>/lebenslauf.md --format pdf --doc-type cv
-task export -- job-application/<slug>/lebenslauf.md --format pdf --doc-type cv --name Vorname_Nachname_Lebenslauf
-task export -- job-application/<slug>/lebenslauf.md --format tex --doc-type cv
+python3 <plugin>/skills/job-application-export/scripts/export_document.py job-application/<slug>/lebenslauf.md --format pdf --doc-type cv
+python3 <plugin>/skills/job-application-export/scripts/export_document.py job-application/<slug>/lebenslauf.md --format pdf --doc-type cv --name Vorname_Nachname_Lebenslauf
+python3 <plugin>/skills/job-application-export/scripts/export_document.py job-application/<slug>/lebenslauf.md --format tex --doc-type cv
 ```
+
+Inside a checkout of the plugin repository, `task export -- <datei.md> …` is the same call through the `Taskfile.yml`.
 
 | Option | Meaning |
 |---|---|
